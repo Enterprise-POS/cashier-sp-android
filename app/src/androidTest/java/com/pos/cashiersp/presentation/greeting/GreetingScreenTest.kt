@@ -81,9 +81,9 @@ class GreetingScreenTest {
             CashierSPTheme {
                 NavHost(
                     navController = navController,
-                    startDestination = Screen.Greeting.route
+                    startDestination = Screen.GREETING
                 ) {
-                    composable(route = Screen.Greeting.route) {
+                    composable(route = Screen.GREETING) {
                         GreetingScreen(navController)
                     }
                 }
