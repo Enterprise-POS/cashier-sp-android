@@ -3,6 +3,7 @@ package com.pos.cashiersp.common
 object TestTags {
     const val GREETING_TEXT = "GREETING_TEXT"
     const val DRAWER_CONTAINER = "DRAWER_CONTAINER"
+    const val ENTERPRISE_POS_LOGO = "ENTERPRISE_POS_LOGO"
 
     object CashierScreen {
         const val CASHIER_TITLE = "CASHIER_TITLE"

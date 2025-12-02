@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Cashier SP</string>
+    <string name="enterprise_pos_logo">Enterprise POS</string>
 </resources>

@@ -5,9 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
@@ -32,7 +29,7 @@ class MainActivity : ComponentActivity() {
             setContent {
                 CashierSPTheme {
                     val navController: NavHostController = rememberNavController()
-                    CashierDrawer {drawerState: DrawerState ->
+                    CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
                             startDestination = Screen.CASHIER
@@ -72,7 +69,7 @@ class MainActivity : ComponentActivity() {
 fun GreetingPreview() {
     CashierSPTheme {
         val navController: NavHostController = rememberNavController()
-        CashierDrawer {drawerState: DrawerState ->
+        CashierDrawer(navController) { drawerState: DrawerState ->
             NavHost(
                 navController = navController,
                 startDestination = Screen.GREETING

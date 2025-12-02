@@ -73,7 +73,7 @@ class CashierScreenTest {
         composeRule.setContent {
             CashierSPTheme {
                 val navController: NavHostController = rememberNavController()
-                CashierDrawer { drawerState: DrawerState ->
+                CashierDrawer(navController) { drawerState: DrawerState ->
                     NavHost(
                         navController = navController,
                         startDestination = Screen.CASHIER

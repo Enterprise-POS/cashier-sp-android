@@ -1,9 +1,10 @@
 package com.pos.cashiersp.presentation
 
 object Screen {
-    const val GREETING = "greeting"
-    const val CASHIER = "cashier"
-    const val STOCK_MANAGEMENT = "stock_management"
-    const val STAFF_MANAGEMENT = "staff_management"
-    const val SETTINGS = "settings"
+    const val GREETING = "Greeting"
+    const val CASHIER = "Cashier"
+    const val STOCK_MANAGEMENT = "Stock Management"
+    const val STAFF_MANAGEMENT = "Staff Management"
+    const val SETTINGS = "Settings"
+    const val LOGOUT = "Logout"
 }
