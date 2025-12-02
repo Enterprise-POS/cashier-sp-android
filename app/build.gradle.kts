@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id ("androidx.room")
-    id ("kotlin-kapt")
+    id("androidx.room")
+    id("kotlin-kapt")
 }
 
 apply { plugin("com.android.application") }
@@ -110,6 +110,10 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2")
+
+    // Coil (async image)
+    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.28.0")

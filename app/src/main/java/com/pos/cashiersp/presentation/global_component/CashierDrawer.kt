@@ -16,7 +16,9 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.pos.cashiersp.common.TestTags
 
 @Composable
 fun CashierDrawer(content: @Composable (drawerState: DrawerState) -> Unit) {
@@ -26,7 +28,9 @@ fun CashierDrawer(content: @Composable (drawerState: DrawerState) -> Unit) {
         gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(120.dp)
+                modifier = Modifier
+                    .width(120.dp)
+                    .testTag(TestTags.DRAWER_CONTAINER)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
