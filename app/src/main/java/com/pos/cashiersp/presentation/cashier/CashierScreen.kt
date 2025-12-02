@@ -41,8 +41,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,6 +57,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +65,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
+import com.pos.cashiersp.presentation.greeting.component.CashierPartialBottomSheet
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
@@ -74,7 +81,13 @@ fun CashierScreen(
     viewModel: CashierViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
-
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true, // this will skip half state
+    )
+    val onHandleBottomSheet = fun() {
+        showBottomSheet = !showBottomSheet
+    }
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -86,8 +99,9 @@ fun CashierScreen(
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
                         modifier = Modifier
-                            .width(140.dp),
-                        onClick = {}
+                            .width(140.dp)
+                            .testTag(TestTags.CashierScreen.CHART_BUTTON),
+                        onClick = onHandleBottomSheet
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingCart,
@@ -275,9 +289,11 @@ fun CashierScreen(
                                 ) {
                                     // Title
                                     Text(
-                                        text = "Iced Coffee",
+                                        text = "Iced Coffee With Long Name and Not Gonna Rendered",
                                         fontSize = 12.sp,
                                         color = Secondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.height(20.dp),
                                     )
 
@@ -414,5 +430,12 @@ fun CashierScreen(
                 }
             }
         }
+
+        CashierPartialBottomSheet(
+            showBottomSheet, sheetState, mapOf<String, Int>(
+                Pair("Item 1", 1),
+                Pair("Item 2", 30)
+            ), listOf("Item 1", "Item 2"), onHandleBottomSheet
+        )
     }
 }

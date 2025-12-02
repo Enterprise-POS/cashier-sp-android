@@ -18,7 +18,6 @@ import com.pos.cashiersp.di.RoomModule
 import com.pos.cashiersp.presentation.MainActivity
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
-import com.pos.cashiersp.presentation.greeting.GreetingScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -108,6 +107,20 @@ class CashierScreenTest {
         val cashierDrawerContainer = composeRule.onNodeWithTag(TestTags.DRAWER_CONTAINER)
         cashierDrawerContainer.assertExists()
         cashierDrawerContainer.isDisplayed()
+    }
+
+    @Test
+    fun button_withChartIcon_openCashierBottomSheet() {
+        val chartIconButton = composeRule.onNodeWithTag(TestTags.CashierScreen.CHART_BUTTON)
+        chartIconButton.assertExists()
+        chartIconButton.isDisplayed()
+        chartIconButton.assertHasClickAction()
+
+        chartIconButton.performClick()
+        composeRule.waitForIdle()
+        val cashierBottomSheetContainer = composeRule.onNodeWithTag(TestTags.CashierScreen.PAYMENT_BOTTOM_SHEET)
+        cashierBottomSheetContainer.assertExists()
+        cashierBottomSheetContainer.isDisplayed()
     }
 
     @After
