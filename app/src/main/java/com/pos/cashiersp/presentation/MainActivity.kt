@@ -4,12 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.pos.cashiersp.BuildConfig
+import com.pos.cashiersp.presentation.cashier.CashierScreen
+import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.greeting.GreetingScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -24,23 +28,35 @@ class MainActivity : ComponentActivity() {
         if (BuildConfig.MODE == "dev" || BuildConfig.MODE == "prod") {
             setContent {
                 CashierSPTheme {
-                    val navController = rememberNavController()
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.Greeting.route
-                    ) {
-                        composable(
-                            route = Screen.Greeting.route
+                    val navController: NavHostController = rememberNavController()
+                    CashierDrawer(navController) { drawerState: DrawerState ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.CASHIER
                         ) {
-                            GreetingScreen(navController)
+                            composable(route = Screen.GREETING) {
+                                GreetingScreen(navController)
+                            }
+                            composable(route = Screen.CASHIER) {
+                                CashierScreen(navController, drawerState)
+                            }
+                            composable(route = Screen.STAFF_MANAGEMENT) {
+
+                            }
+                            composable(route = Screen.STOCK_MANAGEMENT) {
+
+                            }
+                            composable(route = Screen.SETTINGS) {
+
+                            }
+                            /*
+                            composable(
+                                route = Screen.CoinDetailScreen.route + "/{coinId}"
+                            ) {
+                                CoinDetailScreen()
+                            }
+                            *  */
                         }
-                        /*
-                        composable(
-                            route = Screen.CoinDetailScreen.route + "/{coinId}"
-                        ) {
-                            CoinDetailScreen()
-                        }
-                        *  */
                     }
                 }
             }
@@ -52,15 +68,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GreetingPreview() {
     CashierSPTheme {
-        val navController = rememberNavController()
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Greeting.route
-        ) {
-            composable(
-                route = Screen.Greeting.route
+        val navController: NavHostController = rememberNavController()
+        CashierDrawer(navController) { drawerState: DrawerState ->
+            NavHost(
+                navController = navController,
+                startDestination = Screen.GREETING
             ) {
-                GreetingScreen(navController)
+                composable(route = Screen.GREETING) {
+                    GreetingScreen(navController)
+                }
             }
         }
     }

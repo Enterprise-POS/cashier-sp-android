@@ -1,5 +1,10 @@
 package com.pos.cashiersp.presentation
 
-sealed class Screen(val route: String) {
-    object Greeting: Screen("Greeting")
+object Screen {
+    const val GREETING = "Greeting"
+    const val CASHIER = "Cashier"
+    const val STOCK_MANAGEMENT = "Stock Management"
+    const val STAFF_MANAGEMENT = "Staff Management"
+    const val SETTINGS = "Settings"
+    const val LOGOUT = "Logout"
 }
