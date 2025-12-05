@@ -11,10 +11,13 @@
       <SelectionState runConfigName="GreetingPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="test_isVisible()">
+      <SelectionState runConfigName="CashierScreenTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="CashierScreenTest">
+      <SelectionState runConfigName="StockManagementScreenTest">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="Tests in 'com.pos.cashiersp'">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

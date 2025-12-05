@@ -3,18 +3,29 @@ package com.pos.cashiersp.presentation.global_component
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
 import com.pos.cashiersp.presentation.ui.theme.Primary
+import com.pos.cashiersp.presentation.ui.theme.Primary100
+import com.pos.cashiersp.presentation.ui.theme.Primary200
 import com.pos.cashiersp.presentation.ui.theme.Secondary300
 import com.pos.cashiersp.presentation.ui.theme.White
 
@@ -77,6 +90,22 @@ fun SimpleSearchBar(
                     },
                     expanded = expanded,
                     onExpandedChange = { expanded = it },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                // TODO: implement this
+                                // this is placeholder
+                                expanded = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = "Search icon, if the icon touched that mean the user already finished",
+                                modifier = Modifier
+                                    .size(28.dp)
+                            )
+                        }
+                    },
                     placeholder = { Text("Search") }
                 )
             },
@@ -84,18 +113,23 @@ fun SimpleSearchBar(
             onExpandedChange = { expanded = it },
         ) {
             // Display search results in a scrollable column
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                searchResults.forEach { result ->
-                    ListItem(
-                        headlineContent = { Text(result) },
-                        modifier = Modifier
-                            .clickable {
-                                textFieldState.edit { replace(0, length, result) }
-                                expanded = false
-                            }
-                            .fillMaxWidth()
-                    )
-                }
+            Row {
+                // TODO: maybe make it more flexible to edit so it can be global component
+                MinimalDropdownMenu()
+                MinimalDropdownMenu()
+            }
+            searchResults.forEach { result ->
+                ListItem(
+                    colors = ListItemDefaults.colors(containerColor = Primary200),
+                    headlineContent = { Text(result) },
+                    modifier = Modifier
+                        .clickable {
+                            // TODO: implement this
+                            textFieldState.edit { replace(0, length, result) }
+                            expanded = false
+                        }
+                        .fillMaxWidth()
+                )
             }
         }
     }

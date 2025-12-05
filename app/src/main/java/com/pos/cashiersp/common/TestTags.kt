@@ -11,4 +11,11 @@ object TestTags {
         const val CHART_BUTTON = "CHART_BUTTON"
         const val PAYMENT_BOTTOM_SHEET = "PAYMENT_BOTTOM_SHEET"
     }
+
+    object StockManagementScreen {
+        const val STOCK_MANAGEMENT_TITLE = "STOCK_MANAGEMENT_TITLE"
+        const val EDIT_STOCK_DIALOG = "EDIT_STOCK_DIALOG"
+        const val PREVIOUS_LIST_PAGE_BUTTON = "PREVIOUS_LIST_PAGE_BUTTON"
+        const val NEXT_LIST_PAGE_BUTTON = "NEXT_LIST_PAGE_BUTTON"
+    }
 }

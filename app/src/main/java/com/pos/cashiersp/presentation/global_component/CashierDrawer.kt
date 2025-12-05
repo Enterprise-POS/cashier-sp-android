@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.pos.cashiersp.R
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
@@ -59,7 +60,11 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 
 @Composable
 fun CashierDrawer(navController: NavController, content: @Composable (drawerState: DrawerState) -> Unit) {
-    val currentTitle = Screen.CASHIER
+    // Get the title from navController instance
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentTitle: String? = navBackStackEntry.value?.destination?.route
+
+    // Metadata
     val pagesUtils = mapOf<String, Pair<String, ImageVector>>(
         Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
         Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
@@ -69,6 +74,8 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
         Screen.SETTINGS to Pair("Settings Screen Navigation", Icons.Outlined.Settings),
         Screen.LOGOUT to Pair("Logout Button", Icons.Outlined.ExitToApp)
     )
+
+    // Content
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -169,7 +176,7 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
                                 Icon(
                                     imageVector = values.second,
                                     contentDescription = values.first,
-                                    tint = Gray600,
+                                    tint = if (currentTitle == title) Primary else Gray600,
                                     modifier = Modifier
                                         .size(24.dp)
                                         .padding(start = 6.dp)

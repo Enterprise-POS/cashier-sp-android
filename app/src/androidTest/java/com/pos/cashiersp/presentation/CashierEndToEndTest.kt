@@ -7,5 +7,5 @@ import dagger.hilt.android.testing.UninstallModules
 
 @HiltAndroidTest
 @UninstallModules(RetrofitModule::class, RoomModule::class)
-class GreetingEndToEndTest {
+class CashierEndToEndTest {
 }

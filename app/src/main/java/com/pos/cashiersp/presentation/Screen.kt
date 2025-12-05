@@ -7,4 +7,5 @@ object Screen {
     const val STAFF_MANAGEMENT = "Staff Management"
     const val SETTINGS = "Settings"
     const val LOGOUT = "Logout"
+    const val LOGIN_REGISTER = "Login / Register"
 }
