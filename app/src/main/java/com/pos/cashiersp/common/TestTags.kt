@@ -18,4 +18,13 @@ object TestTags {
         const val PREVIOUS_LIST_PAGE_BUTTON = "PREVIOUS_LIST_PAGE_BUTTON"
         const val NEXT_LIST_PAGE_BUTTON = "NEXT_LIST_PAGE_BUTTON"
     }
+
+    object LoginRegisterScreen {
+        const val LOGIN_REGISTER_TITLE = "LOGIN_REGISTER_TITLE"
+        const val LOGIN_REGISTER_SUB_TITLE = "LOGIN_REGISTER_SUB_TITLE"
+        const val SEGMENTED_BUTTON = "SEGMENTED_BUTTON"
+        const val LOGIN_EMAIL_INPUT = "LOGIN_EMAIL_INPUT"
+        const val LOGIN_PASSWORD_INPUT = "LOGIN_PASSWORD_INPUT"
+        const val CONTINUE_BUTTON = "CONTINUE_BUTTON"
+    }
 }

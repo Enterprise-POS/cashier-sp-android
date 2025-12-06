@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                     CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.STOCK_MANAGEMENT
+                            startDestination = Screen.LOGIN_REGISTER
                         ) {
                             composable(route = Screen.GREETING) {
                                 GreetingScreen(navController)

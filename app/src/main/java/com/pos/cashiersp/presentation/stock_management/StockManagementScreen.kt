@@ -341,7 +341,7 @@ fun StockManagementScreen(
                     onClick = { },
                     modifier = Modifier
                         .size(38.dp)
-                        .testTag(TestTags.StockManagementScreen.NEXT_LIST_PAGE_BUTTON),
+                        .testTag(TestTags.StockManagementScreen.PREVIOUS_LIST_PAGE_BUTTON),
                     colors = IconButtonColors(
                         containerColor = Primary,
                         contentColor = White,
