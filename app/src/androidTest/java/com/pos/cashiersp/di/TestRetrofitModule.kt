@@ -4,8 +4,13 @@ import com.pos.cashiersp.common.Constants
 import com.pos.cashiersp.model.CashierApi
 import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
+import com.pos.cashiersp.repository.UserRepository
+import com.pos.cashiersp.repository.UserRepositoryImpl
 import com.pos.cashiersp.use_case.GetTenantMembers
+import com.pos.cashiersp.use_case.LoginRequest
+import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.TenantUseCase
+import com.pos.cashiersp.use_case.UserUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,8 +29,10 @@ object TestRetrofitModule {
     @Provides
     fun providesOkHttpClient(): OkHttpClient =
         OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor()
-                .setLevel(HttpLoggingInterceptor.Level.BODY))
+            .addInterceptor(
+                HttpLoggingInterceptor()
+                    .setLevel(HttpLoggingInterceptor.Level.BODY)
+            )
             .build()
 
     @Provides
@@ -54,6 +61,21 @@ object TestRetrofitModule {
     fun provideTenantUseCase(repository: TenantRepository): TenantUseCase {
         return TenantUseCase(
             getTenantMembers = GetTenantMembers(repository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(api: CashierApi): UserRepository {
+        return UserRepositoryImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserUseCases(repository: UserRepository): UserUseCase {
+        return UserUseCase(
+            loginRequest = LoginRequest(repository),
+            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository)
         )
     }
 }

@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!--
+        This domain config will be for android test.
+        This localhost means android's localhost
+    -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
     </domain-config>
+
+    <!--
+        While developing, instead of localhost to our computer we use 10.0.2.2
+        by default we can't access our computer localhost. localhost in android means
+        android's localhost
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
 </network-security-config>
-<!--<?xml version="1.0" encoding="utf-8"?>-->
-<!--<network-security-config>-->
-<!--    <domain-config cleartextTrafficPermitted="true">-->
-<!--        <domain includeSubdomains="true">10.0.2.2</domain>-->
-<!--    </domain-config>-->
-<!--</network-security-config>-->

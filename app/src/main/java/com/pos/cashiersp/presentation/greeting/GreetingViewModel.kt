@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
-class GreetingViewModel @Inject constructor(private val tenantUseCase: TenantUseCase): ViewModel() {
+class GreetingViewModel @Inject constructor(private val tenantUseCase: TenantUseCase) : ViewModel() {
     private val _state = mutableStateOf(StateStatus())
     val state: State<StateStatus> = _state
 
@@ -37,12 +37,14 @@ class GreetingViewModel @Inject constructor(private val tenantUseCase: TenantUse
                     is Resource.Loading -> {
                         _state.value = StateStatus(isLoading = true)
                     }
+
                     is Resource.Success -> {
                         _state.value = StateStatus() // Restart to idle state
                         _members.value = resource.data!!.members
                     }
+
                     is Resource.Error -> {
-                        _state.value = StateStatus(error = resource.message!!)
+                        _state.value = StateStatus(error = resource.message)
                     }
                 }
             }
@@ -50,6 +52,6 @@ class GreetingViewModel @Inject constructor(private val tenantUseCase: TenantUse
     }
 
     fun onEvent() {
-        
+
     }
 }

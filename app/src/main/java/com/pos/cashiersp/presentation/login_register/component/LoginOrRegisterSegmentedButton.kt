@@ -26,13 +26,21 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 
+enum class LoginOrRegisterSegmentedButtonPage {
+    Login,
+    Register,
+}
+
 @Composable
 fun LoginOrRegisterSegmentedButton(
     modifier: Modifier = Modifier,
-    initialValue: String,
-    onChanged: (v: String) -> Unit,
+    initialValue: LoginOrRegisterSegmentedButtonPage,
+    onChanged: (v: LoginOrRegisterSegmentedButtonPage) -> Unit,
 ) {
-    val options = listOf("Login", "Register")
+    val options = listOf<LoginOrRegisterSegmentedButtonPage>(
+        LoginOrRegisterSegmentedButtonPage.Login,
+        LoginOrRegisterSegmentedButtonPage.Register
+    )
     var selectedIndex by remember { mutableIntStateOf(options.indexOf(initialValue)) }
 
     SingleChoiceSegmentedButtonRow(
@@ -64,17 +72,17 @@ fun LoginOrRegisterSegmentedButton(
                     inactiveContentColor = White,
                 ),
                 border = BorderStroke(width = 2.dp, Secondary),
-                label = { Text(label, color = White) },
+                label = { Text(label.name, color = White) },
                 icon = {
                     when (label) {
-                        "Login" -> Icon(
+                        LoginOrRegisterSegmentedButtonPage.Login -> Icon(
                             imageVector = Icons.Outlined.PlayArrow,
                             contentDescription = "Search icon, if the icon touched that mean the user already finished",
                             modifier = Modifier
                                 .size(28.dp)
                         )
 
-                        "Register" -> {
+                        LoginOrRegisterSegmentedButtonPage.Register -> {
                             Icon(
                                 imageVector = Icons.Outlined.Create,
                                 contentDescription = "Register icon",

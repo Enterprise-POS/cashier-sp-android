@@ -23,14 +23,33 @@ android {
         //testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunner = "com.pos.cashiersp.HiltTestRunner"
 
-        val mode = project.findProperty("mode") as String
-        buildConfigField("String", "MODE", "\"$mode\"")
+        //val mode = project.findProperty("mode") as String
+        //buildConfigField("String", "MODE", "\"$mode\"")
     }
 
+    testBuildType = "uiTest"
+
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            isDebuggable = true
+            buildConfigField("String", "MODE", "\"dev\"")
+            buildConfigField("String", "DS_NAME", "\"jwt_store\"")
+        }
+        release {
+            isMinifyEnabled = true
+            buildConfigField("String", "MODE", "\"prod\"")
+            buildConfigField("String", "DS_NAME", "\"jwt_store\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+
+        create("uiTest") {
+            // Get all 'debug' configurations
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = true
+            isMinifyEnabled = false
+            buildConfigField("String", "MODE", "\"uitest\"")
+            buildConfigField("String", "DS_NAME", "\"jwt_store_test\"")
         }
     }
     compileOptions {
@@ -117,6 +136,10 @@ dependencies {
 
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.28.0")
+
+    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    implementation("androidx.security:security-crypto:1.1.0")
+
 
     // Test Implementation
     testImplementation("androidx.test:core:1.7.0")

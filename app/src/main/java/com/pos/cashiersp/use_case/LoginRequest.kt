@@ -4,34 +4,39 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
-import com.pos.cashiersp.model.domain.TenantGetMembers
-import com.pos.cashiersp.model.dto.toDomain
-import com.pos.cashiersp.repository.TenantRepository
+import com.pos.cashiersp.model.dto.LoginResponseDto
+import com.pos.cashiersp.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
-class GetTenantMembers(private val repository: TenantRepository) {
-    operator fun invoke(tenantId: Int): Flow<Resource<TenantGetMembers>> = flow {
+class LoginRequest(private val repository: UserRepository) {
+    operator fun invoke(email: String, password: String): Flow<Resource<LoginResponseDto>> = flow {
         try {
-            emit(Resource.Loading<TenantGetMembers>())
-            if (tenantId < 1) {
-                emit(Resource.Error("Invalid tenant id value"))
+            if (email.trim().isEmpty() || password.trim().isEmpty()) {
+                emit(Resource.Error("Email or password cannot be empty."))
                 return@flow
             }
-
-            val response = repository.getTenantMembers(tenantId)
+            emit(Resource.Loading<LoginResponseDto>())
+            val response = repository.signInWithEmailAndPassword(email, password)
             if (!response.isSuccessful) {
+                // Because Login route from the server is not protected with protected_route, 401 will not be included
                 when (response.code()) {
-                    400, 401, 403 -> {
+                    400, 403 -> {
+                        // Preferred to use .charStream instead .string because .string will safe the value into memory
+                        // Which will throw error OutOfMemoryError
                         val reader = response.errorBody()!!.charStream()
-                        val type = object : TypeToken<HTTPStatus.ErrorResponse>() {}.type
-                        val errorResponse = Gson().fromJson<HTTPStatus.ErrorResponse>(reader, type)
+
+                        // This will start parsing json
+                        val errorResponse = Gson().fromJson(reader, HTTPStatus.ErrorResponse::class.java)
+
+                        // Pass the error message and stop all flow here
                         emit(Resource.Error(errorResponse.message))
                         return@flow
                     }
 
+                    // Fatal error or unexpected error code. If this error occurred, immediately contact / fix the server
                     else -> {
                         println("[INTERNAL ERROR] ${response.message()}")
                         println(response.errorBody())
@@ -47,9 +52,9 @@ class GetTenantMembers(private val repository: TenantRepository) {
                 return@flow
             }
 
-            // 200 ok
-            var tenantGetMembers = successResponse.data.toDomain()
-            emit(Resource.Success<TenantGetMembers>(tenantGetMembers))
+            // 200
+            var loginResponseDto = successResponse.data
+            emit(Resource.Success<LoginResponseDto>(loginResponseDto))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))
         } catch (e: IOException) {
