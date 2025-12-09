@@ -143,7 +143,7 @@ class LoginRegisterViewModel @Inject constructor(val userUseCase: UserUseCase) :
 
             is LoginRegisterEvent.EnteredPasswordRegisterInpField -> {
                 val password = event.value
-                val isError = password.isNotEmpty() && password.length <= 8
+                val isError = password.isNotEmpty() && password.length <= 6
                 _inpRegisterPassword.value = _inpRegisterPassword.value.copy(
                     text = password,
                     isError = isError

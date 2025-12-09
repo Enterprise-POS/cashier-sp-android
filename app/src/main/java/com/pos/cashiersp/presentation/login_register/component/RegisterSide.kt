@@ -104,6 +104,7 @@ fun RegisterSide(snackbarHostState: SnackbarHostState, viewModel: LoginRegisterV
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         onValueChange = { viewModel.onEvent(LoginRegisterEvent.EnteredPasswordRegisterInpField(it)) },
         enabled = !viewModelState.isLoading,
+        isError = password.isError,
         placeholder = {
             Text("enter with minimal 6 characters", color = Gray200)
         },

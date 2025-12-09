@@ -80,7 +80,7 @@ class LoginRegisterScreenTest {
                                     "user": {
                                         "id": 1,
                                         "name": "John Doe",
-                                        "email": "test@gmail.com",
+                                        "email": "fromsp@gmail.com",
                                         "created_at": "2025-08-01T02:48:30.942816Z"
                                     }
                                 }
@@ -100,7 +100,7 @@ class LoginRegisterScreenTest {
                                     "user": {
                                         "id": 1,
                                         "name": "John Doe",
-                                        "email": "test@gmail.com",
+                                        "email": "fromsp@gmail.com",
                                         "created_at": "2025-12-07T14:42:26.517672Z"
                                     }
                                 }
@@ -221,25 +221,30 @@ class LoginRegisterScreenTest {
             .assertIsDisplayed()
             .performClick()
 
+        val expectedUserID = 1
+        val expectedEmail = "fromsp@gmail.com"
+        val expectedUsername = "John Doe"
+        val password1And2 = "12345678"
+
         val emailInpField = composeRule.onNodeWithTag(TestTags.LoginRegisterScreen.REGISTER_EMAIL)
         emailInpField.assertExists()
             .assertIsDisplayed()
-            .performTextInput("fromsp@gmail.com")
+            .performTextInput(expectedEmail)
 
         val usernameInpField = composeRule.onNodeWithTag(TestTags.LoginRegisterScreen.REGISTER_USERNAME)
         usernameInpField.assertExists()
             .assertIsDisplayed()
-            .performTextInput("John Doe")
+            .performTextInput(expectedUsername)
 
         val passwordInpField = composeRule.onNodeWithTag(TestTags.LoginRegisterScreen.REGISTER_PASSWORD)
         passwordInpField.assertExists()
             .assertIsDisplayed()
-            .performTextInput("12345678")
+            .performTextInput(password1And2)
 
         val password2InpField = composeRule.onNodeWithTag(TestTags.LoginRegisterScreen.REGISTER_PASSWORD2)
         password2InpField.assertExists()
             .assertIsDisplayed()
-            .performTextInput("12345678")
+            .performTextInput(password1And2)
 
         val registerBtn = composeRule.onNodeWithTag(TestTags.LoginRegisterScreen.REGISTER_BUTTON)
         registerBtn.assertExists()
@@ -255,12 +260,12 @@ class LoginRegisterScreenTest {
         }
 
         val payload = jwtStore.getPayload().filterNotNull().first()
-        Assert.assertEquals(1, payload.sub)
-        Assert.assertEquals("John Doe", payload.name)
+        Assert.assertEquals(expectedUserID, payload.sub)
+        Assert.assertEquals(expectedUsername, payload.name)
+        Assert.assertEquals(expectedEmail, payload.email)
+        Assert.assertNotEquals("", payload.token)
     }
 
     @After
-    fun teardown() {
-        mockServer.shutdown()
-    }
+    fun teardown() = mockServer.shutdown()
 }

@@ -15,6 +15,7 @@ val Context.jwtDataStore by preferencesDataStore(name = BuildConfig.DS_NAME)
 data class UserPayload(
     val token: String,
     val name: String,
+    val email: String,
     val sub: Int,
     //val exp: Instant?
 )
@@ -23,6 +24,7 @@ class JwtStore(private val context: Context) {
     companion object {
         private val TOKEN_KEY = stringPreferencesKey("jwt_token")
         private val NAME = stringPreferencesKey("username")
+        private val EMAIL = stringPreferencesKey("email")
         private val SUB = intPreferencesKey("sub")
         // private val CREATED_AT = stringPreferencesKey()
 
@@ -36,6 +38,7 @@ class JwtStore(private val context: Context) {
             prefs[TOKEN_KEY] = token
             prefs[NAME] = user.name
             prefs[SUB] = user.id
+            prefs[EMAIL] = user.email
             /*
             prefs[EXP] = Date.from(
                 Instant.now().plus(30, ChronoUnit.DAYS)
@@ -49,24 +52,22 @@ class JwtStore(private val context: Context) {
         context.jwtDataStore.data.map { prefs ->
             val token = prefs[TOKEN_KEY]
             val name = prefs[NAME]
+            val email = prefs[EMAIL]
             val sub = prefs[SUB]
 
             // If ANY essential field is missing → treat as "not logged in"
-            if (token.isNullOrEmpty() || name.isNullOrEmpty() || sub == null) {
+            if (token.isNullOrEmpty() || email.isNullOrEmpty() || name.isNullOrEmpty() || sub == null) {
                 return@map null
             }
 
-            UserPayload(
-                token = token,
-                name = name,
-                sub = sub
-            )
+            return@map UserPayload(token, name, email, sub)
         }
 
     suspend fun clearToken() {
         context.jwtDataStore.edit { prefs ->
             prefs.remove(TOKEN_KEY)
             prefs.remove(NAME)
+            prefs.remove(EMAIL)
             prefs.remove(SUB)
         }
     }
