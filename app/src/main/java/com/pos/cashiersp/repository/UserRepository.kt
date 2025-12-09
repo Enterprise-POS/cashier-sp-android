@@ -14,6 +14,6 @@ interface UserRepository {
     suspend fun signUpWithEmailAndPassword(
         email: String,
         password: String,
-        name: String,
+        username: String,
     ): Response<HTTPStatus.SuccessResponse<SignUpResponseDto>>
 }

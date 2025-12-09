@@ -47,14 +47,19 @@ class JwtStore(private val context: Context) {
     // Get / Read token
     fun getPayload(): Flow<UserPayload?> =
         context.jwtDataStore.data.map { prefs ->
-            val isTokenAvailable = prefs[TOKEN_KEY]?.isEmpty() == true
-            if (isTokenAvailable) return@map null
+            val token = prefs[TOKEN_KEY]
+            val name = prefs[NAME]
+            val sub = prefs[SUB]
 
-            return@map UserPayload(
-                token = prefs[TOKEN_KEY] ?: "",
-                name = prefs[NAME] ?: "",
-                sub = prefs[SUB] ?: 0,
-                //exp = prefs[EXP]?.let { Instant.parse(it) },
+            // If ANY essential field is missing → treat as "not logged in"
+            if (token.isNullOrEmpty() || name.isNullOrEmpty() || sub == null) {
+                return@map null
+            }
+
+            UserPayload(
+                token = token,
+                name = name,
+                sub = sub
             )
         }
 

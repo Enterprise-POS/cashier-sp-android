@@ -67,8 +67,8 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
         viewModel.loginUIEvent.collectLatest { event ->
             when (event) {
                 is LoginRegisterViewModel.LoginUIEvent.NavigateToCashier -> {
-                    navController.navigate(Screen.CASHIER) {
-                        popUpTo(Screen.SELECT_TENANT) { inclusive = true }
+                    navController.navigate(Screen.SELECT_TENANT) {
+                        popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
                     }
                 }
 
@@ -96,8 +96,8 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
         viewModel.registerUIEvent.collectLatest { event ->
             when (event) {
                 is LoginRegisterViewModel.RegisterUIEvent.NavigateToCashier -> {
-                    navController.navigate(Screen.CASHIER) {
-                        popUpTo(Screen.SELECT_TENANT) { inclusive = true }
+                    navController.navigate(Screen.SELECT_TENANT) {
+                        popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
                     }
                 }
 
@@ -126,7 +126,10 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
             when (event) {
                 is LoginRegisterViewModel.AutoRedirect.IsUserLoggedIn -> {
                     val isRedirect = event.boolean
-                    println("Redirect user to somewhere else, and not this creen")
+                    if (isRedirect)
+                        println("Redirect user to somewhere else, and not this screen")
+                    else
+                        println("Don't redirect user")
                 }
             }
         }

@@ -12,14 +12,14 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class SignUpWithEmailAndPasswordRequest(private val repository: UserRepository, private val jwtStore: JwtStore) {
-    operator fun invoke(email: String, password: String, name: String): Flow<Resource<SignUpResponseDto>> = flow {
+    operator fun invoke(email: String, password: String, username: String): Flow<Resource<SignUpResponseDto>> = flow {
         try {
-            if (email.trim().isEmpty() || password.trim().isEmpty()) {
-                emit(Resource.Error("Email or password cannot be empty."))
+            if (email.trim().isEmpty() || password.trim().isEmpty() || username.trim().isEmpty()) {
+                emit(Resource.Error("Please fill all the required input"))
                 return@flow
             }
             emit(Resource.Loading<SignUpResponseDto>())
-            val response = repository.signUpWithEmailAndPassword(email, password, name)
+            val response = repository.signUpWithEmailAndPassword(email, password, username)
             if (!response.isSuccessful) {
                 // Because Login route from the server is not protected with protected_route, 401 will not be included
                 when (response.code()) {

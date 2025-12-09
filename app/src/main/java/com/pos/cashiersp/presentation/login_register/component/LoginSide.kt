@@ -99,7 +99,7 @@ fun LoginSide(snackbarHostState: SnackbarHostState, viewModel: LoginRegisterView
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         onValueChange = { viewModel.onEvent(LoginRegisterEvent.EnteredPasswordLoginInpField(it)) },
         placeholder = {
-            Text("●●●●●●", color = Gray200)
+            Text("••••••", color = Gray200)
         },
         isError = passwordInpState.isError,
         enabled = !viewModelState.isLoading,

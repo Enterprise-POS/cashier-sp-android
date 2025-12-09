@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.pos.cashiersp.common.TestTags
+import com.pos.cashiersp.di.AppModule
 import com.pos.cashiersp.di.RetrofitModule
 import com.pos.cashiersp.di.RoomModule
 import com.pos.cashiersp.presentation.MainActivity
@@ -25,7 +26,7 @@ import org.junit.Test
 import javax.inject.Inject
 
 @HiltAndroidTest
-@UninstallModules(RetrofitModule::class, RoomModule::class)
+@UninstallModules(RetrofitModule::class, RoomModule::class, AppModule::class)
 class GreetingScreenTest {
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
