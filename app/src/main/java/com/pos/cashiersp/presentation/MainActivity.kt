@@ -1,6 +1,7 @@
 package com.pos.cashiersp.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        Log.i("AppStateMode", BuildConfig.MODE)
 
         // For testing we don't want MainActivity setContent
         if (BuildConfig.MODE == "dev" || BuildConfig.MODE == "prod") {
@@ -51,6 +53,8 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(route = Screen.LOGIN_REGISTER) {
                                 LoginRegisterScreen(navController)
+                            }
+                            composable(route = Screen.SELECT_TENANT) {
                             }
                             /*
                             composable(

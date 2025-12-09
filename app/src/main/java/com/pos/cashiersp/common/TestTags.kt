@@ -26,5 +26,11 @@ object TestTags {
         const val LOGIN_EMAIL_INPUT = "LOGIN_EMAIL_INPUT"
         const val LOGIN_PASSWORD_INPUT = "LOGIN_PASSWORD_INPUT"
         const val CONTINUE_BUTTON = "CONTINUE_BUTTON"
+
+        const val REGISTER_EMAIL = "REGISTER_EMAIL"
+        const val REGISTER_USERNAME = "REGISTER_USERNAME"
+        const val REGISTER_PASSWORD = "REGISTER_PASSWORD"
+        const val REGISTER_PASSWORD2 = "REGISTER_PASSWORD2"
+        const val REGISTER_BUTTON = "REGISTER_BUTTON"
     }
 }

@@ -8,4 +8,5 @@ object Screen {
     const val SETTINGS = "Settings"
     const val LOGOUT = "Logout"
     const val LOGIN_REGISTER = "Login / Register"
+    const val SELECT_TENANT = "Select a Tenant"
 }

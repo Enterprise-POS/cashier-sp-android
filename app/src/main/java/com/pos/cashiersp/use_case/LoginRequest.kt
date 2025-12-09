@@ -1,17 +1,20 @@
 package com.pos.cashiersp.use_case
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.model.dto.LoginResponseDto
+import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
-class LoginRequest(private val repository: UserRepository) {
+class LoginRequest(private val repository: UserRepository, private val jwtStore: JwtStore) {
     operator fun invoke(email: String, password: String): Flow<Resource<LoginResponseDto>> = flow {
         try {
             if (email.trim().isEmpty() || password.trim().isEmpty()) {
@@ -23,7 +26,7 @@ class LoginRequest(private val repository: UserRepository) {
             if (!response.isSuccessful) {
                 // Because Login route from the server is not protected with protected_route, 401 will not be included
                 when (response.code()) {
-                    400, 403 -> {
+                    400, 401, 403 -> {
                         // Preferred to use .charStream instead .string because .string will safe the value into memory
                         // Which will throw error OutOfMemoryError
                         val reader = response.errorBody()!!.charStream()
@@ -54,6 +57,10 @@ class LoginRequest(private val repository: UserRepository) {
 
             // 200
             var loginResponseDto = successResponse.data
+
+            // Save the token to DataStore
+            jwtStore.saveToken(loginResponseDto.token, loginResponseDto.user)
+
             emit(Resource.Success<LoginResponseDto>(loginResponseDto))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))

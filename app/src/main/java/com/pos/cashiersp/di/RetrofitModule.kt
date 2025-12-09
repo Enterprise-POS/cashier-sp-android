@@ -3,12 +3,15 @@ package com.pos.cashiersp.di
 import com.pos.cashiersp.common.Constants
 import com.pos.cashiersp.common.InMemoryCookieJar
 import com.pos.cashiersp.model.CashierApi
+import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
 import com.pos.cashiersp.use_case.GetTenantMembers
+import com.pos.cashiersp.use_case.IsLoggedIn
 import com.pos.cashiersp.use_case.LoginRequest
+import com.pos.cashiersp.use_case.Logout
 import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.TenantUseCase
 import com.pos.cashiersp.use_case.UserUseCase
@@ -72,10 +75,12 @@ object RetrofitModule {
 
     @Provides
     @Singleton
-    fun provideUserUseCases(repository: UserRepository): UserUseCase {
+    fun provideUserUseCases(repository: UserRepository, jwtStore: JwtStore): UserUseCase {
         return UserUseCase(
-            loginRequest = LoginRequest(repository),
-            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository)
+            loginRequest = LoginRequest(repository, jwtStore),
+            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository, jwtStore),
+            isLoggedIn = IsLoggedIn(jwtStore),
+            logout = Logout(jwtStore)
         )
     }
 }

@@ -1,0 +1,14 @@
+package com.pos.cashiersp.use_case
+
+import com.pos.cashiersp.common.Resource
+import com.pos.cashiersp.presentation.util.JwtStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+class Logout(private val jwtStore: JwtStore) {
+    operator fun invoke(): Flow<Resource<Boolean>> = flow {
+        emit(Resource.Loading())
+        jwtStore.clearToken()
+        emit(Resource.Success<Boolean>(true))
+    }
+}
