@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -50,7 +51,7 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 
 @Composable
-fun SelectTenantScreen(navController: NavController) {
+fun SelectTenantScreen(navController: NavController, selectTenantViewModel: SelectTenantViewModel = hiltViewModel()) {
     Scaffold(
         modifier = Modifier
             .background(color = Secondary100)

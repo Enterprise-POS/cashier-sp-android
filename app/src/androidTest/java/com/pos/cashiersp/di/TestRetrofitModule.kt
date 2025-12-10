@@ -3,6 +3,7 @@ package com.pos.cashiersp.di
 import com.pos.cashiersp.common.Constants
 import com.pos.cashiersp.model.CashierApi
 import com.pos.cashiersp.presentation.util.JwtStore
+import com.pos.cashiersp.presentation.util.MyCookieImpl
 import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
@@ -28,10 +29,17 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object TestRetrofitModule {
+    @Provides
+    @Singleton
+    fun provideCookieJar(): MyCookieImpl {
+        return MyCookieImpl()
+    }
+
     @Singleton
     @Provides
-    fun providesOkHttpClient(): OkHttpClient =
+    fun providesOkHttpClient(cookieJar: MyCookieImpl): OkHttpClient =
         OkHttpClient.Builder()
+            .cookieJar(cookieJar)
             .addInterceptor(
                 HttpLoggingInterceptor()
                     .setLevel(HttpLoggingInterceptor.Level.BODY)
@@ -75,12 +83,12 @@ object TestRetrofitModule {
 
     @Provides
     @Singleton
-    fun provideUserUseCases(repository: UserRepository, jwtStore: JwtStore): UserUseCase {
+    fun provideUserUseCases(repository: UserRepository, jwtStore: JwtStore, myCookieImpl: MyCookieImpl): UserUseCase {
         return UserUseCase(
-            loginRequest = LoginRequest(repository, jwtStore),
-            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository, jwtStore),
-            isLoggedIn = IsLoggedIn(jwtStore),
-            logout = Logout(jwtStore)
+            loginRequest = LoginRequest(repository, jwtStore, myCookieImpl),
+            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository, jwtStore, myCookieImpl),
+            isLoggedIn = IsLoggedIn(jwtStore, myCookieImpl),
+            logout = Logout(jwtStore, myCookieImpl)
         )
     }
 }

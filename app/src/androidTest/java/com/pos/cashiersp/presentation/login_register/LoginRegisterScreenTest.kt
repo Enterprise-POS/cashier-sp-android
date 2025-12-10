@@ -12,6 +12,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.pos.cashiersp.common.Constants
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.di.AppModule
 import com.pos.cashiersp.di.RetrofitModule
@@ -21,6 +22,7 @@ import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import com.pos.cashiersp.presentation.util.JwtStore
+import com.pos.cashiersp.presentation.util.MyCookieImpl
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -54,6 +57,9 @@ class LoginRegisterScreenTest {
 
     @Inject
     lateinit var jwtStore: JwtStore
+
+    @Inject
+    lateinit var myCookieImpl: MyCookieImpl
 
     @Before
     fun setUp() = runBlocking {
@@ -210,6 +216,29 @@ class LoginRegisterScreenTest {
         val payload = jwtStore.getPayload().filterNotNull().first()
         Assert.assertEquals(1, payload.sub)
         Assert.assertEquals("John Doe", payload.name)
+
+        val baseUrl = Constants.BASE_BE_URL.toHttpUrl()
+        val cookiesForRequest = myCookieImpl.loadForRequest(baseUrl)
+        Assert.assertTrue("No cookies found", cookiesForRequest.isNotEmpty())
+
+        // Find the specific cookie by name
+        val authCookie = cookiesForRequest.find { it.name == Constants.BE_COOKIE_NAME }
+        Assert.assertNotNull("Auth cookie not found", authCookie)
+        authCookie!!.let { cookie ->
+            Assert.assertNotEquals("Cookie value is empty", "", cookie.value)
+            Assert.assertEquals("Cookie domain mismatch", baseUrl.host, cookie.domain)
+            Assert.assertEquals("Cookie path mismatch", "/", cookie.path)
+            Assert.assertTrue("Cookie should be httpOnly", cookie.httpOnly)
+            /*
+            if (BuildConfig.MODE == "prod") {
+                Assert.assertTrue("Cookie should be secure in production", cookie.secure)
+            }
+            * */
+            Assert.assertTrue(
+                "Cookie is expired",
+                cookie.expiresAt > System.currentTimeMillis()
+            )
+        }
     }
 
     @Test

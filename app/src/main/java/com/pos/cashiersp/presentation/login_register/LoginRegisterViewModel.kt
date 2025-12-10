@@ -1,18 +1,14 @@
 package com.pos.cashiersp.presentation.login_register
 
-import android.os.Build
 import android.util.Patterns
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.model.dto.LoginResponseDto
-import com.pos.cashiersp.presentation.login_register.LoginRegisterViewModel.LoginUIEvent.*
+import com.pos.cashiersp.presentation.login_register.LoginRegisterViewModel.LoginUIEvent.NavigateToCashier
+import com.pos.cashiersp.presentation.login_register.LoginRegisterViewModel.LoginUIEvent.ShowError
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.use_case.UserUseCase
@@ -29,7 +25,7 @@ class LoginRegisterViewModel @Inject constructor(val userUseCase: UserUseCase) :
     val state: State<StateStatus> = _state
 
     // AutoRedirect
-    private val _autoRedirect = MutableSharedFlow<AutoRedirect>()
+    private val _autoRedirect = MutableSharedFlow<AutoRedirect>(replay = 1)
     val autoRedirect = _autoRedirect.asSharedFlow()
 
     // LoginSide

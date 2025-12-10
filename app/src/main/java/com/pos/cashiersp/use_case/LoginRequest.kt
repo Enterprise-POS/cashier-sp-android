@@ -8,13 +8,18 @@ import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.model.dto.LoginResponseDto
 import com.pos.cashiersp.presentation.util.JwtStore
+import com.pos.cashiersp.presentation.util.MyCookieImpl
 import com.pos.cashiersp.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
-class LoginRequest(private val repository: UserRepository, private val jwtStore: JwtStore) {
+class LoginRequest(
+    private val repository: UserRepository,
+    private val jwtStore: JwtStore,
+    private val myCookieImpl: MyCookieImpl
+) {
     operator fun invoke(email: String, password: String): Flow<Resource<LoginResponseDto>> = flow {
         try {
             if (email.trim().isEmpty() || password.trim().isEmpty()) {
@@ -60,6 +65,7 @@ class LoginRequest(private val repository: UserRepository, private val jwtStore:
 
             // Save the token to DataStore
             jwtStore.saveToken(loginResponseDto.token, loginResponseDto.user)
+            myCookieImpl.restoreCookie(loginResponseDto.token)
 
             emit(Resource.Success<LoginResponseDto>(loginResponseDto))
         } catch (e: HttpException) {

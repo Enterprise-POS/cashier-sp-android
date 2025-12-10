@@ -1,5 +1,6 @@
 package com.pos.cashiersp.use_case
 
-data class TenantUseCase (
+data class TenantUseCase(
     val getTenantMembers: GetTenantMembers,
+    val getTenantWithUser: GetTenantWithUser,
 )

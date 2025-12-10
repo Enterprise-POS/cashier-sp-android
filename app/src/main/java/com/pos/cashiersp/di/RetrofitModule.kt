@@ -1,14 +1,15 @@
 package com.pos.cashiersp.di
 
 import com.pos.cashiersp.common.Constants
-import com.pos.cashiersp.common.InMemoryCookieJar
 import com.pos.cashiersp.model.CashierApi
 import com.pos.cashiersp.presentation.util.JwtStore
+import com.pos.cashiersp.presentation.util.MyCookieImpl
 import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
 import com.pos.cashiersp.use_case.GetTenantMembers
+import com.pos.cashiersp.use_case.GetTenantWithUser
 import com.pos.cashiersp.use_case.IsLoggedIn
 import com.pos.cashiersp.use_case.LoginRequest
 import com.pos.cashiersp.use_case.Logout
@@ -19,7 +20,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import okhttp3.CookieJar
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -30,13 +30,13 @@ import javax.inject.Singleton
 object RetrofitModule {
     @Provides
     @Singleton
-    fun provideCookieJar(): CookieJar {
-        return InMemoryCookieJar()
+    fun provideCookieJar(): MyCookieImpl {
+        return MyCookieImpl()
     }
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(cookieJar: CookieJar): OkHttpClient {
+    fun provideOkHttpClient(cookieJar: MyCookieImpl): OkHttpClient {
         return OkHttpClient.Builder()
             .cookieJar(cookieJar)
             .build()
@@ -64,6 +64,7 @@ object RetrofitModule {
     fun provideTenantUseCases(repository: TenantRepository): TenantUseCase {
         return TenantUseCase(
             getTenantMembers = GetTenantMembers(repository),
+            getTenantWithUser = GetTenantWithUser(repository)
         )
     }
 
@@ -75,12 +76,12 @@ object RetrofitModule {
 
     @Provides
     @Singleton
-    fun provideUserUseCases(repository: UserRepository, jwtStore: JwtStore): UserUseCase {
+    fun provideUserUseCases(repository: UserRepository, jwtStore: JwtStore, myCookieImpl: MyCookieImpl): UserUseCase {
         return UserUseCase(
-            loginRequest = LoginRequest(repository, jwtStore),
-            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository, jwtStore),
-            isLoggedIn = IsLoggedIn(jwtStore),
-            logout = Logout(jwtStore)
+            loginRequest = LoginRequest(repository, jwtStore, myCookieImpl),
+            signUpWithEmailAndPassword = SignUpWithEmailAndPasswordRequest(repository, jwtStore, myCookieImpl),
+            isLoggedIn = IsLoggedIn(jwtStore, myCookieImpl),
+            logout = Logout(jwtStore, myCookieImpl)
         )
     }
 }

@@ -1,8 +1,10 @@
 package com.pos.cashiersp.common
 
+import com.pos.cashiersp.BuildConfig
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 sealed class Resource<T>(val data: T? = null, val message: String? = null) {
     class Success<T>(data: T) : Resource<T>(data)
@@ -11,6 +13,7 @@ sealed class Resource<T>(val data: T? = null, val message: String? = null) {
 }
 
 typealias ResponseStatus = String
+
 const val success: ResponseStatus = "success"
 const val error: ResponseStatus = "error"
 
@@ -24,6 +27,32 @@ class InMemoryCookieJar : CookieJar {
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         return cookieStore[url] ?: emptyList()
     }
+
+    fun restoreCookie(token: String) {
+        val host = Constants.BASE_BE_URL
+            .replace("http://", "")
+            .replace("https://", "")
+            .trimEnd('/')
+
+        val cookieBuilder = Cookie.Builder()
+            .domain(host)
+            .path("/")
+            .name(Constants.BE_COOKIE_NAME)
+            .value(token)
+
+        val cookie: Cookie
+        if (BuildConfig.MODE == "prod") {
+            cookie = cookieBuilder.secure() // only use if backend uses https
+                .httpOnly()
+                .build()
+        } else {
+            cookie = cookieBuilder
+                .httpOnly()
+                .build()
+        }
+
+        saveFromResponse(Constants.BASE_BE_URL.toHttpUrl(), listOf(cookie))
+    }
 }
 
 sealed class HTTPStatus<out T> {
@@ -31,11 +60,11 @@ sealed class HTTPStatus<out T> {
         val code: Int,
         val status: ResponseStatus,
         val data: T,
-    ): HTTPStatus<T>()
+    ) : HTTPStatus<T>()
 
     data class ErrorResponse(
         val code: Int,
         val status: ResponseStatus,
         val message: String = "", // Error message
-    ): HTTPStatus<Nothing>()
+    ) : HTTPStatus<Nothing>()
 }
