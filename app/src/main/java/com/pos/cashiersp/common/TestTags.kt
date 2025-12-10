@@ -33,4 +33,12 @@ object TestTags {
         const val REGISTER_PASSWORD2 = "REGISTER_PASSWORD2"
         const val REGISTER_BUTTON = "REGISTER_BUTTON"
     }
+
+    object SelectTenantScreen {
+        const val SELECT_TENANT_TITLE = "SELECT_TENANT_TITLE"
+        const val SELECT_TENANT_TITLE_SUB_TITLE = "SELECT_TENANT_TITLE_SUB_TITLE"
+        const val ADD_TENANT_BUTTON = "ADD_TENANT_BUTTON"
+        const val CONTINUE_BUTTON = "CONTINUE_BUTTON"
+        const val SWITCH_ACCOUNT_BUTTON = "SWITCH_ACCOUNT_BUTTON"
+    }
 }

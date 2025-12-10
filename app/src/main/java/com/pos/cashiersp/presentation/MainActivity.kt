@@ -17,6 +17,7 @@ import com.pos.cashiersp.presentation.cashier.CashierScreen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.greeting.GreetingScreen
 import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
+import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,7 +37,7 @@ class MainActivity : ComponentActivity() {
                     CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.LOGIN_REGISTER
+                            startDestination = Screen.SELECT_TENANT
                         ) {
                             composable(route = Screen.GREETING) {
                                 GreetingScreen(navController)
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
                                 LoginRegisterScreen(navController)
                             }
                             composable(route = Screen.SELECT_TENANT) {
+                                SelectTenantScreen(navController)
                             }
                             /*
                             composable(
