@@ -17,6 +17,7 @@ typealias ResponseStatus = String
 const val success: ResponseStatus = "success"
 const val error: ResponseStatus = "error"
 
+@Deprecated("If MyCookieImpl don't have problem then this class will be deleted")
 class InMemoryCookieJar : CookieJar {
     private val cookieStore = HashMap<HttpUrl, List<Cookie>>()
 

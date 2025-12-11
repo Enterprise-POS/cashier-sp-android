@@ -126,7 +126,9 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
                 is LoginRegisterViewModel.AutoRedirect.IsUserLoggedIn -> {
                     val isRedirect = event.boolean
                     if (isRedirect)
-                        println("Redirect user to somewhere else, and not this screen")
+                        navController.navigate(Screen.SELECT_TENANT) {
+                            popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
+                        }
                     else
                         println("Don't redirect user")
                 }

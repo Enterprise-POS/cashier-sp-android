@@ -4,5 +4,5 @@ data class UserUseCase(
     val loginRequest: LoginRequest,
     val signUpWithEmailAndPassword: SignUpWithEmailAndPasswordRequest,
     val isLoggedIn: IsLoggedIn,
-    val logout: Logout
+    val logout: Logout,
 )

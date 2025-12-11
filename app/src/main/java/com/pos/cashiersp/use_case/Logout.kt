@@ -6,7 +6,7 @@ import com.pos.cashiersp.presentation.util.MyCookieImpl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-class Logout(private val jwtStore: JwtStore, myCookieImpl: MyCookieImpl) {
+class Logout(private val jwtStore: JwtStore, private val myCookieImpl: MyCookieImpl) {
     operator fun invoke(): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         jwtStore.clearToken()

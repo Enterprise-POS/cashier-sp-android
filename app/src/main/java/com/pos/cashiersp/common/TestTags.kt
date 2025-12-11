@@ -37,8 +37,14 @@ object TestTags {
     object SelectTenantScreen {
         const val SELECT_TENANT_TITLE = "SELECT_TENANT_TITLE"
         const val SELECT_TENANT_TITLE_SUB_TITLE = "SELECT_TENANT_TITLE_SUB_TITLE"
-        const val ADD_TENANT_BUTTON = "ADD_TENANT_BUTTON"
         const val CONTINUE_BUTTON = "CONTINUE_BUTTON"
         const val SWITCH_ACCOUNT_BUTTON = "SWITCH_ACCOUNT_BUTTON"
+
+        // Add new tenant dialog
+        const val ADD_TENANT_BUTTON = "ADD_TENANT_BUTTON"
+        const val ADD_NEW_TENANT_DIALOG = "ADD_NEW_TENANT_DIALOG"
+        const val CONFIRM_ADD_BUTTON = "CONFIRM_ADD_BUTTON"
+        const val CANCEL_ADD_BUTTON = "CANCEL_ADD_BUTTON"
+        const val TENANT_NAME_INPUT = "TENANT_NAME_INPUT"
     }
 }

@@ -69,9 +69,10 @@ object TestRetrofitModule {
 
     @Provides
     @Singleton
-    fun provideTenantUseCase(repository: TenantRepository): TenantUseCase {
+    fun provideTenantUseCase(repository: TenantRepository, jwtStore: JwtStore): TenantUseCase {
         return TenantUseCase(
-            getTenantMembers = GetTenantMembers(repository)
+            getTenantMembers = GetTenantMembers(repository),
+            getTenantWithUser = GetTenantWithUser(repository, jwtStore)
         )
     }
 

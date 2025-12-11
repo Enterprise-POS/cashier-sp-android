@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
-import com.pos.cashiersp.model.dto.GetTenantWithUserDto
+import com.pos.cashiersp.model.dto.Tenant
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.repository.TenantRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,19 +13,28 @@ import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
 import java.io.IOException
 
-class GetTenantWithUser(private val tenantRepository: TenantRepository, private val jwtStore: JwtStore) {
-    operator fun invoke(): Flow<Resource<GetTenantWithUserDto>> = flow {
+class NewTenant(private val repository: TenantRepository, private val jwtStore: JwtStore) {
+    operator fun invoke(name: String): Flow<Resource<Unit>> = flow {
         try {
-            emit(Resource.Loading<GetTenantWithUserDto>())
-
+            emit(Resource.Loading())
+            if (name.isEmpty() || name.length < 2) {
+                emit(Resource.Error("Please fill at least 2 characters"))
+                return@flow
+            }
             val payload = jwtStore.getPayload().first()
             if (payload == null) {
-                emit(Resource.Error("[UNAUTHORIZED] Error must login to access current screen"))
+                emit(Resource.Error("[UNAUTHORIZED] User not logged in"))
                 return@flow
             }
 
-            emit(Resource.Loading<GetTenantWithUserDto>())
-            val response = tenantRepository.getTenantWithUser(payload.sub)
+            val newTenantCandidate = Tenant(
+                name = name,
+                ownerUserId = payload.sub,
+                createdAt = "",
+                id = 0,
+                isActive = true,
+            )
+            val response = repository.newTenant(newTenantCandidate)
             if (!response.isSuccessful) {
                 when (response.code()) {
                     400, 401, 403 -> {
@@ -43,12 +52,8 @@ class GetTenantWithUser(private val tenantRepository: TenantRepository, private 
                 }
             }
 
-            val successResponse = response.body()
-            if (successResponse == null) {
-                emit(Resource.Error("Empty JSON body"))
-                return@flow
-            }
-            emit(Resource.Success<GetTenantWithUserDto>(successResponse.data))
+            // 201: only return text 'created'
+            emit(Resource.Success(Unit))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "Internal Error, An unexpected error occurred"))
         } catch (e: IOException) {

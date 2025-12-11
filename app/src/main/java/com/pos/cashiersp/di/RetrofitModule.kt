@@ -13,6 +13,7 @@ import com.pos.cashiersp.use_case.GetTenantWithUser
 import com.pos.cashiersp.use_case.IsLoggedIn
 import com.pos.cashiersp.use_case.LoginRequest
 import com.pos.cashiersp.use_case.Logout
+import com.pos.cashiersp.use_case.NewTenant
 import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.TenantUseCase
 import com.pos.cashiersp.use_case.UserUseCase
@@ -61,10 +62,11 @@ object RetrofitModule {
 
     @Provides
     @Singleton
-    fun provideTenantUseCases(repository: TenantRepository): TenantUseCase {
+    fun provideTenantUseCases(repository: TenantRepository, jwtStore: JwtStore): TenantUseCase {
         return TenantUseCase(
             getTenantMembers = GetTenantMembers(repository),
-            getTenantWithUser = GetTenantWithUser(repository)
+            getTenantWithUser = GetTenantWithUser(repository, jwtStore),
+            newTenant = NewTenant(repository, jwtStore)
         )
     }
 

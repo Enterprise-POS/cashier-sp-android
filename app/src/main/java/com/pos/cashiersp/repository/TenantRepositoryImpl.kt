@@ -5,6 +5,8 @@ import com.pos.cashiersp.model.CashierApi
 import com.pos.cashiersp.model.dto.GetTenantWithUserDto
 import com.pos.cashiersp.model.dto.Tenant
 import com.pos.cashiersp.model.dto.TenantGetMembersDto
+import com.pos.cashiersp.presentation.util.NewTenantRequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import javax.inject.Inject
 
@@ -15,5 +17,9 @@ class TenantRepositoryImpl @Inject constructor(private val api: CashierApi) : Te
 
     override suspend fun getTenantWithUser(userId: Int): Response<HTTPStatus.SuccessResponse<GetTenantWithUserDto>> {
         return api.getTenantWithUser(userId.toString())
+    }
+
+    override suspend fun newTenant(tenant: Tenant): Response<ResponseBody> {
+        return api.newTenant(NewTenantRequestBody(tenant.name, tenant.ownerUserId))
     }
 }

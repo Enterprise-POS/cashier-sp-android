@@ -151,7 +151,9 @@ fun LoginSide(snackbarHostState: SnackbarHostState, viewModel: LoginRegisterView
         onClick = { viewModel.onEvent(LoginRegisterEvent.Login) },
         colors = ButtonDefaults.textButtonColors(
             containerColor = Primary,
-            contentColor = White
+            contentColor = White,
+            disabledContentColor = Gray300,
+            disabledContainerColor = Gray100
         ),
         enabled = !viewModelState.isLoading,
         shape = RoundedCornerShape(corner = CornerSize(12.dp)),
