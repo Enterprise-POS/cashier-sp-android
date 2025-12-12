@@ -18,12 +18,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.model.dto.Tenant
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantEvent
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantViewModel
@@ -40,7 +42,9 @@ fun TenantCard(tenant: Tenant, viewModel: SelectTenantViewModel = hiltViewModel(
 
     Button(
         shape = RoundedCornerShape(CornerSize(8.dp)),
-        modifier = Modifier.padding(vertical = 4.dp),
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .testTag(TestTags.SelectTenantScreen.TENANT_CARD_BUTTON),
         colors = ButtonDefaults.buttonColors().copy(containerColor = Light),
         contentPadding = PaddingValues(8.dp),
         onClick = { viewModel.onEvent(SelectTenantEvent.OnClickTenantCard(tenant)) },

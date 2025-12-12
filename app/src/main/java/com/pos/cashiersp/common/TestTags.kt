@@ -39,6 +39,7 @@ object TestTags {
         const val SELECT_TENANT_TITLE_SUB_TITLE = "SELECT_TENANT_TITLE_SUB_TITLE"
         const val CONTINUE_BUTTON = "CONTINUE_BUTTON"
         const val SWITCH_ACCOUNT_BUTTON = "SWITCH_ACCOUNT_BUTTON"
+        const val TENANT_CARD_BUTTON = "TENANT_CARD_BUTTON"
 
         // Add new tenant dialog
         const val ADD_TENANT_BUTTON = "ADD_TENANT_BUTTON"

@@ -9,9 +9,11 @@ import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
 import com.pos.cashiersp.use_case.GetTenantMembers
+import com.pos.cashiersp.use_case.GetTenantWithUser
 import com.pos.cashiersp.use_case.IsLoggedIn
 import com.pos.cashiersp.use_case.LoginRequest
 import com.pos.cashiersp.use_case.Logout
+import com.pos.cashiersp.use_case.NewTenant
 import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.TenantUseCase
 import com.pos.cashiersp.use_case.UserUseCase
@@ -72,7 +74,8 @@ object TestRetrofitModule {
     fun provideTenantUseCase(repository: TenantRepository, jwtStore: JwtStore): TenantUseCase {
         return TenantUseCase(
             getTenantMembers = GetTenantMembers(repository),
-            getTenantWithUser = GetTenantWithUser(repository, jwtStore)
+            getTenantWithUser = GetTenantWithUser(repository, jwtStore),
+            newTenant = NewTenant(repository, jwtStore)
         )
     }
 
