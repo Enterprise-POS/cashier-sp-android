@@ -75,11 +75,18 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
         Screen.LOGOUT to Pair("Logout Button", Icons.Outlined.ExitToApp)
     )
 
+    val isAllowedToOpen = when {
+        currentTitle == Screen.LOGIN_REGISTER -> false
+        currentTitle == Screen.SELECT_TENANT -> false
+        currentTitle?.contains(Screen.SELECT_STORE) == true -> false
+        else -> true
+    }
+
     // Content
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     ModalNavigationDrawer(
         drawerState = drawerState,
-        gesturesEnabled = true,
+        gesturesEnabled = isAllowedToOpen,
         drawerContent = {
             ModalDrawerSheet(
                 modifier = Modifier

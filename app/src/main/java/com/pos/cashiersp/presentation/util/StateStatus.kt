@@ -1,6 +1,8 @@
 package com.pos.cashiersp.presentation.util
 
-data class StateStatus (
+data class StateStatus(
     val isLoading: Boolean = false,
     val error: String? = null,
+    val loadingMessage: String = "",
+    val successMessage: String = ""
 )

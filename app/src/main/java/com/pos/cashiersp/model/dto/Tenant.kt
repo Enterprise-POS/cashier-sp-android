@@ -1,19 +1,20 @@
 package com.pos.cashiersp.model.dto
 
 
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class Tenant(
-    @SerialName("created_at")
+    @SerializedName("created_at")
     val createdAt: String,
-    @SerialName("id")
+    @SerializedName("id")
     val id: Int,
-    @SerialName("is_active")
+    @SerializedName("is_active")
     val isActive: Boolean,
-    @SerialName("name")
+    @SerializedName("name")
     val name: String,
-    @SerialName("owner_user_id")
+    @SerializedName("owner_user_id")
     val ownerUserId: Int
 )

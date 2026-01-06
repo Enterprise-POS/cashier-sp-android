@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,6 +43,7 @@ import androidx.navigation.NavController
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.select_tenant.component.AddNewTenantDialog
+import com.pos.cashiersp.presentation.select_tenant.component.ErrorOnSelectTenantDialog
 import com.pos.cashiersp.presentation.select_tenant.component.TenantCard
 import com.pos.cashiersp.presentation.select_tenant.component.TryAgainDialog
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -62,7 +61,9 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
     val tenantList = viewModel.tenantList.value
     val selectedTenant = viewModel.selectedTenant.value
     val openTryAgainDialog = viewModel.openTryAgainDialog.value
+    val openErrorOnSelectTenant = viewModel.openErrorOnSelectTenant.value
     val openAddNewTenantDialog = viewModel.openAddNewTenantDialog.value
+    println(selectedTenant)
 
     LaunchedEffect(Unit) {
         viewModel.authorizationUIEvent.collectLatest { event ->
@@ -72,6 +73,20 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
                         inclusive = true
                     }
                     launchSingleTop = true
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.saveSelectedTenantUIEvent.collectLatest { event ->
+            when (event) {
+                is SelectTenantViewModel.SaveSelectedTenantUIEvent.ErrorWhileSelectTenant -> {
+                    // _openTryAgain dialog will be handle AlertDialog
+                }
+
+                is SelectTenantViewModel.SaveSelectedTenantUIEvent.OkNavigateToSelectStore -> {
+                    navController.navigate(Screen.SELECT_STORE + "/${event.tenantId}/${event.tenantName}")
                 }
             }
         }
@@ -194,8 +209,7 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 14.dp),
-
-                ) {
+            ) {
                 TextButton(
                     enabled = !vmState.value.isLoading && selectedTenant != null,
                     colors = ButtonDefaults.textButtonColors(
@@ -207,7 +221,7 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
                         .fillMaxWidth()
                         .height(42.dp)
                         .testTag(TestTags.SelectTenantScreen.CONTINUE_BUTTON),
-                    onClick = { navController.navigate(Screen.CASHIER) },
+                    onClick = { viewModel.onEvent(SelectTenantEvent.OnClickContinue) },
                 ) {
                     Text("Continue")
                 }
@@ -242,6 +256,14 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
             AddNewTenantDialog(
                 onDismissRequest = { viewModel.onEvent(SelectTenantEvent.SetOpenAddNewTenant(false)) },
                 onConfirmation = { viewModel.onEvent(SelectTenantEvent.NewTenantRequest) },
+            )
+        }
+
+        if (openErrorOnSelectTenant) {
+            ErrorOnSelectTenantDialog(
+                onDismissRequest = { viewModel.onEvent(SelectTenantEvent.SetOpenErrorSelectTenantDialog(false)) },
+                onConfirmation = { viewModel.onEvent(SelectTenantEvent.OnClickContinue) },
+                dialogText = vmState.value.error ?: "Fatal Error: Could not identified causing error",
             )
         }
     }

@@ -8,6 +8,7 @@ import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.model.dto.Tenant
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.StateStatus
+import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.TenantUseCase
 import com.pos.cashiersp.use_case.UserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SelectTenantViewModel @Inject constructor(
     private val tenantUseCase: TenantUseCase,
-    private val userUseCase: UserUseCase
+    private val userUseCase: UserUseCase,
+    private val dataStoreUseCase: DataStoreUseCase,
 ) : ViewModel() {
     private val _state = mutableStateOf(StateStatus())
     val state: State<StateStatus> = _state
@@ -45,6 +47,12 @@ class SelectTenantViewModel @Inject constructor(
     val inpNewTenantName: State<InpTextFieldState> = _inpNewTenantName
     private val _isCreatingTenant = mutableStateOf(false)
     val isCreatingTenant: State<Boolean> = _isCreatingTenant
+
+    // On Continue selected tenant
+    private val _saveSelectedTenantUIEvent = MutableSharedFlow<SaveSelectedTenantUIEvent>()
+    val saveSelectedTenantUIEvent = _saveSelectedTenantUIEvent.asSharedFlow()
+    private val _openErrorOnSelectTenant = mutableStateOf(false)
+    val openErrorOnSelectTenant: State<Boolean> = _openErrorOnSelectTenant
 
     init {
         // Get current user all related tenant
@@ -121,6 +129,39 @@ class SelectTenantViewModel @Inject constructor(
             }
 
             is SelectTenantEvent.SetOpenTryAgainDialog -> _openTryAgainDialog.value = event.isOpen
+
+            is SelectTenantEvent.OnClickContinue -> {
+                if (_selectedTenant.value == null) return
+                val id = _selectedTenant.value!!.id
+                val name = _selectedTenant.value!!.name
+                dataStoreUseCase.saveSelectedTenant(id, name).onEach { resource ->
+                    when (resource) {
+                        is Resource.Error -> {
+                            _state.value = StateStatus(error = resource.message)
+                            _saveSelectedTenantUIEvent.emit(SaveSelectedTenantUIEvent.ErrorWhileSelectTenant)
+                            _openTryAgainDialog.value = true
+                        }
+
+                        is Resource.Loading -> {
+                            _openErrorOnSelectTenant.value = false
+                            _state.value = StateStatus(isLoading = true)
+                        }
+
+                        is Resource.Success -> {
+                            _state.value = StateStatus(isLoading = false)
+                            _saveSelectedTenantUIEvent.emit(
+                                SaveSelectedTenantUIEvent.OkNavigateToSelectStore(
+                                    tenantId = id,
+                                    tenantName = name
+                                )
+                            )
+                            _openErrorOnSelectTenant.value = false
+                        }
+                    }
+                }.launchIn(viewModelScope)
+            }
+
+            is SelectTenantEvent.SetOpenErrorSelectTenantDialog -> _openErrorOnSelectTenant.value = event.isOpen
         }
     }
 
@@ -144,7 +185,6 @@ class SelectTenantViewModel @Inject constructor(
                     } else {
                         _state.value = StateStatus(error = resource.message)
                         _openTryAgainDialog.value = true
-                        println("Error in SelectTenantViewModel when init with message: ${resource.message}")
                     }
                 }
             }
@@ -153,5 +193,10 @@ class SelectTenantViewModel @Inject constructor(
 
     sealed class AuthorizationUIEvent {
         object Logout : AuthorizationUIEvent()
+    }
+
+    sealed class SaveSelectedTenantUIEvent {
+        data class OkNavigateToSelectStore(val tenantId: Int, val tenantName: String) : SaveSelectedTenantUIEvent()
+        object ErrorWhileSelectTenant : SaveSelectedTenantUIEvent()
     }
 }

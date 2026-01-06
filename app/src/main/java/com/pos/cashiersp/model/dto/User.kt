@@ -1,6 +1,7 @@
 package com.pos.cashiersp.model.dto
 
 
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -9,6 +10,6 @@ data class User(
     val email: String,
     val id: Int,
     val name: String,
-    @SerialName("created_at")
+    @SerializedName("created_at")
     val createdAt: String,
 )

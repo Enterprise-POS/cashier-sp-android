@@ -58,8 +58,8 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
     * */
     val context = LocalContext.current
     val userPayload by JwtStore(context).getPayload().collectAsState(initial = null)
-    println("Payload: $userPayload")
-    println("Username: ${userPayload?.name ?: ""}")
+    //println("Payload: $userPayload")
+    //println("Username: ${userPayload?.name ?: ""}")
 
     // You can't combine 2 coroutine in LaunchEffect, the collectLatest will suspend indefinitely
     LaunchedEffect(key1 = true) {
