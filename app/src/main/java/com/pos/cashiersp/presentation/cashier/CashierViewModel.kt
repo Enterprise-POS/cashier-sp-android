@@ -347,15 +347,19 @@ class CashierViewModel @Inject constructor(
                     _cashierItems.value = data
 
                     val tempCategories = hashMapOf<Int, Category>(
-                        -1 to Category(-1, "All", tenantId, now()),
+                        -1 to Category(-1, "All", tenantId, now(), data.size),
                         0 to Category(0, "Uncategorized", tenantId, now())
                     )
                     for (cashierItem in data) {
                         val categoryId = cashierItem.categoryId
                         val categoryName = cashierItem.categoryName
-                        tempCategories.putIfAbsent(
-                            categoryId, Category(categoryId, categoryName, tenantId, now())
-                        )
+                        if (tempCategories.containsKey(categoryId)) {
+                            tempCategories[categoryId]!!.count += 1
+                        } else {
+                            tempCategories.put(
+                                categoryId, Category(categoryId, categoryName, tenantId, now(), 1)
+                            )
+                        }
                     }
                     _categories.value = tempCategories.toMap()
                     _state.value = StateStatus()

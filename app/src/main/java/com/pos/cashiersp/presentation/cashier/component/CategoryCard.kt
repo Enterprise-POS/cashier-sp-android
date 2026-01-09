@@ -40,7 +40,7 @@ fun CategoryCard(category: Category, viewModel: CashierViewModel = hiltViewModel
             contentAlignment = Alignment.Center
         ) {
             Text(
-                category.categoryName,
+                "${category.categoryName} (${category.count})",
                 style = TextStyle(color = White, fontWeight = FontWeight.W600, fontSize = 12.sp)
             )
         }

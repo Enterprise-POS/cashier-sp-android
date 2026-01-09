@@ -3,9 +3,11 @@ package com.pos.cashiersp.presentation.greeting.component
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -13,16 +15,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -39,8 +44,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.text.isDigitsOnly
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -53,12 +60,16 @@ import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.cashier.component.FoodItem
 import com.pos.cashiersp.presentation.cashier.component.PaymentMethodButton
-import com.pos.cashiersp.presentation.cashier.component.TransactionStatusDialog
 import com.pos.cashiersp.presentation.ui.theme.Danger900
+import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray200
 import com.pos.cashiersp.presentation.ui.theme.Gray300
+import com.pos.cashiersp.presentation.ui.theme.Gray500
+import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Gray700
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
+import com.pos.cashiersp.presentation.ui.theme.Primary200
 import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
@@ -108,35 +119,49 @@ fun CashierPartialBottomSheet(
                     .padding(4.dp)
                     .fillMaxSize()
             ) {
-                Text(
-                    "Order no. 77",
-                    color = Secondary,
-                    fontSize = 18.sp,
-                    style = LocalTextStyle.current.merge(
-                        TextStyle(
-                            fontWeight = FontWeight.Normal,
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    ),
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "staff: $staffName",
-                    color = Secondary,
-                    fontSize = 12.sp,
-                    style = LocalTextStyle.current.merge(
-                        TextStyle(
-                            fontWeight = FontWeight.Normal,
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    ),
-                )
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = Gray100.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        .fillMaxWidth()
+                        .height(68.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            "Order no. 77",
+                            color = Secondary,
+                            fontSize = 18.sp,
+                            style = LocalTextStyle.current.merge(
+                                TextStyle(
+                                    fontWeight = FontWeight.W500,
+                                    lineHeightStyle = LineHeightStyle(
+                                        alignment = LineHeightStyle.Alignment.Center,
+                                        trim = LineHeightStyle.Trim.Both,
+                                    )
+                                ),
+                            ),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "staff: $staffName",
+                            color = Gray700,
+                            fontSize = 12.sp,
+                            style = LocalTextStyle.current.merge(
+                                TextStyle(
+                                    fontWeight = FontWeight.W500,
+                                    lineHeightStyle = LineHeightStyle(
+                                        alignment = LineHeightStyle.Alignment.Center,
+                                        trim = LineHeightStyle.Trim.Both,
+                                    )
+                                ),
+                            ),
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -169,23 +194,29 @@ fun CashierPartialBottomSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(390.dp) // This must be the same value as the padding at Column
+                    .height(390.dp)
                     .padding(8.dp)
                     .background(
-                        color = Secondary,
-                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                        color = Primary500.copy(alpha = .3f),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .border(
+                        width = .8.dp,
+                        color = Gray100.copy(alpha = .2f),
+                        shape = RoundedCornerShape(10.dp)
                     )
             ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                        .padding(start = 14.dp, end = 14.dp, top = 14.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Subtotal",
-                        color = White,
-                        fontSize = 12.sp,
+                        color = Gray500,
+                        fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
                                 fontWeight = FontWeight.Normal,
@@ -198,8 +229,8 @@ fun CashierPartialBottomSheet(
                     )
                     Text(
                         "${priceFormatter.format(subTotal)} 円",
-                        color = White,
-                        fontSize = 12.sp,
+                        color = Secondary,
+                        fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
                                 fontWeight = FontWeight.Normal,
@@ -214,14 +245,15 @@ fun CashierPartialBottomSheet(
 
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                        .padding(start = 14.dp, end = 14.dp, top = 12.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Sum discount",
-                        color = White,
-                        fontSize = 12.sp,
+                        color = Gray500,
+                        fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
                                 fontWeight = FontWeight.Normal,
@@ -234,8 +266,8 @@ fun CashierPartialBottomSheet(
                     )
                     Text(
                         "${priceFormatter.format(sumDiscount)} 円",
-                        color = White,
-                        fontSize = 12.sp,
+                        color = Secondary,
+                        fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
                                 fontWeight = FontWeight.Normal,
@@ -248,16 +280,29 @@ fun CashierPartialBottomSheet(
                     )
                 }
 
+                Spacer(Modifier.height(12.dp))
+
+                HorizontalDivider(
+                    Modifier
+                        .height(2.dp)
+                        .padding(horizontal = 12.dp),
+                    1.dp,
+                    Gray100.copy(alpha = 0.2f)
+                )
+
+                Spacer(Modifier.height(12.dp))
+
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                        .padding(horizontal = 14.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Total",
-                        color = White,
-                        fontSize = 20.sp,
+                        color = Secondary,
+                        fontSize = 16.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
                                 fontWeight = FontWeight.Normal,
@@ -270,11 +315,11 @@ fun CashierPartialBottomSheet(
                     )
                     Text(
                         "${priceFormatter.format(total)} 円",
-                        color = White,
+                        color = Primary,
                         fontSize = 20.sp,
                         style = LocalTextStyle.current.merge(
                             TextStyle(
-                                fontWeight = FontWeight.Normal,
+                                fontWeight = FontWeight.Bold,
                                 lineHeightStyle = LineHeightStyle(
                                     alignment = LineHeightStyle.Alignment.Center,
                                     trim = LineHeightStyle.Trim.Both,
@@ -288,10 +333,10 @@ fun CashierPartialBottomSheet(
                 Text(
                     "Payment Method",
                     modifier = Modifier
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                        .padding(start = 14.dp, end = 14.dp, top = 14.dp)
                         .fillMaxWidth(),
-                    color = White,
-                    fontSize = 12.sp,
+                    color = Secondary,
+                    fontSize = 14.sp,
                     style = LocalTextStyle.current.merge(
                         TextStyle(
                             fontWeight = FontWeight.Normal,
@@ -308,7 +353,7 @@ fun CashierPartialBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     columns = GridCells.Fixed(3),
-                    modifier = Modifier.padding(horizontal = 18.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
                     item {
                         PaymentMethodButton(
@@ -324,13 +369,14 @@ fun CashierPartialBottomSheet(
                                     .build(),
                                 contentDescription = "Cash payment",
                                 colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CASH) Primary else White),
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.size(15.dp)
+
                             )
                         }
                     }
                     item {
                         PaymentMethodButton(
-                            "Credit card",
+                            "Card",
                             active = selectedPaymentMethod == PaymentMethod.CREDIT_CARD,
                             onClick = {
                                 viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.CREDIT_CARD))
@@ -341,14 +387,15 @@ fun CashierPartialBottomSheet(
                                     .decoderFactory(SvgDecoder.Factory())
                                     .build(),
                                 contentDescription = "Credit card payment",
-                                colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) Primary else White),
-                                modifier = Modifier.fillMaxSize()
+                                colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CREDIT_CARD) Primary else Secondary),
+                                modifier = Modifier.size(15.dp)
+
                             )
                         }
                     }
                     item {
                         PaymentMethodButton(
-                            "QR (pay pay)",
+                            "QR",
                             active = selectedPaymentMethod == PaymentMethod.QR,
                             onClick = {
                                 viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.QR))
@@ -359,47 +406,113 @@ fun CashierPartialBottomSheet(
                                     .decoderFactory(SvgDecoder.Factory())
                                     .build(),
                                 contentDescription = "QR code payment",
-                                colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.QR) Primary else White),
-                                modifier = Modifier.fillMaxSize()
+                                colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.QR) Primary else Secondary),
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
                 }
-
-                Spacer(Modifier.height(18.dp))
-
+                
                 when (selectedPaymentMethod) {
                     PaymentMethod.CASH -> {
-                        TextField(
-                            value = inpCashPaymentMethod.text,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = inpCashPaymentMethod.isError,
-                            enabled = !transactionState.isLoading,
-                            shape = RoundedCornerShape(0.dp),
-                            onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
-                            placeholder = { Text("0", color = Gray200) },
-                            singleLine = true,
-                            visualTransformation = ThousandsSeparatorTransformation(),
-                            suffix = { Text("円", color = Primary) },
-                            colors = TextFieldDefaults.colors(
-                                cursorColor = Primary,
-                                unfocusedContainerColor = Secondary,
-                                focusedContainerColor = Secondary,
-                                unfocusedIndicatorColor = Secondary,
-                                focusedIndicatorColor = Primary,
-                                errorIndicatorColor = Danger900,
-                                errorCursorColor = Danger900,
-                                errorContainerColor = Secondary,
-                                disabledContainerColor = Primary100,
-                                disabledIndicatorColor = Primary500,
-                                focusedTextColor = Primary,
-                                unfocusedTextColor = White,
-                                disabledTextColor = Gray300,
-                                errorTextColor = Danger900,
-                            ),
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .fillMaxWidth()
-                        )
+                                .padding(horizontal = 14.dp)
+                                .fillMaxWidth(),
+                        ) {
+                            Text(
+                                "Amount received",
+                                color = Gray500,
+                                fontSize = 14.sp,
+                                style = LocalTextStyle.current.merge(
+                                    TextStyle(
+                                        fontWeight = FontWeight.Normal,
+                                        lineHeightStyle = LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.Both,
+                                        )
+                                    ),
+                                ),
+                            )
+                            TextField(
+                                value = inpCashPaymentMethod.text,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                isError = inpCashPaymentMethod.isError,
+                                enabled = !transactionState.isLoading,
+                                shape = RoundedCornerShape(0.dp),
+                                onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
+                                placeholder = {
+                                    Text(
+                                        "0",
+                                        color = Gray200,
+                                        textAlign = TextAlign.Right,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                },
+                                singleLine = true,
+                                visualTransformation = ThousandsSeparatorTransformation(),
+                                textStyle = LocalTextStyle.current.copy(
+                                    textAlign = TextAlign.End
+                                ),
+                                suffix = { Text("円", color = Secondary) },
+                                colors = TextFieldDefaults.colors(
+                                    cursorColor = Primary,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    focusedIndicatorColor = Primary,
+                                    errorIndicatorColor = Danger900,
+                                    errorCursorColor = Danger900,
+                                    errorContainerColor = Color.Transparent,
+                                    disabledContainerColor = Primary100,
+                                    disabledIndicatorColor = Primary500,
+                                    focusedTextColor = Secondary,
+                                    unfocusedTextColor = Secondary,
+                                    disabledTextColor = Gray300,
+                                    errorTextColor = Danger900,
+                                ),
+                                modifier = Modifier
+                                    .width(180.dp)
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom,
+                            modifier = Modifier
+                                .padding(horizontal = 14.dp)
+                                .fillMaxWidth(),
+                        ) {
+                            Text(
+                                "Change",
+                                color = Gray500,
+                                fontSize = 14.sp,
+                                style = LocalTextStyle.current.merge(
+                                    TextStyle(
+                                        fontWeight = FontWeight.Normal,
+                                        lineHeightStyle = LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.Both,
+                                        )
+                                    ),
+                                ),
+                            )
+                            Text(
+                                "${priceFormatter.format(if (inpCashPaymentMethod.text.isNotEmpty()) inpCashPaymentMethod.text.toInt() - subTotal else 0)} 円",
+                                color = Secondary,
+                                fontSize = 14.sp,
+                                style = LocalTextStyle.current.merge(
+                                    TextStyle(
+                                        fontWeight = FontWeight.Normal,
+                                        lineHeightStyle = LineHeightStyle(
+                                            alignment = LineHeightStyle.Alignment.Center,
+                                            trim = LineHeightStyle.Trim.Both,
+                                        )
+                                    ),
+                                ),
+                            )
+                        }
                     }
 
                     PaymentMethod.CREDIT_CARD -> TODO()

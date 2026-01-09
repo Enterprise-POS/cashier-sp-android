@@ -39,7 +39,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pos.cashiersp.R
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.model.dto.CashierItem
@@ -182,7 +181,7 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewMod
 
                 // Price
                 Text(
-                    text = "${String.format("%.2f", price)} 円",
+                    text = if (price > 0) "${String.format("%.2f", price)} 円" else "0 円",
                     fontSize = 12.sp,
                     color = Secondary
                 )

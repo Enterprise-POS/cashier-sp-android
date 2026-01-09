@@ -1,7 +1,9 @@
 package com.pos.cashiersp.presentation.cashier.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,11 +20,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.presentation.ui.theme.Gray300
+import com.pos.cashiersp.presentation.ui.theme.Gray500
+import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light900
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
@@ -35,57 +42,74 @@ fun FoodItem(number: Int, cartItem: CartItem) {
     val priceFormatter = java.text.DecimalFormat("#,###")
 
     Card(
-        elevation = CardDefaults.cardElevation(4.dp),
+        border = BorderStroke(.4.dp, Gray500),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Secondary), // dark background
-        modifier = Modifier.fillMaxWidth(1f),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+        ),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(52.dp)
                 .padding(horizontal = 14.dp)
-                .height(52.dp),
         ) {
-            // Circle number
+
+            // Number badge
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .background(Primary, shape = CircleShape),
+                    .background(Secondary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = number.toString(),
                     color = White,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
                 )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
 
-            // Item + quantity - using weight to take available space
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
+            // Item + quantity (take available space)
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    itemName,
-                    color = White,
-                    style = TextStyle(fontSize = 12.sp),
+                    text = itemName,
+                    color = Secondary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "x${quantity}",
-                    style = TextStyle(fontSize = 12.sp),
-                    color = Gray300
-                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Row {
+                    Text(
+                        text = "x$quantity",
+                        fontSize = 12.sp,
+                        color = Gray600
+                    )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = "${cartItem.storeStock.price} / item",
+                        fontSize = 12.sp,
+                        color = Gray600
+                    )
+                }
             }
 
-            // Price
+            // Price (right aligned)
             Text(
                 text = "${priceFormatter.format(price * quantity)} 円",
-                color = White,
-                style = TextStyle(fontSize = 12.sp)
+                color = Secondary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
