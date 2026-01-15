@@ -33,7 +33,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -60,7 +63,8 @@ import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
 import com.pos.cashiersp.presentation.cashier.component.TransactionStatusDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
-import com.pos.cashiersp.presentation.greeting.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
@@ -83,10 +87,12 @@ fun CashierScreen(
     val cart = viewModel.cart.value
     val transactionState = viewModel.transactionState.value
     val showTransactionDialog = viewModel.showTransactionDialog.value
+    val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
 
     // scope
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true, // This will skip half state
         confirmValueChange = { newValue -> !transactionState.isLoading }
@@ -109,6 +115,24 @@ fun CashierScreen(
                 is CashierViewModel.UIEvent.CloseCashierPartialSheet -> {
                     showBottomSheet = false
                 }
+
+                is CashierViewModel.UIEvent.ShowErrorSnackbar -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = SnackbarDuration.Long,
+                        withDismissAction = true,
+                        actionLabel = "Close"
+                    )
+                    when (result) {
+                        SnackbarResult.Dismissed -> {
+                            println("Do something when dismissed")
+                        }
+
+                        SnackbarResult.ActionPerformed -> {
+                            println("Do something")
+                        }
+                    }
+                }
             }
         }
     }
@@ -117,6 +141,9 @@ fun CashierScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 actions = {
@@ -271,6 +298,14 @@ fun CashierScreen(
                 onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog) },
                 status = transactionState.error == null, // Means no error, then show success otherwise there must be an error
                 dialogText = transactionState.error ?: transactionState.successMessage
+            )
+        }
+
+        if (generalAlertDialogStatus.showDialog) {
+            GeneralAlertDialog(
+                onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+                onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+                generalAlertDialogStatus
             )
         }
     }

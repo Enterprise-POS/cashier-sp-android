@@ -14,5 +14,8 @@ sealed class CashierEvent {
 
     data class EnteredCashBalance(val value: String) : CashierEvent()
     object OnConfirmTransactionBtnDialog : CashierEvent()
+
+    object OnConfirmGeneralAlertDialog : CashierEvent()
+
     object PlaceOrder : CashierEvent()
 }

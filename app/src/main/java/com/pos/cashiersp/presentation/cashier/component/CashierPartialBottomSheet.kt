@@ -1,4 +1,4 @@
-package com.pos.cashiersp.presentation.greeting.component
+package com.pos.cashiersp.presentation.cashier.component
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
@@ -47,7 +45,6 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.text.isDigitsOnly
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -58,24 +55,21 @@ import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
-import com.pos.cashiersp.presentation.cashier.component.FoodItem
-import com.pos.cashiersp.presentation.cashier.component.PaymentMethodButton
 import com.pos.cashiersp.presentation.ui.theme.Danger900
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray200
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Gray500
-import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Gray700
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
-import com.pos.cashiersp.presentation.ui.theme.Primary200
 import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
+import java.text.DecimalFormat
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +85,7 @@ fun CashierPartialBottomSheet(
     val inpCashPaymentMethod = viewModel.inpCashPaymentMethod.value
     val transactionState = viewModel.transactionState.value
 
-    val priceFormatter = java.text.DecimalFormat("#,###")
+    val priceFormatter = DecimalFormat("#,###")
 
     /*
     * We could add new feature such as add customer info for continuous customer
@@ -194,7 +188,7 @@ fun CashierPartialBottomSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(390.dp)
+                    .height(372.dp)
                     .padding(8.dp)
                     .background(
                         color = Primary500.copy(alpha = .3f),
@@ -412,7 +406,7 @@ fun CashierPartialBottomSheet(
                         }
                     }
                 }
-                
+
                 when (selectedPaymentMethod) {
                     PaymentMethod.CASH -> {
                         Row(
@@ -524,9 +518,9 @@ fun CashierPartialBottomSheet(
                     enabled = !transactionState.isLoading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Primary,
-                        contentColor = Color.White,
-                        disabledContainerColor = Color.Gray,
-                        disabledContentColor = Color.LightGray
+                        contentColor = White,
+                        disabledContentColor = Gray300,
+                        disabledContainerColor = Gray100
                     ),
                     modifier = Modifier
                         .fillMaxWidth()

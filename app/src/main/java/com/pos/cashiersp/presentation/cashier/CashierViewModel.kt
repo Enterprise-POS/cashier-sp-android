@@ -20,6 +20,8 @@ import com.pos.cashiersp.presentation.cashier.CashierEvent.OnRemoveFromCart
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnSelectCategory
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnSelectPaymentMethod
 import com.pos.cashiersp.presentation.cashier.CashierEvent.PlaceOrder
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
+import com.pos.cashiersp.presentation.login_register.LoginRegisterViewModel.LoginUIEvent.ShowError
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
@@ -79,6 +81,8 @@ class CashierViewModel @Inject constructor(
     val transactionState: State<StateStatus> = _transactionState
     private val _showTransactionDialog = mutableStateOf(false)
     val showTransactionDialog: State<Boolean> = _showTransactionDialog
+    private val _generalAlertDialogState = mutableStateOf(GeneralAlertDialogStatus())
+    val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogState
 
 
     /*
@@ -201,7 +205,14 @@ class CashierViewModel @Inject constructor(
             }
 
             is PlaceOrder -> {
-                if (_transactionState.value.isLoading || _inpCashPaymentMethod.value.text.isEmpty()) return
+                if (_inpCashPaymentMethod.value.text.isEmpty()) {
+                    val title = "Transaction Error"
+                    val message = "Please fill the (Amount Received) first before transaction"
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
+                    return
+                }
+
+                if (_transactionState.value.isLoading) return
                 val purchasedPrice = _inpCashPaymentMethod.value.text.toInt()
                 val currentCart = _cart.value
                 var subTotal = 0
@@ -219,6 +230,7 @@ class CashierViewModel @Inject constructor(
                             purchasedPrice = cartItem.storeStock.price,
                             discountAmount = 0,
                             totalAmount = cartItem.storeStock.price * cartItem.quantity,
+                            itemNameSnapshot = cartItem.item.itemName
                         )
                     )
                 }
@@ -257,11 +269,16 @@ class CashierViewModel @Inject constructor(
                 }.launchIn(viewModelScope)
             }
 
+            // This will guaranteed that every input that user input is only Int. So it's safe to use .toInt()
             is CashierEvent.EnteredCashBalance -> _inpCashPaymentMethod.value =
                 _inpCashPaymentMethod.value.copy(text = event.value.filter { it.isDigit() })
 
             is CashierEvent.OnConfirmTransactionBtnDialog -> {
                 _showTransactionDialog.value = false
+            }
+
+            is CashierEvent.OnConfirmGeneralAlertDialog -> {
+                _generalAlertDialogState.value = GeneralAlertDialogStatus()
             }
         }
     }
@@ -317,13 +334,18 @@ class CashierViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
+    /*
+    * Because always repeating from tenant to store is tiring job, For LoginRegisterScreen change from navigating to SELECT_TENANT into CASHIER
+    * Don't forget to change the tenantId and storeId while debugging. If we directly change at MainActivity into CASHIER
+    * the cookies will apply. Later need change
+    * */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadAllStoreStock(tenantId: Int, storeId: Int): Job {
-        return storeStockUseCase.loadCashierData(tenantId, storeId).onEach { resource ->
+        return storeStockUseCase.loadCashierData(333, 226).onEach { resource ->
             when (resource) {
                 is Resource.Error -> {
                     _state.value = StateStatus(isLoading = false, error = resource.message)
-                    println("[ERROR] ${resource.message}")
+                    println("[ERROR] ${resource.message} CashierViewModel.loadAllStoreStock")
                 }
 
                 is Resource.Loading -> {
@@ -385,5 +407,6 @@ class CashierViewModel @Inject constructor(
     sealed class UIEvent {
         data class ErrorAndMustNavigateToSelectTenantScreen(val message: String) : UIEvent()
         object CloseCashierPartialSheet : UIEvent()
+        data class ShowErrorSnackbar(val message: String) : UIEvent()
     }
 }
