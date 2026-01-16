@@ -14,10 +14,10 @@ import androidx.compose.ui.unit.em
 @Composable
 fun TextWithNoPadding(
     text: String,
+    modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     fontWeight: FontWeight = FontWeight.Normal,
-    modifier: Modifier = Modifier
 ) {
     Text(
         text,

@@ -58,8 +58,8 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
     * */
     val context = LocalContext.current
     val userPayload by JwtStore(context).getPayload().collectAsState(initial = null)
-    println("Payload: $userPayload")
-    println("Username: ${userPayload?.name ?: ""}")
+    //println("Payload: $userPayload")
+    //println("Username: ${userPayload?.name ?: ""}")
 
     // You can't combine 2 coroutine in LaunchEffect, the collectLatest will suspend indefinitely
     LaunchedEffect(key1 = true) {
@@ -124,9 +124,11 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
         viewModel.autoRedirect.collectLatest { event ->
             when (event) {
                 is LoginRegisterViewModel.AutoRedirect.IsUserLoggedIn -> {
+                    // For debugging purpose, change from SELECT_TENANT into CASHIER or etc..
+                    // Don't forget to change the tenantId and storeId while debugging
                     val isRedirect = event.boolean
                     if (isRedirect)
-                        navController.navigate(Screen.SELECT_TENANT) {
+                        navController.navigate(Screen.CASHIER) {
                             popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
                         }
                     else

@@ -35,11 +35,15 @@ android {
             isDebuggable = true
             buildConfigField("String", "MODE", "\"dev\"")
             buildConfigField("String", "DS_NAME", "\"jwt_store\"")
+            buildConfigField("String", "DS_SELECTED_STORE", "\"selected_store\"")
+            buildConfigField("String", "DS_SELECTED_TENANT", "\"selected_tenant\"")
         }
         release {
             isMinifyEnabled = true
             buildConfigField("String", "MODE", "\"prod\"")
             buildConfigField("String", "DS_NAME", "\"jwt_store\"")
+            buildConfigField("String", "DS_SELECTED_STORE", "\"selected_store\"")
+            buildConfigField("String", "DS_SELECTED_TENANT", "\"selected_tenant\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
 
@@ -50,6 +54,8 @@ android {
             isMinifyEnabled = false
             buildConfigField("String", "MODE", "\"uitest\"")
             buildConfigField("String", "DS_NAME", "\"jwt_store_test\"")
+            buildConfigField("String", "DS_SELECTED_STORE", "\"selected_store_test\"")
+            buildConfigField("String", "DS_SELECTED_TENANT", "\"selected_tenant_test\"")
         }
     }
     compileOptions {
@@ -133,13 +139,17 @@ dependencies {
     // Coil (async image)
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+    implementation("io.coil-kt.coil3:coil-svg:3.3.0")
 
-    // Permissions
+
+    // Permissions for bluetooth, etc...
     implementation("com.google.accompanist:accompanist-permissions:0.28.0")
 
     implementation("androidx.datastore:datastore-preferences:1.2.0")
     implementation("androidx.security:security-crypto:1.1.0")
 
+    // - This is where the Thermal Printer will print physically
+    implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
 
     // Test Implementation
     testImplementation("androidx.test:core:1.7.0")

@@ -16,6 +16,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
+        // For thermal printer
+        maven { setUrl("https://jitpack.io") }
     }
 }
 

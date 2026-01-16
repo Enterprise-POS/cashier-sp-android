@@ -1,22 +1,27 @@
 package com.pos.cashiersp.presentation
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.pos.cashiersp.BuildConfig
 import com.pos.cashiersp.presentation.cashier.CashierScreen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.greeting.GreetingScreen
 import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
+import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
@@ -24,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -39,6 +45,7 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = Screen.LOGIN_REGISTER
                         ) {
+
                             composable(route = Screen.GREETING) {
                                 GreetingScreen(navController)
                             }
@@ -58,13 +65,23 @@ class MainActivity : ComponentActivity() {
                             composable(route = Screen.SELECT_TENANT) {
                                 SelectTenantScreen(navController)
                             }
-                            /*
                             composable(
-                                route = Screen.CoinDetailScreen.route + "/{coinId}"
+                                route = Screen.SELECT_STORE + "/{tenantId}/{tenantName}",
+                                arguments = listOf(
+                                    navArgument(name = "tenantId") {
+                                        type = NavType.IntType
+                                        defaultValue = -1
+                                    },
+                                    navArgument(name = "tenantName") {
+                                        type = NavType.StringType
+                                        defaultValue = ""
+                                    }
+                                )
                             ) {
-                                CoinDetailScreen()
+                                val tenantId = it.arguments?.getInt("tenantId") ?: -1
+                                val tenantName = it.arguments?.getString("tenantName") ?: ""
+                                SelectStoreScreen(tenantId, tenantName, navController)
                             }
-                            *  */
                         }
                     }
                 }

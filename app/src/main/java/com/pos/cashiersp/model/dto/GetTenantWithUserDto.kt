@@ -1,12 +1,12 @@
 package com.pos.cashiersp.model.dto
 
 
-import kotlinx.serialization.SerialName
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetTenantWithUserDto(
     val tenants: List<Tenant>,
-    @SerialName("requested_by")
+    @SerializedName("requested_by")
     val requestedBy: Int,
 )

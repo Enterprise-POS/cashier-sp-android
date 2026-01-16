@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ButtonDefaults
@@ -47,10 +48,12 @@ import com.pos.cashiersp.presentation.ui.theme.White
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpleSearchBar(
+    modifier: Modifier = Modifier,
     textFieldState: TextFieldState,
     onSearch: (String) -> Unit,
+    onClear: () -> Unit = {},
     searchResults: List<String>,
-    modifier: Modifier = Modifier
+    enabled: Boolean = false,
 ) {
     // Controls expansion state of the search bar
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -75,6 +78,7 @@ fun SimpleSearchBar(
             ),
             inputField = {
                 SearchBarDefaults.InputField(
+                    enabled = enabled,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         cursorColor = Primary,
@@ -85,16 +89,27 @@ fun SimpleSearchBar(
                     query = textFieldState.text.toString(),
                     onQueryChange = { textFieldState.edit { replace(0, length, it) } },
                     onSearch = {
+                        textFieldState.edit { replace(0, length, it) }
                         onSearch(textFieldState.text.toString())
                         expanded = false
                     },
                     expanded = expanded,
                     onExpandedChange = { expanded = it },
+                    leadingIcon = {
+                        if (textFieldState.text.isNotEmpty()) {
+                            IconButton(onClick = {
+                                textFieldState.edit { replace(0, length, "") }
+                                onClear()
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                            }
+                        }
+                    },
                     trailingIcon = {
                         IconButton(
                             onClick = {
-                                // TODO: implement this
-                                // this is placeholder
+                                textFieldState.edit { replace(0, length, textFieldState.text.toString()) }
+                                onSearch(textFieldState.text.toString())
                                 expanded = false
                             }
                         ) {
@@ -115,8 +130,8 @@ fun SimpleSearchBar(
             // Display search results in a scrollable column
             Row {
                 // TODO: maybe make it more flexible to edit so it can be global component
-                MinimalDropdownMenu()
-                MinimalDropdownMenu()
+                //MinimalDropdownMenu()
+                //MinimalDropdownMenu()
             }
             searchResults.forEach { result ->
                 ListItem(

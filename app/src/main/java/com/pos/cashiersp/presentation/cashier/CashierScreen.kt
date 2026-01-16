@@ -1,10 +1,11 @@
 package com.pos.cashiersp.presentation.cashier
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,28 +22,27 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonColors
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,29 +50,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
 import com.pos.cashiersp.common.TestTags
+import com.pos.cashiersp.presentation.Screen
+import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CategoryCard
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
+import com.pos.cashiersp.presentation.cashier.component.ItemCard
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
-import com.pos.cashiersp.presentation.greeting.component.CashierPartialBottomSheet
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashierScreen(
@@ -80,28 +80,93 @@ fun CashierScreen(
     drawerState: DrawerState,
     viewModel: CashierViewModel = hiltViewModel()
 ) {
+    // viewmodel
+    val vmState = viewModel.state.value
+    val cart = viewModel.cart.value
+    val categories = viewModel.categories.value
+    val selectedCategoryId = viewModel.selectedCategory.value
+    val cashierItems = viewModel.cashierItems.value
+    val searchProductString = viewModel.searchProductString.value
+    val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
+    val loadAllProductsDialogStatus = viewModel.loadAllProductsDialogStatus.value
+
+    // scope
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true, // this will skip half state
-    )
+    val snackbarHostState = remember { SnackbarHostState() }
+    val searchTextFieldState = remember { TextFieldState() }
+
     val onHandleBottomSheet = fun() {
         showBottomSheet = !showBottomSheet
     }
+    val filteredCashierItems =
+        if (searchProductString.isNotEmpty()) {
+            // If user input something at Search Bar
+            if (selectedCategoryId == -1) {
+                // User input something at Search Bar but don't select any categories available / default at 'All'
+                cashierItems.filter { it.itemName.contains(searchProductString) }
+            } else {
+                // User input something at Search Bar and select of the categories available
+                cashierItems.filter { it.itemName.contains(searchProductString) && it.categoryId == selectedCategoryId }
+            }
+        } else if (selectedCategoryId == -1) {
+            // If User don't input something, and don't select any categories available / default as 'All'
+            cashierItems
+        } else {
+            // If User don't input something, but click 1 of the categories available
+            cashierItems.filter { it.categoryId == selectedCategoryId }
+        }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is CashierViewModel.UIEvent.ErrorAndMustNavigateToSelectTenantScreen -> navController.navigate(Screen.SELECT_TENANT) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+
+                is CashierViewModel.UIEvent.CloseCashierPartialSheet -> {
+                    showBottomSheet = false
+                }
+
+                is CashierViewModel.UIEvent.ShowErrorSnackbar -> {
+                    val userClickedSnackbarBtn = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = SnackbarDuration.Long,
+                        withDismissAction = true,
+                        actionLabel = "Close"
+                    )
+                    when (userClickedSnackbarBtn) {
+                        SnackbarResult.Dismissed -> {
+                            println("Do something when dismissed")
+                        }
+
+                        SnackbarResult.ActionPerformed -> {
+                            println("Do something")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 actions = {
                     OutlinedButton(
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
+                        onClick = onHandleBottomSheet,
                         modifier = Modifier
                             .width(140.dp)
                             .testTag(TestTags.CashierScreen.CHART_BUTTON),
-                        onClick = onHandleBottomSheet
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ShoppingCart,
@@ -109,7 +174,7 @@ fun CashierScreen(
                             tint = White
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("2 items", color = White)
+                        Text("${cart.size} items", color = White)
                     }
                 },
                 title = {
@@ -159,7 +224,6 @@ fun CashierScreen(
                             )
                         }
                     }
-
                 },
             )
         },
@@ -170,272 +234,122 @@ fun CashierScreen(
                 .fillMaxWidth()
         ) {
             SimpleSearchBar(
-                textFieldState = TextFieldState(),
-                onSearch = fun(s: String) {},
                 searchResults = listOf(),
+                enabled = !vmState.isLoading,
+                textFieldState = searchTextFieldState,
+                onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
+                onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
             )
             Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .align(Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Categories", style = TextStyle.Default.copy(color = Secondary))
-                Spacer(modifier = Modifier.width(18.dp))
-                Text("20 total", style = TextStyle.Default.copy(color = Gray300))
-                Spacer(modifier = Modifier.weight(1f))
-                TextButton(
-                    modifier = Modifier.height(30.dp),
-                    colors = ButtonColors(
-                        containerColor = White,
-                        contentColor = Secondary,
-                        disabledContainerColor = Secondary,
-                        disabledContentColor = Secondary,
-                    ),
-                    onClick = {},
+
+            if (vmState.isLoading) {
+                // Center the loading indicator
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("View all", style = TextStyle(fontSize = 14.sp))
-                }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Categories grid
-            LazyVerticalGrid(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .heightIn(min = 40.dp, max = (40.dp * 3))
-                    .align(Alignment.CenterHorizontally),
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(12) { count ->
-                    @Composable
-                    fun categoryCard(active: Boolean) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = if (active) Primary else Secondary),
-                            modifier = Modifier.height(36.dp),
-                            shape = RoundedCornerShape(14.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "All $count",
-                                    style = TextStyle(color = White, fontWeight = FontWeight.W600, fontSize = 12.sp)
-                                )
-                            }
-                        }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = Primary,
+                            modifier = Modifier.size(48.dp) // Made it bigger for better visibility
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = vmState.loadingMessage,
+                            color = Gray300,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
                     }
-                    if (count == 0)
-                        categoryCard(true)
-                    else
-                        categoryCard(false)
                 }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            // In this items grid, I want the card grid remember the value that user inputted even they changed
-            // the categories, and it's re render all the card
-            // Items Grid
-            LazyVerticalGrid(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .fillMaxHeight(.96f)
-                    .heightIn(min = 120.dp)
-                    .align(Alignment.CenterHorizontally),
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(12) {
-                    @Composable
-                    fun itemCard(active: Boolean) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = White
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .align(Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Categories", style = TextStyle.Default.copy(color = Secondary))
+                    Spacer(modifier = Modifier.width(18.dp))
+                    Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (categories.size >= 12) {
+                        TextButton(
+                            modifier = Modifier.height(30.dp),
+                            colors = ButtonColors(
+                                containerColor = White,
+                                contentColor = Secondary,
+                                disabledContainerColor = Secondary,
+                                disabledContentColor = Secondary,
                             ),
+                            onClick = {},
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 8.dp, vertical = 8.dp)
-                            ) {
-                                // Coffee Image
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(64.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    AsyncImage(
-                                        modifier = Modifier.fillMaxSize(),
-                                        model = "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=125&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-                                        contentDescription = null,
-                                    )
-                                }
-
-                                // Content Section
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                ) {
-                                    // Title
-                                    Text(
-                                        text = "Iced Coffee With Long Name and Not Gonna Rendered",
-                                        fontSize = 12.sp,
-                                        color = Secondary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.height(20.dp),
-                                    )
-
-                                    // Size and Volume
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Medium",
-                                            fontSize = 10.sp,
-                                            color = Gray300,
-                                            fontWeight = FontWeight.W400,
-                                            style = LocalTextStyle.current.merge(
-                                                TextStyle(
-                                                    lineHeight = 14.sp,
-                                                    platformStyle = PlatformTextStyle(
-                                                        includeFontPadding = false
-                                                    ),
-                                                    lineHeightStyle = LineHeightStyle(
-                                                        alignment = LineHeightStyle.Alignment.Center,
-                                                        trim = LineHeightStyle.Trim.None
-                                                    )
-                                                )
-                                            ),
-                                            modifier = Modifier
-                                                .height(12.dp)
-                                        )
-                                        Text(
-                                            text = " • ",
-                                            fontSize = 10.sp,
-                                            color = Gray300,
-                                            fontWeight = FontWeight.W400,
-                                            style = LocalTextStyle.current.merge(
-                                                TextStyle(
-                                                    lineHeight = 14.sp,
-                                                    platformStyle = PlatformTextStyle(
-                                                        includeFontPadding = false
-                                                    ),
-                                                    lineHeightStyle = LineHeightStyle(
-                                                        alignment = LineHeightStyle.Alignment.Center,
-                                                        trim = LineHeightStyle.Trim.None
-                                                    )
-                                                )
-                                            ),
-                                            modifier = Modifier
-                                                .height(12.dp)
-                                        )
-                                        Text(
-                                            text = "16 oz",
-                                            fontSize = 10.sp,
-                                            color = Gray300,
-                                            fontWeight = FontWeight.W400,
-                                            style = LocalTextStyle.current.merge(
-                                                TextStyle(
-                                                    lineHeight = 14.sp,
-                                                    platformStyle = PlatformTextStyle(
-                                                        includeFontPadding = false
-                                                    ),
-                                                    lineHeightStyle = LineHeightStyle(
-                                                        alignment = LineHeightStyle.Alignment.Center,
-                                                        trim = LineHeightStyle.Trim.None
-                                                    )
-                                                )
-                                            ),
-                                            modifier = Modifier
-                                                .height(12.dp)
-                                        )
-                                    }
-
-                                    // Price
-                                    var price: Double = 10_000.0
-                                    Text(
-                                        text = "$${String.format("%.2f", price)}",
-                                        fontSize = 12.sp,
-                                        color = Secondary
-                                    )
-
-                                    // Price and Add Button
-                                    Row(
-                                        modifier = Modifier.fillMaxSize(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Minus Button
-                                        Button(
-                                            onClick = { },
-                                            modifier = Modifier.size(18.dp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Primary
-                                            ),
-                                            contentPadding = PaddingValues(0.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.KeyboardArrowDown,
-                                                contentDescription = "Add to cart",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(32.dp)
-                                            )
-                                        }
-
-                                        Text(
-                                            "99",
-                                            fontSize = 14.sp,
-                                            color = Secondary
-                                        )
-
-                                        // Add Button
-                                        Button(
-                                            onClick = { },
-                                            modifier = Modifier.size(18.dp),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Primary
-                                            ),
-                                            contentPadding = PaddingValues(0.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.KeyboardArrowUp,
-                                                contentDescription = "Add to cart",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(32.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            Text("View all", style = TextStyle(fontSize = 14.sp))
                         }
                     }
-                    if (it == 0)
-                        itemCard(true)
-                    else
-                        itemCard(false)
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Categories grid
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .heightIn(min = 40.dp, max = (40.dp * 3))
+                        .align(Alignment.CenterHorizontally),
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    categories.toSortedMap().forEach { item(it.key) { CategoryCard(it.value) } }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // In this items grid, I want the card grid remember the value that user inputted even they changed
+                // the categories, and it's re render all the card
+                // Items Grid
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .fillMaxHeight(.96f)
+                        .heightIn(min = 120.dp)
+                        .align(Alignment.CenterHorizontally),
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    filteredCashierItems.forEach { item { ItemCard(it) } }
                 }
             }
         }
 
-        CashierPartialBottomSheet(
-            showBottomSheet, sheetState, mapOf<String, Int>(
-                Pair("Item 1", 1),
-                Pair("Item 2", 30)
-            ), listOf("Item 1", "Item 2"), onHandleBottomSheet
-        )
+        if (showBottomSheet) {
+            CashierPartialBottomSheet(
+                onHandleBottomSheet
+            )
+        }
+
+        if (generalAlertDialogStatus.showDialog) {
+            GeneralAlertDialog(
+                generalAlertDialogStatus = generalAlertDialogStatus,
+                onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+                onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+            )
+        }
+
+        if (loadAllProductsDialogStatus.showDialog) {
+            GeneralAlertDialog(
+                generalAlertDialogStatus = loadAllProductsDialogStatus,
+                confirmText = "Try Again",
+                cancelText = "Dismiss",
+                onConfirmation = { viewModel.onEvent(CashierEvent.TryAgainRequestAllProducts) },
+                onDismissRequest = { viewModel.onEvent(CashierEvent.OnDismissTryAgainRequestAllProducts) },
+            )
+        }
     }
 }
