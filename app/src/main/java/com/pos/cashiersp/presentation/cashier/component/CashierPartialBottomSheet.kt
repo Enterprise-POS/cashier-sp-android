@@ -434,6 +434,7 @@ fun CashierPartialBottomSheet(
                                 value = inpCashPaymentMethod.text,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 isError = inpCashPaymentMethod.isError,
+                                //enabled = !transactionState.isLoading,
                                 enabled = !transactionState.isLoading,
                                 shape = RoundedCornerShape(0.dp),
                                 onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },

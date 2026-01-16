@@ -21,7 +21,6 @@ import com.pos.cashiersp.presentation.cashier.CashierEvent.OnSelectCategory
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnSelectPaymentMethod
 import com.pos.cashiersp.presentation.cashier.CashierEvent.PlaceOrder
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
-import com.pos.cashiersp.presentation.login_register.LoginRegisterViewModel.LoginUIEvent.ShowError
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
@@ -40,6 +39,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.Date
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import com.pos.cashiersp.model.domain.Item as domainItem
 import com.pos.cashiersp.model.dto.Item as dtoItem
@@ -52,13 +52,10 @@ class CashierViewModel @Inject constructor(
     private val orderItemUseCase: OrderItemUseCase,
     private val jwtStore: JwtStore,
 ) : ViewModel() {
-    private val _state = mutableStateOf(
-        StateStatus(
-            isLoading = true,
-            loadingMessage = "Requesting cashier data. Please do not close this screen / close the app..."
-        )
-    )
+    private val _state = mutableStateOf(StateStatus())
     val state: State<StateStatus> = _state
+    private val _loadAllProductsDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
+    val loadAllProductsDialogStatus: State<GeneralAlertDialogStatus> = _loadAllProductsDialogStatus
 
     private val _tenantId = mutableIntStateOf(0)
     private val _storeId = mutableIntStateOf(0)
@@ -77,13 +74,18 @@ class CashierViewModel @Inject constructor(
     val selectedCategory: State<Int> = _selectedCategory
     private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
     val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
+
+    // Sometimes state still take time to disable UI so AtomicBoolean is needed
+    private val isProcessingTransaction = AtomicBoolean(false)
     private val _transactionState = mutableStateOf(StateStatus())
     val transactionState: State<StateStatus> = _transactionState
-    private val _showTransactionDialog = mutableStateOf(false)
-    val showTransactionDialog: State<Boolean> = _showTransactionDialog
+
+    private val _searchProductString = mutableStateOf("")
+    val searchProductString: State<String> = _searchProductString
+
+    // For any error or notification alert.
     private val _generalAlertDialogState = mutableStateOf(GeneralAlertDialogStatus())
     val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogState
-
 
     /*
     * Key = Item.itemId
@@ -107,6 +109,8 @@ class CashierViewModel @Inject constructor(
 
     private val _uiEvent = MutableSharedFlow<UIEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
+
+    private var transactionJob: Job? = null
 
     init {
         loadData()
@@ -159,11 +163,15 @@ class CashierViewModel @Inject constructor(
 
                 if (existingItem != null) {
                     // Item exists, increment quantity
-                    _cart.value = currentCart + (item.itemId.toInt() to existingItem.copy(
-                        quantity = existingItem.quantity + quantity
-                    ))
+                    if (existingItem.quantity + 1 <= 999) {
+                        _cart.value = currentCart + (item.itemId.toInt() to existingItem.copy(
+                            quantity = existingItem.quantity + quantity
+                        ))
+                    }
                 } else {
-                    /* ERROR */
+                    val title = "FATAL ERROR"
+                    val message = "Increasing on not exist item at cart"
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                 }
             }
 
@@ -180,10 +188,14 @@ class CashierViewModel @Inject constructor(
                             quantity = existingCartItem.quantity - quantity
                         ))
                     } else {
+                        // If user click decrease on item that already 1 quantity
+                        // then also remove the item from cart. This will recursive onEvent for RemovingItemFromCart
                         this.onEvent(OnRemoveFromCart(item))
                     }
                 } else {
-                    /* ERROR */
+                    val title = "FATAL ERROR"
+                    val message = "Decreasing on not exist item at cart"
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                 }
             }
 
@@ -195,7 +207,9 @@ class CashierViewModel @Inject constructor(
                     currentCart.remove(existingCartItem.id)
                     _cart.value = currentCart
                 } else {
-                    /* Error */
+                    var title = "FATAL ERROR"
+                    val message = "Removing item from cart that not exist item at cart"
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                 }
             }
 
@@ -205,16 +219,33 @@ class CashierViewModel @Inject constructor(
             }
 
             is PlaceOrder -> {
+                // Atomic check-and-set - prevents race conditions
+                if (!isProcessingTransaction.compareAndSet(false, true)) {
+                    // Already processing, ignore this click
+                    return
+                }
+                // Prevent mash clicking - check if transaction is already running
+                if (transactionJob?.isActive == true) {
+                    return
+                }
+                // Validate input
                 if (_inpCashPaymentMethod.value.text.isEmpty()) {
-                    val title = "Transaction Error"
+                    isProcessingTransaction.set(false) // Reset flag
+                    val title = "Warning"
                     val message = "Please fill the (Amount Received) first before transaction"
                     _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                     return
                 }
-
-                if (_transactionState.value.isLoading) return
-                val purchasedPrice = _inpCashPaymentMethod.value.text.toInt()
                 val currentCart = _cart.value
+                if (currentCart.isEmpty()) {
+                    val title = "Warning"
+                    val message = "Select at least 1 item / product before make transaction"
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
+                    isProcessingTransaction.set(false)
+                }
+                _transactionState.value = StateStatus(isLoading = true)
+
+                val purchasedPrice = _inpCashPaymentMethod.value.text.toInt()
                 var subTotal = 0
                 var totalQuantity = 0
                 val discountAmount = 0
@@ -248,37 +279,85 @@ class CashierViewModel @Inject constructor(
                     storeId = _storeId.intValue,
                     userId = _staffId.intValue
                 )
-                orderItemUseCase.transaction(params).onEach { resource ->
+                transactionJob = orderItemUseCase.transaction(params).onEach { resource ->
                     when (resource) {
                         is Resource.Error -> {
-                            _transactionState.value = StateStatus(error = resource.message)
-                            _showTransactionDialog.value = true
+                            // This onEvent reset flag
+                            isProcessingTransaction.set(false)
+
+                            val title = "Transaction failed"
+                            val message = resource.message!!
+                            _transactionState.value = StateStatus(error = message)
+                            _generalAlertDialogState.value =
+                                GeneralAlertDialogStatus.error(title, message)
                         }
 
                         is Resource.Loading -> {
-                            _transactionState.value = StateStatus(isLoading = true)
-                            _showTransactionDialog.value = false
+                            /*
+                                We don't change loading state while start requesting. Otherwise it will be late because
+                                asynchronous execute late
+                            * */
                         }
 
                         is Resource.Success -> {
-                            _transactionState.value =
-                                StateStatus(successMessage = "Transaction Successful\ntransaction id: ${resource.data!!.transactionId}")
-                            _showTransactionDialog.value = true
+                            // This onEvent reset flag
+                            isProcessingTransaction.set(false)
+                            val title = "Transaction Complete"
+                            val message = "Transaction Successful\ntransaction id: ${resource.data!!.transactionId}"
+                            _transactionState.value = StateStatus(successMessage = message)
+
+                            _generalAlertDialogState.value =
+                                GeneralAlertDialogStatus.success(title, message)
+
+                            // Reset the cart and input
+                            _cart.value = emptyMap()
+                            _inpCashPaymentMethod.value = InpTextFieldState()
                         }
                     }
                 }.launchIn(viewModelScope)
             }
 
-            // This will guaranteed that every input that user input is only Int. So it's safe to use .toInt()
-            is CashierEvent.EnteredCashBalance -> _inpCashPaymentMethod.value =
-                _inpCashPaymentMethod.value.copy(text = event.value.filter { it.isDigit() })
+            is CashierEvent.EnteredCashBalance -> {
+                // This will guaranteed that every input that user input is only Int. So it's safe to use .toInt()
+                _inpCashPaymentMethod.value =
+                    _inpCashPaymentMethod.value.copy(text = event.value.filter { it.isDigit() })
+            }
 
             is CashierEvent.OnConfirmTransactionBtnDialog -> {
-                _showTransactionDialog.value = false
             }
 
             is CashierEvent.OnConfirmGeneralAlertDialog -> {
+                // Close the dialog
                 _generalAlertDialogState.value = GeneralAlertDialogStatus()
+            }
+
+            is CashierEvent.OnSearchProduct -> {
+                // Will find the item base what user search
+                _searchProductString.value = event.text
+            }
+
+            is CashierEvent.OnClearSearchProduct -> {
+                // Reset search bar input when x icon clicked
+                _searchProductString.value = ""
+            }
+
+            is CashierEvent.TryAgainRequestAllProducts -> {
+                // Close the dialog first
+                _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
+
+                // Set loading state
+                _state.value = StateStatus(
+                    isLoading = true,
+                    loadingMessage = "Retrying to load products..."
+                )
+
+                // Reload the data with current tenant and store
+                loadAllStoreStock(_tenantId.intValue, _storeId.intValue)
+            }
+
+            is CashierEvent.OnDismissTryAgainRequestAllProducts -> {
+                // Close try again request all products dialog
+                _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
             }
         }
     }
@@ -345,13 +424,20 @@ class CashierViewModel @Inject constructor(
             when (resource) {
                 is Resource.Error -> {
                     _state.value = StateStatus(isLoading = false, error = resource.message)
+                    val title = "Couldn't get store products."
+                    val unexpectedErrorMessage =
+                        "Unexpected error happened :(]\nWe will try fix this functionality as soon as possible"
+                    _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
+                        title,
+                        resource.message ?: unexpectedErrorMessage
+                    )
                     println("[ERROR] ${resource.message} CashierViewModel.loadAllStoreStock")
                 }
 
                 is Resource.Loading -> {
                     _state.value = StateStatus(
                         isLoading = true,
-                        loadingMessage = "Caching the data..."
+                        loadingMessage = "Please wait...\nRequesting all products data and caching the data"
                     )
                 }
 
@@ -361,6 +447,10 @@ class CashierViewModel @Inject constructor(
                         _state.value = StateStatus(
                             isLoading = false,
                             error = "Unexpected error occurred ! Data return nothing / null"
+                        )
+                        _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
+                            "Data Error",
+                            "Unexpected error occurred! Data return nothing / null"
                         )
                         return@onEach
                     }
@@ -397,7 +487,12 @@ class CashierViewModel @Inject constructor(
     private suspend fun loadProfile() {
         val userPayload = jwtStore.getPayload().first()
         if (userPayload == null) {
-            /* ERROR */
+            /*
+                ERROR
+                // Check if user really logged in
+                // Then try again
+            */
+
         } else {
             _staffName.value = userPayload.name
             _staffId.intValue = userPayload.sub

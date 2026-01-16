@@ -63,7 +63,7 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
     val openTryAgainDialog = viewModel.openTryAgainDialog.value
     val openErrorOnSelectTenant = viewModel.openErrorOnSelectTenant.value
     val openAddNewTenantDialog = viewModel.openAddNewTenantDialog.value
-    println(selectedTenant)
+    // println(selectedTenant)
 
     LaunchedEffect(Unit) {
         viewModel.authorizationUIEvent.collectLatest { event ->

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -66,6 +67,7 @@ import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.ui.theme.Gray300
+import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
@@ -81,18 +83,21 @@ fun CashierScreen(
     viewModel: CashierViewModel = hiltViewModel()
 ) {
     // viewmodel
+    val vmState = viewModel.state.value
+    val cart = viewModel.cart.value
     val categories = viewModel.categories.value
     val selectedCategoryId = viewModel.selectedCategory.value
     val cashierItems = viewModel.cashierItems.value
-    val cart = viewModel.cart.value
     val transactionState = viewModel.transactionState.value
-    val showTransactionDialog = viewModel.showTransactionDialog.value
+    val searchProductString = viewModel.searchProductString.value
     val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
+    val loadAllProductsDialogStatus = viewModel.loadAllProductsDialogStatus.value
 
     // scope
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val searchTextFieldState = remember { TextFieldState() }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true, // This will skip half state
         confirmValueChange = { newValue -> !transactionState.isLoading }
@@ -102,7 +107,22 @@ fun CashierScreen(
         showBottomSheet = !showBottomSheet
     }
     val filteredCashierItems =
-        if (selectedCategoryId == -1) cashierItems else cashierItems.filter { it.categoryId == selectedCategoryId }
+        if (searchProductString.isNotEmpty()) {
+            // If user input something at Search Bar
+            if (selectedCategoryId == -1) {
+                // User input something at Search Bar but don't select any categories available / default at 'All'
+                cashierItems.filter { it.itemName.contains(searchProductString) }
+            } else {
+                // User input something at Search Bar and select of the categories available
+                cashierItems.filter { it.itemName.contains(searchProductString) && it.categoryId == selectedCategoryId }
+            }
+        } else if (selectedCategoryId == -1) {
+            // If User don't input something, and don't select any categories available / default as 'All'
+            cashierItems
+        } else {
+            // If User don't input something, but click 1 of the categories available
+            cashierItems.filter { it.categoryId == selectedCategoryId }
+        }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -221,67 +241,97 @@ fun CashierScreen(
                 .fillMaxWidth()
         ) {
             SimpleSearchBar(
-                textFieldState = TextFieldState(),
-                onSearch = fun(s: String) {},
                 searchResults = listOf(),
+                enabled = !vmState.isLoading,
+                textFieldState = searchTextFieldState,
+                onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
+                onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
             )
             Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .align(Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Categories", style = TextStyle.Default.copy(color = Secondary))
-                Spacer(modifier = Modifier.width(18.dp))
-                Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
-                Spacer(modifier = Modifier.weight(1f))
-                if (categories.size >= 12) {
-                    TextButton(
-                        modifier = Modifier.height(30.dp),
-                        colors = ButtonColors(
-                            containerColor = White,
-                            contentColor = Secondary,
-                            disabledContainerColor = Secondary,
-                            disabledContentColor = Secondary,
-                        ),
-                        onClick = {},
+
+            if (vmState.isLoading) {
+                // Center the loading indicator
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("View all", style = TextStyle(fontSize = 14.sp))
+                        CircularProgressIndicator(
+                            color = Primary,
+                            modifier = Modifier.size(48.dp) // Made it bigger for better visibility
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = vmState.loadingMessage,
+                            color = Gray300,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .align(Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Categories", style = TextStyle.Default.copy(color = Secondary))
+                    Spacer(modifier = Modifier.width(18.dp))
+                    Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (categories.size >= 12) {
+                        TextButton(
+                            modifier = Modifier.height(30.dp),
+                            colors = ButtonColors(
+                                containerColor = White,
+                                contentColor = Secondary,
+                                disabledContainerColor = Secondary,
+                                disabledContentColor = Secondary,
+                            ),
+                            onClick = {},
+                        ) {
+                            Text("View all", style = TextStyle(fontSize = 14.sp))
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
 
-            // Categories grid
-            LazyVerticalGrid(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .heightIn(min = 40.dp, max = (40.dp * 3))
-                    .align(Alignment.CenterHorizontally),
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                categories.toSortedMap().forEach { item(it.key) { CategoryCard(it.value) } }
-            }
+                // Categories grid
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .heightIn(min = 40.dp, max = (40.dp * 3))
+                        .align(Alignment.CenterHorizontally),
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    categories.toSortedMap().forEach { item(it.key) { CategoryCard(it.value) } }
+                }
 
-            Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
 
-            // In this items grid, I want the card grid remember the value that user inputted even they changed
-            // the categories, and it's re render all the card
-            // Items Grid
-            LazyVerticalGrid(
-                modifier = Modifier
-                    .fillMaxWidth(.96f)
-                    .fillMaxHeight(.96f)
-                    .heightIn(min = 120.dp)
-                    .align(Alignment.CenterHorizontally),
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                filteredCashierItems.forEach { item { ItemCard(it) } }
+                // In this items grid, I want the card grid remember the value that user inputted even they changed
+                // the categories, and it's re render all the card
+                // Items Grid
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .fillMaxHeight(.96f)
+                        .heightIn(min = 120.dp)
+                        .align(Alignment.CenterHorizontally),
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    filteredCashierItems.forEach { item { ItemCard(it) } }
+                }
             }
         }
 
@@ -292,20 +342,21 @@ fun CashierScreen(
             )
         }
 
-        if (showTransactionDialog) {
-            TransactionStatusDialog(
-                onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog) },
-                onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog) },
-                status = transactionState.error == null, // Means no error, then show success otherwise there must be an error
-                dialogText = transactionState.error ?: transactionState.successMessage
+        if (generalAlertDialogStatus.showDialog) {
+            GeneralAlertDialog(
+                generalAlertDialogStatus = generalAlertDialogStatus,
+                onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+                onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
             )
         }
 
-        if (generalAlertDialogStatus.showDialog) {
+        if (loadAllProductsDialogStatus.showDialog) {
             GeneralAlertDialog(
-                onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
-                onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
-                generalAlertDialogStatus
+                generalAlertDialogStatus = loadAllProductsDialogStatus,
+                confirmText = "Try Again",
+                cancelText = "Dismiss",
+                onConfirmation = { viewModel.onEvent(CashierEvent.TryAgainRequestAllProducts) },
+                onDismissRequest = { viewModel.onEvent(CashierEvent.OnDismissTryAgainRequestAllProducts) },
             )
         }
     }

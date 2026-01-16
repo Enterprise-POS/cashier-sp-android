@@ -4,6 +4,12 @@ import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.presentation.util.PaymentMethod
 
 sealed class CashierEvent {
+    object TryAgainRequestAllProducts : CashierEvent()
+    object OnDismissTryAgainRequestAllProducts : CashierEvent()
+
+    data class OnSearchProduct(val text: String) : CashierEvent()
+    object OnClearSearchProduct : CashierEvent()
+
     data class OnSelectCategory(val categoryId: Int) : CashierEvent()
     data class OnAddToCart(val cashierItem: CashierItem) : CashierEvent()
     data class OnAddQuantity(val cashierItem: CashierItem, val quantity: Int) : CashierEvent()
