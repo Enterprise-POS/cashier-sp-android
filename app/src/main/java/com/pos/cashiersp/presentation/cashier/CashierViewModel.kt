@@ -127,6 +127,12 @@ class CashierViewModel @Inject constructor(
             }
 
             is OnAddToCart -> {
+                if (isProcessingTransaction.get()) {
+                    viewModelScope.launch {
+                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
+                    }
+                    return
+                }
                 val item = event.cashierItem
                 val currentCart = _cart.value
 
@@ -155,6 +161,12 @@ class CashierViewModel @Inject constructor(
             }
 
             is OnAddQuantity -> {
+                if (isProcessingTransaction.get()) {
+                    viewModelScope.launch {
+                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
+                    }
+                    return
+                }
                 val quantity = event.quantity
                 val item = event.cashierItem
                 val existingItem = _cart.value[event.cashierItem.itemId]
@@ -176,6 +188,12 @@ class CashierViewModel @Inject constructor(
             }
 
             is OnDecreaseQuantity -> {
+                if (isProcessingTransaction.get()) {
+                    viewModelScope.launch {
+                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
+                    }
+                    return
+                }
                 val quantity = event.quantity
                 val item: CashierItem = event.cashierItem
                 val existingCartItem: CartItem? = _cart.value[item.itemId]
@@ -200,6 +218,13 @@ class CashierViewModel @Inject constructor(
             }
 
             is OnRemoveFromCart -> {
+                if (isProcessingTransaction.get()) {
+                    viewModelScope.launch {
+                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
+                    }
+                    return
+                }
+
                 val item: CashierItem = event.cashierItem
                 val existingCartItem: CartItem? = _cart.value[item.itemId]
                 val currentCart: MutableMap<Int, CartItem> = _cart.value.toMutableMap()
@@ -207,7 +232,7 @@ class CashierViewModel @Inject constructor(
                     currentCart.remove(existingCartItem.id)
                     _cart.value = currentCart
                 } else {
-                    var title = "FATAL ERROR"
+                    val title = "FATAL ERROR"
                     val message = "Removing item from cart that not exist item at cart"
                     _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                 }
@@ -219,13 +244,13 @@ class CashierViewModel @Inject constructor(
             }
 
             is PlaceOrder -> {
+                // Prevent mash clicking - check if transaction is already running
+                if (transactionJob?.isActive == true) {
+                    return
+                }
                 // Atomic check-and-set - prevents race conditions
                 if (!isProcessingTransaction.compareAndSet(false, true)) {
                     // Already processing, ignore this click
-                    return
-                }
-                // Prevent mash clicking - check if transaction is already running
-                if (transactionJob?.isActive == true) {
                     return
                 }
                 // Validate input
@@ -242,6 +267,7 @@ class CashierViewModel @Inject constructor(
                     val message = "Select at least 1 item / product before make transaction"
                     _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
                     isProcessingTransaction.set(false)
+                    return
                 }
                 _transactionState.value = StateStatus(isLoading = true)
 
@@ -266,6 +292,15 @@ class CashierViewModel @Inject constructor(
                     )
                 }
                 val totalAmount = subTotal - discountAmount
+                if (purchasedPrice < totalAmount) {
+                    _transactionState.value = StateStatus(error = "Insufficient Payment")
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                        "Insufficient Payment",
+                        "Amount received (¥$purchasedPrice) is less than total (¥$totalAmount)"
+                    )
+                    isProcessingTransaction.set(false)
+                    return
+                }
 
                 val params = CreateTransactionParams(
                     items = items,
@@ -345,12 +380,6 @@ class CashierViewModel @Inject constructor(
                 // Close the dialog first
                 _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
 
-                // Set loading state
-                _state.value = StateStatus(
-                    isLoading = true,
-                    loadingMessage = "Retrying to load products..."
-                )
-
                 // Reload the data with current tenant and store
                 loadAllStoreStock(_tenantId.intValue, _storeId.intValue)
             }
@@ -418,9 +447,8 @@ class CashierViewModel @Inject constructor(
     * Don't forget to change the tenantId and storeId while debugging. If we directly change at MainActivity into CASHIER
     * the cookies will apply. Later need change
     * */
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun loadAllStoreStock(tenantId: Int, storeId: Int): Job {
-        return storeStockUseCase.loadCashierData(333, 226).onEach { resource ->
+        return storeStockUseCase.loadCashierData(tenantId, storeId).onEach { resource ->
             when (resource) {
                 is Resource.Error -> {
                     _state.value = StateStatus(isLoading = false, error = resource.message)
@@ -437,7 +465,7 @@ class CashierViewModel @Inject constructor(
                 is Resource.Loading -> {
                     _state.value = StateStatus(
                         isLoading = true,
-                        loadingMessage = "Please wait...\nRequesting all products data and caching the data"
+                        loadingMessage = "Please wait...\nRequesting all products data and caching data"
                     )
                 }
 

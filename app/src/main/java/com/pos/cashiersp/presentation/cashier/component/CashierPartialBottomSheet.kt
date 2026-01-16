@@ -30,6 +30,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,7 +76,6 @@ import java.text.DecimalFormat
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashierPartialBottomSheet(
-    sheetState: SheetState,
     onDismissRequest: () -> Unit,
     viewModel: CashierViewModel = hiltViewModel()
 ) {
@@ -84,6 +84,10 @@ fun CashierPartialBottomSheet(
     val selectedPaymentMethod = viewModel.selectedPaymentMethod.value
     val inpCashPaymentMethod = viewModel.inpCashPaymentMethod.value
     val transactionState = viewModel.transactionState.value
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true, // This will skip half state
+        confirmValueChange = { newValue -> !transactionState.isLoading }
+    )
 
     val priceFormatter = DecimalFormat("#,###")
 
@@ -440,7 +444,7 @@ fun CashierPartialBottomSheet(
                                 onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
                                 placeholder = {
                                     Text(
-                                        "0",
+                                        "-",
                                         color = Gray200,
                                         textAlign = TextAlign.Right,
                                         modifier = Modifier.fillMaxWidth()

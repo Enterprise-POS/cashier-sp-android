@@ -41,7 +41,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,12 +59,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
-import com.pos.cashiersp.presentation.cashier.component.CategoryCard
-import com.pos.cashiersp.presentation.cashier.component.ItemCard
-import com.pos.cashiersp.presentation.cashier.component.TransactionStatusDialog
-import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
+import com.pos.cashiersp.presentation.cashier.component.ItemCard
+import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
@@ -88,7 +86,6 @@ fun CashierScreen(
     val categories = viewModel.categories.value
     val selectedCategoryId = viewModel.selectedCategory.value
     val cashierItems = viewModel.cashierItems.value
-    val transactionState = viewModel.transactionState.value
     val searchProductString = viewModel.searchProductString.value
     val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
     val loadAllProductsDialogStatus = viewModel.loadAllProductsDialogStatus.value
@@ -98,10 +95,6 @@ fun CashierScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val searchTextFieldState = remember { TextFieldState() }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true, // This will skip half state
-        confirmValueChange = { newValue -> !transactionState.isLoading }
-    )
 
     val onHandleBottomSheet = fun() {
         showBottomSheet = !showBottomSheet
@@ -137,13 +130,13 @@ fun CashierScreen(
                 }
 
                 is CashierViewModel.UIEvent.ShowErrorSnackbar -> {
-                    val result = snackbarHostState.showSnackbar(
+                    val userClickedSnackbarBtn = snackbarHostState.showSnackbar(
                         message = event.message,
                         duration = SnackbarDuration.Long,
                         withDismissAction = true,
                         actionLabel = "Close"
                     )
-                    when (result) {
+                    when (userClickedSnackbarBtn) {
                         SnackbarResult.Dismissed -> {
                             println("Do something when dismissed")
                         }
@@ -337,7 +330,6 @@ fun CashierScreen(
 
         if (showBottomSheet) {
             CashierPartialBottomSheet(
-                sheetState,
                 onHandleBottomSheet
             )
         }
