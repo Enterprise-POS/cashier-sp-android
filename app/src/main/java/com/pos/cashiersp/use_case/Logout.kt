@@ -10,6 +10,7 @@ class Logout(private val jwtStore: JwtStore, private val myCookieImpl: MyCookieI
     operator fun invoke(): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         jwtStore.clearToken()
+        myCookieImpl.clear()
         emit(Resource.Success<Boolean>(true))
     }
 }

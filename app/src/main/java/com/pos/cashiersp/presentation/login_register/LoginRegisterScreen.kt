@@ -128,7 +128,7 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
                     // Don't forget to change the tenantId and storeId while debugging
                     val isRedirect = event.boolean
                     if (isRedirect)
-                        navController.navigate(Screen.CASHIER) {
+                        navController.navigate(Screen.SELECT_TENANT) {
                             popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
                         }
                     else

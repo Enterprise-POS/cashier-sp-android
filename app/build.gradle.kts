@@ -151,6 +151,9 @@ dependencies {
     // - This is where the Thermal Printer will print physically
     implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
 
+    // Source: https://mvnrepository.com/artifact/androidx.compose.material/material-icons-extended
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
     // Test Implementation
     testImplementation("androidx.test:core:1.7.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pos.cashiersp.BuildConfig
+import com.pos.cashiersp.presentation.bluetooth_settings.BluetoothSettingsScreen
 import com.pos.cashiersp.presentation.cashier.CashierScreen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.greeting.GreetingScreen
@@ -81,6 +82,9 @@ class MainActivity : ComponentActivity() {
                                 val tenantId = it.arguments?.getInt("tenantId") ?: -1
                                 val tenantName = it.arguments?.getString("tenantName") ?: ""
                                 SelectStoreScreen(tenantId, tenantName, navController)
+                            }
+                            composable(route = Screen.BLUETOOTH_SETTINGS) {
+                                BluetoothSettingsScreen(navController, drawerState)
                             }
                         }
                     }

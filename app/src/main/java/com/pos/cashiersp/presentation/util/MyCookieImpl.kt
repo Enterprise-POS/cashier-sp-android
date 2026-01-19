@@ -104,4 +104,10 @@ class MyCookieImpl : CookieJar {
 
         setCookie(cookie)
     }
+
+    fun clear() {
+        synchronized(cookies) {
+            cookies.clear()
+        }
+    }
 }

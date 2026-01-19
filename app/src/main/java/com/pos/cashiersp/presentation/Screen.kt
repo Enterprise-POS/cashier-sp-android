@@ -10,4 +10,5 @@ object Screen {
     const val LOGIN_REGISTER = "Login / Register"
     const val SELECT_TENANT = "Select a Tenant"
     const val SELECT_STORE = "Choose Store"
+    const val BLUETOOTH_SETTINGS = "Bluetooth Settings"
 }
