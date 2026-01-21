@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,23 +46,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
+import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.Success
 import com.pos.cashiersp.presentation.ui.theme.White
 
 // Data class for Bluetooth devices
-data class BluetoothDevice(
+data class BluetoothDeviceComponent(
     val name: String,
     val description: String,
     val signalStrength: Int,
-    val isConnected: Boolean
+    val isConnected: Boolean,
+    val realDevice: BluetoothDeviceDomain,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,16 +75,33 @@ fun BluetoothSettingsScreen(
     drawerState: DrawerState,
     viewModel: BluetoothSettingsViewModel = hiltViewModel()
 ) {
-    val vmState = viewModel.vmState.value
+    val state = viewModel.state.collectAsState().value
+    val isLoading = viewModel.isLoading.value
 
     // Map ViewModel devices to UI devices
-    val devices = vmState.devices.map { deviceInfo ->
-        BluetoothDevice(
-            name = deviceInfo.name,
-            description = if (deviceInfo.isPaired) "Paired device" else "Available device",
-            signalStrength = 75, // You can calculate this based on RSSI if needed
-            isConnected = deviceInfo.isConnected
-        )
+    println("PAIRED DEVICE: ${state.pairedDevices}")
+    println("SCANNED DEVICE: ${state.scannedDevices}")
+    val pairedDevices = state.pairedDevices.mapNotNull { deviceInfo ->
+        deviceInfo.name?.let {
+            BluetoothDeviceComponent(
+                name = it,
+                description = deviceInfo.address,
+                signalStrength = 75,
+                isConnected = true,
+                realDevice = deviceInfo
+            )
+        }
+    }
+    val scannedDevices = state.scannedDevices.mapNotNull { deviceInfo ->
+        deviceInfo.name?.let {
+            BluetoothDeviceComponent(
+                name = deviceInfo.name,
+                description = deviceInfo.address,
+                signalStrength = 75,
+                isConnected = false,
+                realDevice = deviceInfo
+            )
+        }
     }
 
     Scaffold(
@@ -124,7 +145,7 @@ fun BluetoothSettingsScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(innerPadding)
         ) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
             Card(
                 border = BorderStroke(width = .8.dp, color = Gray100.copy(alpha = .4f)),
                 colors = CardDefaults.cardColors(containerColor = White),
@@ -156,7 +177,7 @@ fun BluetoothSettingsScreen(
                             .heightIn(max = 250.dp)
                             .padding(all = 4.dp)
                     ) {
-                        if (vmState.isLoading) {
+                        if (isLoading) {
                             item {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -172,7 +193,7 @@ fun BluetoothSettingsScreen(
                                     Text("Loading devices...", color = Gray300)
                                 }
                             }
-                        } else if (devices.isEmpty()) {
+                        } else if (pairedDevices.isEmpty() && scannedDevices.isEmpty()) {
                             item {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -194,16 +215,22 @@ fun BluetoothSettingsScreen(
                                 }
                             }
                         } else {
-                            devices.forEach { device ->
-                                item(key = device.name) {
+                            pairedDevices.forEach { device ->
+                                item(key = device.description) {
                                     BluetoothDeviceItem(
                                         device = device,
-                                        onClick = {
-                                            // Find the actual device address from vmState
-                                            val deviceInfo = vmState.devices.find { it.name == device.name }
-                                            deviceInfo?.let { viewModel.connectToDevice(it.address) }
-                                        }
-                                    )
+                                    ) {
+
+                                    }
+                                }
+                            }
+                            scannedDevices.forEach { device ->
+                                item(key = device.description) {
+                                    BluetoothDeviceItem(
+                                        device,
+                                    ) {
+                                        viewModel.connectToDevice(device.realDevice)
+                                    }
                                 }
                             }
                         }
@@ -211,7 +238,7 @@ fun BluetoothSettingsScreen(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             // No device you expect card
             Card(
@@ -238,7 +265,7 @@ fun BluetoothSettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                White,
+                                Primary100,
                                 RoundedCornerShape(8.dp)
                             )
                             .padding(16.dp)
@@ -249,13 +276,17 @@ fun BluetoothSettingsScreen(
                                 fontSize = 14.sp,
                                 color = Color(0xFF1E293B),
                                 fontWeight = FontWeight.W600,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 "Turn on Bluetooth and keep your printer or reader close to this device.",
                                 fontSize = 13.sp,
                                 color = Gray600,
-                                lineHeight = 18.sp
+                                lineHeight = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -267,13 +298,13 @@ fun BluetoothSettingsScreen(
                 verticalArrangement = Arrangement.Bottom,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 // Scan again button
                 Button(
-                    onClick = { /* Handle scan again */ },
+                    onClick = { viewModel.startScan() },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFF9800) // Orange color
+                        containerColor = Primary // Orange color
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -318,8 +349,6 @@ fun BluetoothSettingsScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(Modifier.height(10.dp))
             }
         }
     }
@@ -327,7 +356,7 @@ fun BluetoothSettingsScreen(
 
 @Composable
 fun BluetoothDeviceItem(
-    device: BluetoothDevice,
+    device: BluetoothDeviceComponent,
     onClick: () -> Unit
 ) {
     Button(
