@@ -1,6 +1,8 @@
 package com.pos.cashiersp.di
 
 import android.content.Context
+import com.pos.cashiersp.controller.AndroidBluetoothControllerImpl
+import com.pos.cashiersp.controller.BluetoothController
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.SelectedStoreDS
 import com.pos.cashiersp.presentation.util.SelectedTenantDS
@@ -51,6 +53,12 @@ object AppModule {
             getCurrentStore = GetCurrentSelectedStore(storeDS),
             unselectStore = UnselectStore(storeDS),
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideBluetoothController(@ApplicationContext context: Context): BluetoothController {
+        return AndroidBluetoothControllerImpl(context)
     }
 }
 

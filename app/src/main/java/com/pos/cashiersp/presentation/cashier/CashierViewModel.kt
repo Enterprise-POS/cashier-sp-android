@@ -93,6 +93,11 @@ class CashierViewModel @Inject constructor(
     private val _cart = mutableStateOf<Map<Int, CartItem>>(mapOf())
     val cart: State<Map<Int, CartItem>> = _cart
 
+    private val _transactionCompleteDialogState = mutableStateOf(false)
+    val transactionCompleteDialogState: State<Boolean> = _transactionCompleteDialogState
+    private val _completeTransactionReference = mutableStateOf<Map<String, Int>>(mapOf())
+    val completeTransactionReference: State<Map<String, Int>> = _completeTransactionReference
+
     private val _staffName = mutableStateOf("")
     val staffName: State<String> = _staffName
     private val _staffId = mutableIntStateOf(0)
@@ -337,12 +342,16 @@ class CashierViewModel @Inject constructor(
                         is Resource.Success -> {
                             // This onEvent reset flag
                             isProcessingTransaction.set(false)
-                            val title = "Transaction Complete"
-                            val message = "Transaction Successful\ntransaction id: ${resource.data!!.transactionId}"
-                            _transactionState.value = StateStatus(successMessage = message)
+                            _transactionState.value = StateStatus()
 
-                            _generalAlertDialogState.value =
-                                GeneralAlertDialogStatus.success(title, message)
+                            //_generalAlertDialogState.value =
+                            //    GeneralAlertDialogStatus.success(title, message)
+                            _transactionCompleteDialogState.value = true
+                            _completeTransactionReference.value = mapOf(
+                                "transactionId" to resource.data!!.transactionId,
+                                "totalAmount" to params.totalAmount,
+                                "change" to params.purchasedPrice - params.totalAmount,
+                            )
 
                             // Reset the cart and input
                             _cart.value = emptyMap()
@@ -359,6 +368,7 @@ class CashierViewModel @Inject constructor(
             }
 
             is CashierEvent.OnConfirmTransactionBtnDialog -> {
+                _transactionCompleteDialogState.value = false
             }
 
             is CashierEvent.OnConfirmGeneralAlertDialog -> {

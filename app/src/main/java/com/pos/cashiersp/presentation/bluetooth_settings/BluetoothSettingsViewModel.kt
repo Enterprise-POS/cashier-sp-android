@@ -4,9 +4,6 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,54 +11,73 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection
 import com.pos.cashiersp.common.Resource
-import com.pos.cashiersp.presentation.util.StateStatus
+import com.pos.cashiersp.controller.BluetoothController
+import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
+import com.pos.cashiersp.presentation.util.BluetoothUIState
+import com.pos.cashiersp.presentation.util.ConnectionResult
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
-
-data class BluetoothDeviceInfo(
-    val name: String,
-    val address: String,
-    val isConnected: Boolean = false,
-    val isPaired: Boolean = false
-)
-
-data class BluetoothState(
-    val isLoading: Boolean = false,
-    val isScanning: Boolean = false,
-    val devices: List<BluetoothDeviceInfo> = emptyList(),
-    val connectedDevice: BluetoothDeviceInfo? = null,
-    val error: String? = null
-)
 
 @HiltViewModel
 class BluetoothSettingsViewModel @Inject constructor(
     private val dataStoreUseCase: DataStoreUseCase,
-    @ApplicationContext private val context: Context, // Should use Controller instead and inject using hilt
+    @ApplicationContext private val context: Context, // Should use Controller instead and inject using hilt,
+    private val bluetoothController: BluetoothController
 ) : ViewModel() {
     private val _tenantId = mutableIntStateOf(0)
     private val _storeId = mutableIntStateOf(0)
 
-    private val _vmState = mutableStateOf(BluetoothState())
-    val vmState: State<BluetoothState> = _vmState
+    private val _state = MutableStateFlow(BluetoothUIState())
+    val state = combine(
+        bluetoothController.scannedDevices,
+        bluetoothController.pairedDevices,
+        _state
+    ) { scannedDevices, pairedDevices, state ->
+        state.copy(
+            scannedDevices = scannedDevices,
+            pairedDevices = pairedDevices
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _state.value)
 
-    private val bluetoothManager: BluetoothManager? =
-        context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    private val _isLoading = mutableStateOf(false)
+    val isLoading: State<Boolean> = _isLoading
 
-    private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
+    private var deviceConnectionJob: Job? = null
 
-    private var selectedConnection: BluetoothConnection? = null
 
-    init {
-        loadData()
-        loadPairedDevices()
+    /////////////////
+    // Functionality
+    fun startScan() {
+        bluetoothController.startDiscovery()
+    }
+
+    fun stopScan() {
+        bluetoothController.stopDiscovery()
+    }
+
+    fun print() {
+        // We don't pass the value to function because interface already now which printer by default should print
+        //bluetoothController.withConnectedDevicesPrintReceipt(_state.value.pairedDevices)
+        bluetoothController.withConnectedDevicesPrintReceipt()
+    }
+
+    fun connectToDevice(device: BluetoothDeviceDomain) {
+        _state.update { it.copy(isConnecting = true) }
+        deviceConnectionJob = bluetoothController
+            .connectToDevice(device)
+            .listen()
     }
 
     fun onEvent(event: BluetoothSettingsEvent) {
@@ -69,133 +85,6 @@ class BluetoothSettingsViewModel @Inject constructor(
 
             else -> {}
         }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun loadPairedDevices() {
-        _vmState.value = _vmState.value.copy(isLoading = true, error = null)
-
-        try {
-            if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
-                _vmState.value = _vmState.value.copy(
-                    isLoading = false,
-                    error = "Bluetooth is not enabled"
-                )
-                return
-            }
-
-            // Get paired devices
-            val pairedDevices = bluetoothAdapter.bondedDevices
-            val deviceList = pairedDevices.map { device ->
-                BluetoothDeviceInfo(
-                    name = device.name ?: "Unknown Device",
-                    address = device.address,
-                    isPaired = true
-                )
-            }
-
-            _vmState.value = _vmState.value.copy(
-                isLoading = false,
-                devices = deviceList
-            )
-        } catch (e: Exception) {
-            _vmState.value = _vmState.value.copy(
-                isLoading = false,
-                error = e.message ?: "Error loading devices"
-            )
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun connectToDevice(deviceAddress: String) {
-        viewModelScope.launch {
-            _vmState.value = _vmState.value.copy(isLoading = true, error = null)
-
-            try {
-                withContext(Dispatchers.IO) {
-                    // Find the device
-                    val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
-                    if (device == null) {
-                        _vmState.value = _vmState.value.copy(
-                            isLoading = false,
-                            error = "Device not found"
-                        )
-                        return@withContext
-                    }
-
-                    // Create connection using DantSu library
-                    val connection = BluetoothConnection(device)
-
-                    // Test connection
-                    if (connection.isConnected) {
-                        selectedConnection = connection
-
-                        // Update device list with connected status
-                        val updatedDevices = _vmState.value.devices.map { deviceInfo ->
-                            deviceInfo.copy(
-                                isConnected = deviceInfo.address == deviceAddress
-                            )
-                        }
-
-                        _vmState.value = _vmState.value.copy(
-                            isLoading = false,
-                            devices = updatedDevices,
-                            connectedDevice = BluetoothDeviceInfo(
-                                name = device.name ?: "Unknown Device",
-                                address = deviceAddress,
-                                isConnected = true,
-                                isPaired = true
-                            )
-                        )
-                    } else {
-                        _vmState.value = _vmState.value.copy(
-                            isLoading = false,
-                            error = "Failed to connect to device"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _vmState.value = _vmState.value.copy(
-                    isLoading = false,
-                    error = e.message ?: "Error connecting to device"
-                )
-            }
-        }
-    }
-
-    fun disconnectDevice() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    selectedConnection?.disconnect()
-                    selectedConnection = null
-
-                    val updatedDevices = _vmState.value.devices.map { device ->
-                        device.copy(isConnected = false)
-                    }
-
-                    _vmState.value = _vmState.value.copy(
-                        devices = updatedDevices,
-                        connectedDevice = null
-                    )
-                } catch (e: Exception) {
-                    _vmState.value = _vmState.value.copy(
-                        error = e.message ?: "Error disconnecting device"
-                    )
-                }
-            }
-        }
-    }
-
-    fun getConnection(): BluetoothConnection? = selectedConnection
-
-    private fun hasPermission(permission: String): Boolean {
-        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        selectedConnection?.disconnect()
     }
 
     private fun loadData() {
@@ -221,5 +110,43 @@ class BluetoothSettingsViewModel @Inject constructor(
                 tenantResource is Resource.Loading || storeResource is Resource.Loading -> {}
             }
         }.launchIn(viewModelScope)
+    }
+
+    private fun Flow<ConnectionResult>.listen(): Job {
+        return onEach { result ->
+            when (result) {
+                ConnectionResult.ConnectionEstablished -> {
+                    _state.update {
+                        it.copy(
+                            isConnecting = false,
+                            errorMessage = null
+                        )
+                    }
+                }
+
+                is ConnectionResult.Error -> {
+                    _state.update {
+                        it.copy(
+                            isConnecting = false,
+                            errorMessage = result.message
+                        )
+                    }
+                }
+
+                ConnectionResult.Connecting -> {
+                    println("Connecting to device")
+                }
+            }
+        }
+            .catch { throwable ->
+                bluetoothController.closeConnection()
+                _state.update {
+                    it.copy(
+                        isConnected = false,
+                        isConnecting = false,
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
     }
 }

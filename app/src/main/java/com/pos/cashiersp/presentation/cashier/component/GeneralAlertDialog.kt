@@ -58,7 +58,6 @@ data class GeneralAlertDialogStatus(
         LOADING
     }
 
-    // Backward compatibility properties
     val isLoading: Boolean get() = type == DialogType.LOADING
     val status: Boolean get() = type == DialogType.SUCCESS
 
