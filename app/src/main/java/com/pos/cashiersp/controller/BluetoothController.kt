@@ -15,6 +15,8 @@ interface BluetoothController {
     fun startBluetoothServer(): Flow<ConnectionResult>
     fun connectToDevice(device: BluetoothDevice): Flow<ConnectionResult>
 
+    fun withConnectedDevicesPrintReceipt(device: List<BluetoothDevice> = pairedDevices.value)
+
     fun closeConnection()
     fun release()
 }

@@ -67,6 +67,12 @@ class BluetoothSettingsViewModel @Inject constructor(
         bluetoothController.stopDiscovery()
     }
 
+    fun print() {
+        // We don't pass the value to function because interface already now which printer by default should print
+        //bluetoothController.withConnectedDevicesPrintReceipt(_state.value.pairedDevices)
+        bluetoothController.withConnectedDevicesPrintReceipt()
+    }
+
     fun connectToDevice(device: BluetoothDeviceDomain) {
         _state.update { it.copy(isConnecting = true) }
         deviceConnectionJob = bluetoothController

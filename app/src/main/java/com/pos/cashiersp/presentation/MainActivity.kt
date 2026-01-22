@@ -30,6 +30,7 @@ import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
 import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
+import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -101,7 +102,7 @@ class MainActivity : ComponentActivity() {
                     CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.BLUETOOTH_SETTINGS
+                            startDestination = Screen.TRANSACTION_HISTORY
                         ) {
 
                             composable(route = Screen.GREETING) {
@@ -113,7 +114,8 @@ class MainActivity : ComponentActivity() {
                             composable(route = Screen.STOCK_MANAGEMENT) {
                                 StockManagementScreen(drawerState)
                             }
-                            composable(route = Screen.STAFF_MANAGEMENT) {
+                            composable(route = Screen.TRANSACTION_HISTORY) {
+                                TransactionHistoryScreen(navController)
                             }
                             composable(route = Screen.SETTINGS) {
                             }

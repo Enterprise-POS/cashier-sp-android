@@ -21,6 +21,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Speaker
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
+import com.pos.cashiersp.model.domain.DeviceType
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -66,6 +77,7 @@ data class BluetoothDeviceComponent(
     val signalStrength: Int,
     val isConnected: Boolean,
     val realDevice: BluetoothDeviceDomain,
+    val deviceType: DeviceType
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,8 +91,8 @@ fun BluetoothSettingsScreen(
     val isLoading = viewModel.isLoading.value
 
     // Map ViewModel devices to UI devices
-    println("PAIRED DEVICE: ${state.pairedDevices}")
-    println("SCANNED DEVICE: ${state.scannedDevices}")
+    //println("PAIRED DEVICE: ${state.pairedDevices}")
+    //println("SCANNED DEVICE: ${state.scannedDevices}")
     val pairedDevices = state.pairedDevices.mapNotNull { deviceInfo ->
         deviceInfo.name?.let {
             BluetoothDeviceComponent(
@@ -88,7 +100,8 @@ fun BluetoothSettingsScreen(
                 description = deviceInfo.address,
                 signalStrength = 75,
                 isConnected = true,
-                realDevice = deviceInfo
+                realDevice = deviceInfo,
+                deviceType = deviceInfo.deviceType,
             )
         }
     }
@@ -99,10 +112,13 @@ fun BluetoothSettingsScreen(
                 description = deviceInfo.address,
                 signalStrength = 75,
                 isConnected = false,
-                realDevice = deviceInfo
+                realDevice = deviceInfo,
+                deviceType = deviceInfo.deviceType,
             )
         }
     }
+
+    val combinedDeviceList = pairedDevices + scannedDevices
 
     Scaffold(
         topBar = {
@@ -193,7 +209,7 @@ fun BluetoothSettingsScreen(
                                     Text("Loading devices...", color = Gray300)
                                 }
                             }
-                        } else if (pairedDevices.isEmpty() && scannedDevices.isEmpty()) {
+                        } else if (combinedDeviceList.isEmpty()) {
                             item {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -215,20 +231,9 @@ fun BluetoothSettingsScreen(
                                 }
                             }
                         } else {
-                            pairedDevices.forEach { device ->
+                            combinedDeviceList.forEach { device ->
                                 item(key = device.description) {
-                                    BluetoothDeviceItem(
-                                        device = device,
-                                    ) {
-
-                                    }
-                                }
-                            }
-                            scannedDevices.forEach { device ->
-                                item(key = device.description) {
-                                    BluetoothDeviceItem(
-                                        device,
-                                    ) {
+                                    BluetoothDeviceItem(device) {
                                         viewModel.connectToDevice(device.realDevice)
                                     }
                                 }
@@ -323,7 +328,7 @@ fun BluetoothSettingsScreen(
 
                 // Use app without device button
                 Button(
-                    onClick = { /* Handle use without device */ },
+                    onClick = { viewModel.print() },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE5E7EB)
                     ),
@@ -389,14 +394,7 @@ fun BluetoothDeviceItem(
                 colors = CardDefaults.cardColors().copy(containerColor = Primary),
                 shape = RoundedCornerShape(6.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Bluetooth,
-                    tint = White,
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .size(20.dp),
-                    contentDescription = "Bluetooth device icon",
-                )
+                DeviceTypeIcon(device.deviceType)
             }
 
             Spacer(Modifier.width(12.dp))
@@ -465,4 +463,32 @@ fun BluetoothDeviceItem(
             }
         }
     }
+}
+
+@Composable
+fun DeviceTypeIcon(
+    deviceType: DeviceType,
+) {
+    val icon = when (deviceType) {
+        DeviceType.PRINTER -> Icons.Default.Print
+        DeviceType.PHONE -> Icons.Default.PhoneAndroid
+        DeviceType.HEADPHONES -> Icons.Default.Headphones
+        DeviceType.SPEAKER -> Icons.Default.Speaker
+        DeviceType.COMPUTER -> Icons.Default.Computer
+        DeviceType.WATCH -> Icons.Default.Watch
+        DeviceType.KEYBOARD -> Icons.Default.Keyboard
+        DeviceType.MOUSE -> Icons.Default.Mouse
+        DeviceType.GAMEPAD -> Icons.Default.SportsEsports
+        DeviceType.CAMERA -> Icons.Default.Videocam
+        DeviceType.UNKNOWN -> Icons.Default.Bluetooth
+    }
+
+    Icon(
+        imageVector = icon,
+        tint = White,
+        modifier = Modifier
+            .padding(8.dp)
+            .size(20.dp),
+        contentDescription = deviceType.name,
+    )
 }
