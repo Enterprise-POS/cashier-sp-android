@@ -63,6 +63,7 @@ import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomShee
 import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
+import com.pos.cashiersp.presentation.cashier.component.TransactionCompleteDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Primary
@@ -89,6 +90,8 @@ fun CashierScreen(
     val searchProductString = viewModel.searchProductString.value
     val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
     val loadAllProductsDialogStatus = viewModel.loadAllProductsDialogStatus.value
+    val transactionCompleteDialogState = viewModel.transactionCompleteDialogState.value
+    val completeTransactionParams = viewModel.completeTransactionReference.value
 
     // scope
     val scope = rememberCoroutineScope()
@@ -339,6 +342,20 @@ fun CashierScreen(
                 generalAlertDialogStatus = generalAlertDialogStatus,
                 onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
                 onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
+            )
+        }
+
+        if (transactionCompleteDialogState) {
+            TransactionCompleteDialog(
+                completeTransactionParams = completeTransactionParams,
+                onConfirm = {
+                    viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
+                    showBottomSheet = false
+                },
+                onDismiss = {
+                    viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
+                    showBottomSheet = false
+                }
             )
         }
 

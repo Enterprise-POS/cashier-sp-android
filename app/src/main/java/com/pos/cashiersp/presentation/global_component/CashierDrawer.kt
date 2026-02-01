@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.Architecture
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.List
@@ -67,8 +69,8 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
     // Metadata
     val pagesUtils = mapOf<String, Pair<String, ImageVector>>(
         Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
-        Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
-        Screen.STAFF_MANAGEMENT to Pair("Staff Management Screen Navigation", Icons.Outlined.Person)
+        //Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
+        Screen.TRANSACTION_HISTORY to Pair("Transaction History Screen Navigation", Icons.Outlined.Archive)
     )
     val othersUtils = mapOf<String, Pair<String, ImageVector>>(
         Screen.SETTINGS to Pair("Settings Screen Navigation", Icons.Outlined.Settings),

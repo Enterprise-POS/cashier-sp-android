@@ -6,12 +6,14 @@ import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.GetAllStoreDto
 import com.pos.cashiersp.model.dto.GetTenantWithUserDto
 import com.pos.cashiersp.model.dto.LoginResponseDto
+import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.SignUpResponseDto
 import com.pos.cashiersp.model.dto.StoreStockGetV2Dto
 import com.pos.cashiersp.model.dto.TenantGetMembersDto
 import com.pos.cashiersp.model.dto.TransactionResponse
 import com.pos.cashiersp.presentation.util.LoginRequestBody
 import com.pos.cashiersp.presentation.util.NewTenantRequestBody
+import com.pos.cashiersp.presentation.util.SearchTransactionsRequestBody
 import com.pos.cashiersp.presentation.util.SignUpWithEmailAndPasswordRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -75,4 +77,10 @@ interface CashierApi {
         @Body createTransactionParams: CreateTransactionParams,
         @Path("tenantId") tenantId: Int,
     ): Response<HTTPStatus.SuccessResponse<TransactionResponse>>
+
+    @POST("order_items/search/{tenantId}")
+    suspend fun searchTransactions(
+        @Path("tenantId") tenantId: Int,
+        @Body searchTransactionsRequestBody: SearchTransactionsRequestBody
+    ): Response<HTTPStatus.SuccessResponse<SearchTransactionsDto>>
 }

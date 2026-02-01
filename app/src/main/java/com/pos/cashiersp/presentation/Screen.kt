@@ -4,7 +4,7 @@ object Screen {
     const val GREETING = "Greeting"
     const val CASHIER = "Cashier"
     const val STOCK_MANAGEMENT = "Stock Management"
-    const val STAFF_MANAGEMENT = "Staff Management"
+    const val TRANSACTION_HISTORY = "Transaction History"
     const val SETTINGS = "Settings"
     const val LOGOUT = "Logout"
     const val LOGIN_REGISTER = "Login / Register"
