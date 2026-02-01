@@ -33,7 +33,6 @@ import javax.inject.Inject
 @HiltViewModel
 class BluetoothSettingsViewModel @Inject constructor(
     private val dataStoreUseCase: DataStoreUseCase,
-    @ApplicationContext private val context: Context, // Should use Controller instead and inject using hilt,
     private val bluetoothController: BluetoothController
 ) : ViewModel() {
     private val _tenantId = mutableIntStateOf(0)

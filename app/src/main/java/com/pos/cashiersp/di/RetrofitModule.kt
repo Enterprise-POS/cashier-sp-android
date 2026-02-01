@@ -24,6 +24,7 @@ import com.pos.cashiersp.use_case.LoginRequest
 import com.pos.cashiersp.use_case.Logout
 import com.pos.cashiersp.use_case.NewTenant
 import com.pos.cashiersp.use_case.OrderItemUseCase
+import com.pos.cashiersp.use_case.SearchTransactions
 import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.StoreStockGetV2
 import com.pos.cashiersp.use_case.StoreStockUseCase
@@ -140,7 +141,8 @@ object RetrofitModule {
     @Singleton
     fun provideOrderItemUseCase(repository: OrderItemRepository): OrderItemUseCase {
         return OrderItemUseCase(
-            transaction = Transactions(repository)
+            transaction = Transactions(repository),
+            searchTransactions = SearchTransactions(repository)
         )
     }
 }
