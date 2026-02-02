@@ -8,6 +8,11 @@ sealed class TransactionHistoryEvent {
 
     data class OnChangePeriodFilter(val selectedPeriodFilter: PeriodFilter) : TransactionHistoryEvent()
     data class PickersInput(val selectPicker: Pickers, val setInto: Boolean) : TransactionHistoryEvent()
+    data class SetStartCalendar(val pairOfCalendarSetters: List<Pair<Int, Int>>) :
+        TransactionHistoryEvent() // Pair: field, end
+
+    data class SetEndCalendar(val pairOfCalendarSetters: List<Pair<Int, Int>>) :
+        TransactionHistoryEvent() // Pair: field, end
 
     data class OnPickSortersDropDown(val sortDirection: SortDirection) : TransactionHistoryEvent()
     data class OnClickSortersDropDown(val setInto: Boolean) : TransactionHistoryEvent()
@@ -20,4 +25,7 @@ sealed class TransactionHistoryEvent {
     data class OnPageChange(val page: Int) : TransactionHistoryEvent()
 
     object OnClickShowReportBtn : TransactionHistoryEvent()
+    object OnClickResetBtn : TransactionHistoryEvent()
+
+    object OnCloseGeneralDialog : TransactionHistoryEvent()
 }

@@ -27,6 +27,7 @@ import com.pos.cashiersp.presentation.cashier.CashierScreen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.greeting.GreetingScreen
 import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
+import com.pos.cashiersp.presentation.logout.LogoutScreen
 import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
@@ -144,6 +145,9 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(route = Screen.BLUETOOTH_SETTINGS) {
                                 BluetoothSettingsScreen(navController, drawerState)
+                            }
+                            composable(route = Screen.LOGOUT) {
+                                LogoutScreen(navController, drawerState)
                             }
                         }
                     }

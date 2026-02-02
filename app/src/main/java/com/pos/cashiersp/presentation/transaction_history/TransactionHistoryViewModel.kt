@@ -29,6 +29,8 @@ class TransactionHistoryViewModel @Inject constructor(
 
     private val _tenantId = mutableIntStateOf(0)
     private val _storeId = mutableIntStateOf(0)
+    private val _storeName = mutableStateOf("")
+    val storeName: State<String> = _storeName
 
     // Store custom date range
     private val _startCalendar = mutableStateOf<Calendar?>(null)
@@ -48,7 +50,7 @@ class TransactionHistoryViewModel @Inject constructor(
 
     private val _showSortMenu = mutableStateOf(false)
     val showSortMenu: State<Boolean> = _showSortMenu
-    private val _selectedSort = mutableStateOf(SortDirection.ASC)
+    private val _selectedSort = mutableStateOf(SortDirection.DESC)
     val selectedSort: State<SortDirection> = _selectedSort
 
     private val _showColumnMenu = mutableStateOf(false)
@@ -69,14 +71,83 @@ class TransactionHistoryViewModel @Inject constructor(
 
     init {
         loadDataStoreData()
+        // This automatically set the default filter as today when the transaction history page open
+        this.onEvent(TransactionHistoryEvent.OnChangePeriodFilter(PeriodFilter.TODAY))
     }
 
     fun onEvent(event: TransactionHistoryEvent) {
         when (event) {
+            is TransactionHistoryEvent.SetStartCalendar -> {
+                if (_startCalendar.value == null) return
+                val calendar = _startCalendar.value!!.clone() as Calendar
+                event.pairOfCalendarSetters.forEach { (field, value) ->
+                    calendar.set(field, value)
+                }
+                _startCalendar.value = calendar
+            }
+
+            is TransactionHistoryEvent.SetEndCalendar -> {
+                if (_endCalendar.value == null) return
+                val calendar = _endCalendar.value!!.clone() as Calendar
+                event.pairOfCalendarSetters.forEach { (field, value) ->
+                    calendar.set(field, value)
+                }
+                _endCalendar.value = calendar
+            }
+
             is TransactionHistoryEvent.OnChangeStartCalendar -> _startCalendar.value = event.startCalendar
             is TransactionHistoryEvent.OnChangeEndCalendar -> _endCalendar.value = event.endCalendar
 
-            is TransactionHistoryEvent.OnChangePeriodFilter -> _selectedPeriod.value = event.selectedPeriodFilter
+            is TransactionHistoryEvent.OnChangePeriodFilter -> {
+                _selectedPeriod.value = event.selectedPeriodFilter
+                if (event.selectedPeriodFilter == PeriodFilter.CUSTOM) return
+
+                val now = Calendar.getInstance()
+                val start = now.clone() as Calendar
+                val end = now.clone() as Calendar
+                when (event.selectedPeriodFilter) {
+                    PeriodFilter.TODAY -> {
+                        start.set(Calendar.HOUR_OF_DAY, 0)
+                        start.set(Calendar.MINUTE, 0)
+                        start.set(Calendar.SECOND, 0)
+                        start.set(Calendar.MILLISECOND, 0)
+
+                        end.set(Calendar.HOUR_OF_DAY, 23)
+                        end.set(Calendar.MINUTE, 59)
+                        end.set(Calendar.SECOND, 0)
+                        end.set(Calendar.MILLISECOND, 0)
+                    }
+
+                    PeriodFilter.LAST_HOUR -> {
+                        start.add(Calendar.HOUR_OF_DAY, -1)
+                    }
+
+                    PeriodFilter.LAST_6_HOUR -> {
+                        start.add(Calendar.HOUR_OF_DAY, -6)
+                    }
+
+                    PeriodFilter.LAST_12_HOUR -> {
+                        start.add(Calendar.HOUR_OF_DAY, -12)
+                    }
+
+                    PeriodFilter.LAST_7_DAYS -> {
+                        start.add(Calendar.DAY_OF_YEAR, -7)
+                    }
+
+                    PeriodFilter.THIS_MONTH -> {
+                        start.set(Calendar.DAY_OF_MONTH, 1)
+                        start.set(Calendar.HOUR_OF_DAY, 0)
+                        start.set(Calendar.MINUTE, 0)
+                        start.set(Calendar.SECOND, 0)
+                        start.set(Calendar.MILLISECOND, 0)
+                    }
+
+                    PeriodFilter.CUSTOM -> throw Exception("Unexpected behavior from TransactionHistoryEvent.OnChangePeriodFilter")
+                }
+
+                _startCalendar.value = start
+                _endCalendar.value = end
+            }
 
             is TransactionHistoryEvent.PickersInput -> {
                 when (event.selectPicker) {
@@ -93,85 +164,67 @@ class TransactionHistoryViewModel @Inject constructor(
             is TransactionHistoryEvent.OnPickSortersDropDown -> _selectedSort.value = event.sortDirection
 
             TransactionHistoryEvent.OnClickShowReportBtn -> {
-                if (_startCalendar.value == null || _endCalendar.value == null) {
-                    return
-                }
+                if (_startCalendar.value == null || _endCalendar.value == null) return
 
-                if (_isRequesting.value) {
-                    return
-                }
+                val isRequesting = _isRequesting.value
+                if (isRequesting) return
                 _isRequesting.value = true
+                val ascending = _selectedSort.value == SortDirection.ASC
 
-                orderItemUseCase.searchTransactions(
+                requestReport(
+                    startCalendar = _startCalendar.value!!,
+                    endCalendar = _endCalendar.value!!,
+                    page = 1, // Everytime user click report btn, the page always reset from 1
+                    limit = _itemsPerPage.value.value,
+                    ascending = ascending,
+                    columnName = _selectedColumn.value,
                     storeId = _storeId.intValue,
-                    tenantId = _tenantId.intValue,
-                    page = 1,
-                    limit = 10,
-                    dateFilter = DateFilter(
-                        "created_at",
-                        (_startCalendar.value!!.timeInMillis / 1000).toInt(),
-                        (_endCalendar.value!!.timeInMillis / 1000).toInt()
-                    ),
-                    queryFilter = QueryFilter("created_at", true)
-                ).onEach { resource ->
-                    when (resource) {
-                        is Resource.Error -> {
-                            _isRequesting.value = false
-                            _generalAlertDialogStatus.value =
-                                GeneralAlertDialogStatus.error("Request report error", resource.message!!)
-                        }
-
-                        is Resource.Loading -> {}
-
-                        is Resource.Success -> {
-                            _isRequesting.value = false
-                            _searchTransactionsDto.value = resource.data
-                        }
-                    }
-                }.launchIn(viewModelScope)
+                    tenantId = _tenantId.intValue
+                )
             }
 
             is TransactionHistoryEvent.OnPageChange -> {
                 val currentDto = _searchTransactionsDto.value
                 if (currentDto == null) return
 
+                val goToPage = event.page
+                if (currentDto.page == goToPage) return
+
+                val isRequesting = _isRequesting.value
+                if (isRequesting) return
+                _isRequesting.value = true
+
                 // Count how many page will be
-                val totalPages = ceil(((currentDto.totalCount / currentDto.limit).toDouble())).toInt()
+                val totalPages = ceil(currentDto.totalCount.toDouble() / currentDto.limit.toDouble()).toInt()
                 if (event.page < 0 || event.page > totalPages) return
 
                 val limit = _itemsPerPage.value.value
                 val page = event.page
-                orderItemUseCase.searchTransactions(
-                    storeId = _storeId.intValue,
-                    tenantId = _tenantId.intValue,
+                val ascending = _selectedSort.value == SortDirection.ASC
+                // isLoading value will be auto false by requestReport function
+                requestReport(
+                    startCalendar = _startCalendar.value!!,
+                    endCalendar = _endCalendar.value!!,
                     page = page,
                     limit = limit,
-                    dateFilter = DateFilter(
-                        "created_at",
-                        (_startCalendar.value!!.timeInMillis / 1000).toInt(),
-                        (_endCalendar.value!!.timeInMillis / 1000).toInt()
-                    ),
-                    queryFilter = QueryFilter("created_at", true)
-                ).onEach { resource ->
-                    when (resource) {
-                        is Resource.Error -> {
-                            _isRequesting.value = false
-                            _generalAlertDialogStatus.value =
-                                GeneralAlertDialogStatus.error("Request report error", resource.message!!)
-                        }
-
-                        is Resource.Loading -> {}
-
-                        is Resource.Success -> {
-                            _isRequesting.value = false
-                            _searchTransactionsDto.value = resource.data
-                        }
-                    }
-                }.launchIn(viewModelScope)
+                    ascending = ascending,
+                    columnName = _selectedColumn.value,
+                    storeId = _storeId.intValue,
+                    tenantId = _tenantId.intValue
+                )
             }
 
             is TransactionHistoryEvent.OnClickItemsPerPage -> {
                 _itemsPerPage.value = event.value
+            }
+
+            TransactionHistoryEvent.OnCloseGeneralDialog ->
+                _generalAlertDialogStatus.value = _generalAlertDialogStatus.value.copy(showDialog = false)
+
+            TransactionHistoryEvent.OnClickResetBtn -> {
+                this.onEvent(TransactionHistoryEvent.OnChangePeriodFilter(PeriodFilter.TODAY))
+                this.onEvent(TransactionHistoryEvent.OnPickColumnsDropDown(ColumnName.CREATED_AT))
+                this.onEvent(TransactionHistoryEvent.OnPickSortersDropDown(SortDirection.DESC))
             }
         }
     }
@@ -190,6 +243,7 @@ class TransactionHistoryViewModel @Inject constructor(
 
                     _tenantId.intValue = tenantId
                     _storeId.intValue = storeId
+                    _storeName.value = storeResource.data.name
                 }
 
                 tenantResource is Resource.Error || storeResource is Resource.Error -> {
@@ -197,6 +251,46 @@ class TransactionHistoryViewModel @Inject constructor(
                 }
 
                 tenantResource is Resource.Loading || storeResource is Resource.Loading -> {}
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun requestReport(
+        startCalendar: Calendar,
+        endCalendar: Calendar,
+        page: Int,
+        limit: Int,
+        ascending: Boolean,
+        columnName: ColumnName,
+        storeId: Int,
+        tenantId: Int
+    ) {
+        // _isRequesting will auto false by this method
+        orderItemUseCase.searchTransactions(
+            storeId = storeId,
+            tenantId = tenantId,
+            page = page,
+            limit = limit,
+            dateFilter = DateFilter(
+                columnName.dbname,
+                (startCalendar.timeInMillis / 1000.0).toInt(),
+                (endCalendar.timeInMillis / 1000.0).toInt()
+            ),
+            queryFilter = QueryFilter(columnName.dbname, ascending)
+        ).onEach { resource ->
+            when (resource) {
+                is Resource.Error -> {
+                    _isRequesting.value = false
+                    _generalAlertDialogStatus.value =
+                        GeneralAlertDialogStatus.error("Request report error", resource.message!!)
+                }
+
+                is Resource.Loading -> {}
+
+                is Resource.Success -> {
+                    _isRequesting.value = false
+                    _searchTransactionsDto.value = resource.data
+                }
             }
         }.launchIn(viewModelScope)
     }
@@ -218,14 +312,14 @@ enum class Pickers {
     END_TIME_PICKER,
 }
 
-enum class SortDirection(val label: String) {
-    ASC("Latest First"),
-    DESC("Oldest First")
+enum class SortDirection(val label: String, val valueLabel: String) {
+    ASC("Oldest First", "Lowest"),
+    DESC("Latest First", "Highest")
 }
 
-enum class ColumnName(val label: String) {
-    CREATED_AT("Created At"),
-    AMOUNT("Amount")
+enum class ColumnName(val label: String, val dbname: String) {
+    CREATED_AT("Created At", "created_at"),
+    AMOUNT("Total Amount", "total_amount")
 }
 
 enum class ItemsPerPage(val value: Int) {
