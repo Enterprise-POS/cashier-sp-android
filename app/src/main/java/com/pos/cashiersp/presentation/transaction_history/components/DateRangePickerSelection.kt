@@ -40,10 +40,6 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,7 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pos.cashiersp.presentation.cashier.CashierEvent
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.ColumnName
 import com.pos.cashiersp.presentation.transaction_history.PeriodFilter
@@ -82,99 +79,36 @@ fun DateRangePickerSection(
     val showColumnMenu = viewModel.showColumnMenu.value
     val selectedSort = viewModel.selectedSort.value
     val selectedColumn = viewModel.selectedColumn.value
-    val dateRangePicker = viewModel.dateRangePicker.value
-    val startTimePicker = viewModel.startTimePicker.value
-    val endTimePicker = viewModel.endTimePicker.value
+    val dateRangePicker: Boolean = viewModel.dateRangePicker.value
+    val startTimePicker: Boolean = viewModel.startTimePicker.value
+    val endTimePicker: Boolean = viewModel.endTimePicker.value
 
-    val startCalendar = viewModel.startCalendar.value
-    val endCalendar = viewModel.endCalendar.value
+    val startCalendar: Calendar? = viewModel.startCalendar.value
+    val endCalendar: Calendar? = viewModel.endCalendar.value
 
-    var formattedStartDate by remember { mutableStateOf<String?>(null) }
-    var formatterEndDate by remember { mutableStateOf<String?>(null) }
-
-    // Calculate date range based on selected period
     val dateFormat = SimpleDateFormat(
         "dd MMM yyyy - HH:mm",
         Locale.getDefault()
     )
-
-    val (startDate, endDate) =
-        // If custom period is selected and dates are available, use them
-        if (selectedPeriod == PeriodFilter.CUSTOM && formattedStartDate != null && formatterEndDate != null) {
-            formattedStartDate!! to formatterEndDate!!
-        } else {
-            val now = Calendar.getInstance()
-            val start = now.clone() as Calendar
-            val end = now.clone() as Calendar
-
-            when (selectedPeriod) {
-                PeriodFilter.TODAY -> {
-                    start.set(Calendar.HOUR_OF_DAY, 0)
-                    start.set(Calendar.MINUTE, 0)
-                    start.set(Calendar.SECOND, 0)
-                    start.set(Calendar.MILLISECOND, 0)
-
-                    end.set(Calendar.HOUR_OF_DAY, 23)
-                    end.set(Calendar.MINUTE, 59)
-                    end.set(Calendar.SECOND, 0)
-                    end.set(Calendar.MILLISECOND, 0)
-                }
-
-                PeriodFilter.LAST_HOUR -> {
-                    start.add(Calendar.HOUR_OF_DAY, -1)
-                }
-
-                PeriodFilter.LAST_6_HOUR -> {
-                    start.add(Calendar.HOUR_OF_DAY, -6)
-                }
-
-                PeriodFilter.LAST_12_HOUR -> {
-                    start.add(Calendar.HOUR_OF_DAY, -12)
-                }
-
-                PeriodFilter.LAST_7_DAYS -> {
-                    start.add(Calendar.DAY_OF_YEAR, -7)
-                }
-
-                PeriodFilter.THIS_MONTH -> {
-                    start.set(Calendar.DAY_OF_MONTH, 1)
-                    start.set(Calendar.HOUR_OF_DAY, 0)
-                    start.set(Calendar.MINUTE, 0)
-                    start.set(Calendar.SECOND, 0)
-                    start.set(Calendar.MILLISECOND, 0)
-                }
-
-                PeriodFilter.CUSTOM -> {}
-            }
-
-            dateFormat.format(start.time) to dateFormat.format(end.time)
-        }
-
+    val (readableStartDate, readableEndDate) = if (startCalendar != null && endCalendar != null) {
+        dateFormat.format(startCalendar.time) to dateFormat.format(endCalendar.time)
+    } else {
+        "Start Calendar" to "End Calendar"
+    }
 
     fun handleDateRangeSelected(startMillis: Long?, endMillis: Long?) {
         if (startMillis != null && endMillis != null) {
-            viewModel.onEvent(TransactionHistoryEvent.OnChangePeriodFilter(PeriodFilter.CUSTOM))
-
             val start = Calendar.getInstance().apply {
-                timeInMillis = startMillis
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+                this.timeInMillis = startMillis
             }
 
             val end = Calendar.getInstance().apply {
                 timeInMillis = endMillis
-                set(Calendar.HOUR_OF_DAY, 23)
-                set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
             }
 
+            viewModel.onEvent(TransactionHistoryEvent.OnChangePeriodFilter(PeriodFilter.CUSTOM))
             viewModel.onEvent(TransactionHistoryEvent.OnChangeStartCalendar(start))
             viewModel.onEvent(TransactionHistoryEvent.OnChangeEndCalendar(end))
-            formattedStartDate = dateFormat.format(start.time)
-            formatterEndDate = dateFormat.format(end.time)
         }
     }
 
@@ -215,7 +149,7 @@ fun DateRangePickerSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "$startDate - $endDate",
+                        text = "$readableStartDate - $readableEndDate",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = Secondary
@@ -272,7 +206,10 @@ fun DateRangePickerSection(
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = selectedSort.label,
+                                text = when (selectedColumn) {
+                                    ColumnName.CREATED_AT -> selectedSort.label
+                                    ColumnName.AMOUNT -> selectedSort.valueLabel
+                                },
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Secondary
@@ -295,7 +232,14 @@ fun DateRangePickerSection(
                 ) {
                     SortDirection.entries.forEach { option ->
                         DropdownMenuItem(
-                            text = { Text(option.label) },
+                            text = {
+                                Text(
+                                    when (selectedColumn) {
+                                        ColumnName.CREATED_AT -> option.label
+                                        ColumnName.AMOUNT -> option.valueLabel
+                                    }
+                                )
+                            },
                             onClick = {
                                 viewModel.onEvent(TransactionHistoryEvent.OnPickSortersDropDown(option))
                                 viewModel.onEvent(TransactionHistoryEvent.OnClickSortersDropDown(false))
@@ -464,8 +408,6 @@ fun DateRangePickerSection(
     }
 
     if (startTimePicker) {
-        val currentTime = Calendar.getInstance()
-
         val timePickerState = rememberTimePickerState(
             initialHour = 0,
             initialMinute = 0,
@@ -480,11 +422,14 @@ fun DateRangePickerSection(
             },
             onConfirm = {
                 if (startCalendar != null && endCalendar != null) {
-                    startCalendar.apply {
-                        this.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        this.set(Calendar.MINUTE, timePickerState.minute)
-                    }
-                    formattedStartDate = dateFormat.format(startCalendar!!.time)
+                    viewModel.onEvent(
+                        TransactionHistoryEvent.SetStartCalendar(
+                            listOf(
+                                Calendar.HOUR_OF_DAY to timePickerState.hour,
+                                Calendar.MINUTE to timePickerState.minute
+                            )
+                        )
+                    )
                 }
                 viewModel.onEvent(TransactionHistoryEvent.PickersInput(Pickers.START_TIME_PICKER, false))
                 viewModel.onEvent(TransactionHistoryEvent.PickersInput(Pickers.END_TIME_PICKER, true))
@@ -510,11 +455,14 @@ fun DateRangePickerSection(
             },
             onConfirm = {
                 if (startCalendar != null && endCalendar != null) {
-                    endCalendar.apply {
-                        this!!.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        this.set(Calendar.MINUTE, timePickerState.minute)
-                    }
-                    formatterEndDate = dateFormat.format(endCalendar!!.time)
+                    viewModel.onEvent(
+                        TransactionHistoryEvent.SetEndCalendar(
+                            listOf(
+                                Calendar.HOUR_OF_DAY to timePickerState.hour,
+                                Calendar.MINUTE to timePickerState.minute
+                            )
+                        )
+                    )
                 }
                 viewModel.onEvent(TransactionHistoryEvent.PickersInput(Pickers.END_TIME_PICKER, false))
             }) {
@@ -522,6 +470,15 @@ fun DateRangePickerSection(
                 state = timePickerState,
             )
         }
+    }
+
+    val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
+    if (generalAlertDialogStatus.showDialog) {
+        GeneralAlertDialog(
+            generalAlertDialogStatus = generalAlertDialogStatus,
+            onConfirmation = { viewModel.onEvent(TransactionHistoryEvent.OnCloseGeneralDialog) },
+            onDismissRequest = { viewModel.onEvent(TransactionHistoryEvent.OnCloseGeneralDialog) },
+        )
     }
 }
 
@@ -553,6 +510,8 @@ fun TimePickerDialog(
 fun ButtonRowComponent(
     viewModel: TransactionHistoryViewModel,
 ) {
+    val isRequesting = viewModel.isRequesting.value
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -565,7 +524,8 @@ fun ButtonRowComponent(
         ) {
             // Export Button
             Button(
-                onClick = { /* Handle export */ },
+                enabled = !isRequesting,
+                onClick = { viewModel.onEvent(TransactionHistoryEvent.OnClickResetBtn) },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Secondary
@@ -583,16 +543,17 @@ fun ButtonRowComponent(
 
             // View daily summary Button
             Button(
+                enabled = !isRequesting,
                 onClick = { viewModel.onEvent(TransactionHistoryEvent.OnClickShowReportBtn) },
-                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary
                 ),
                 shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                contentPadding = PaddingValues(vertical = 8.dp),
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
-                    text = "Show report",
+                    text = if (isRequesting) "Please wait..." else "Show report",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White

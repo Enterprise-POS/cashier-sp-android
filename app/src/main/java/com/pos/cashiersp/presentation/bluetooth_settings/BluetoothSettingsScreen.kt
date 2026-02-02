@@ -58,6 +58,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
 import com.pos.cashiersp.model.domain.DeviceType
+import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -328,7 +329,7 @@ fun BluetoothSettingsScreen(
 
                 // Use app without device button
                 Button(
-                    onClick = { viewModel.print() },
+                    onClick = { navController.navigate(Screen.CASHIER) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE5E7EB)
                     ),
@@ -338,7 +339,7 @@ fun BluetoothSettingsScreen(
                         .height(48.dp)
                 ) {
                     Text(
-                        "Use app without device",
+                        if (pairedDevices.isEmpty()) "Use app without device" else "Back to POS",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.W500,
                         color = Color(0xFF1E293B)
@@ -369,7 +370,7 @@ fun BluetoothDeviceItem(
         colors = ButtonDefaults.buttonColors()
             .copy(containerColor = Gray100.copy(alpha = .4f)),
         contentPadding = PaddingValues(0.dp),
-        onClick = onClick,
+        onClick = (if (device.isConnected) fun() {/* Don't do anything for now */ } else onClick),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -428,6 +429,7 @@ fun BluetoothDeviceItem(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(end = 12.dp)
             ) {
+                /*
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Signal icon (you can replace with actual signal bars icon)
                     Text("📶", fontSize = 10.sp)
@@ -439,6 +441,7 @@ fun BluetoothDeviceItem(
                     )
                 }
                 Spacer(Modifier.height(2.dp))
+                * */
                 if (device.isConnected) {
                     Text(
                         "Connected",

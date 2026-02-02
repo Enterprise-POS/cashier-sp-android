@@ -68,7 +68,7 @@ fun PaginationBar(
         totalCount = searchTransactionsDto.totalCount
         page = searchTransactionsDto.page
         limit = searchTransactionsDto.limit
-        totalPages = ceil(((totalCount / limit).toDouble())).toInt()
+        totalPages = ceil(totalCount.toDouble() / limit.toDouble()).toInt()
     }
 
     Row(
@@ -150,66 +150,68 @@ fun PaginationBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Previous button
-                PaginationButton(
-                    isIcon = true,
-                    isActive = false,
-                    enabled = currentPage > 1,
-                    onClick = { if (currentPage > 1) viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page - 1)) }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = "Previous",
-                        tint = if (currentPage > 1) Gray700 else Gray300,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Page numbers
                 val pages = getPageNumbers(currentPage, totalPages)
-                pages.forEach { page ->
-                    if (page == -1) {
-                        Text(
-                            text = "...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Gray500,
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                if (pages.isNotEmpty()) {
+                    // Previous button
+                    PaginationButton(
+                        isIcon = true,
+                        isActive = false,
+                        enabled = currentPage > 1,
+                        onClick = { if (currentPage > 1) viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page - 1)) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = "Previous",
+                            tint = if (currentPage > 1) Gray700 else Gray300,
+                            modifier = Modifier.size(18.dp)
                         )
-                    } else {
-                        PaginationButton(
-                            isIcon = false,
-                            isActive = page == currentPage,
-                            enabled = true,
-                            onClick = { viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page)) }
-                        ) {
+                    }
+
+                    // Page number components
+                    pages.forEach { page ->
+                        if (page == -1) {
                             Text(
-                                text = page.toString(),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (page == currentPage) FontWeight.Bold else FontWeight.Normal
-                                ),
-                                color = if (page == currentPage) White else Gray700,
-                                fontSize = 14.sp
+                                text = "...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Gray500,
+                                modifier = Modifier.padding(horizontal = 4.dp)
                             )
+                        } else {
+                            PaginationButton(
+                                isIcon = false,
+                                isActive = page == currentPage,
+                                enabled = true,
+                                onClick = { viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page)) }
+                            ) {
+                                Text(
+                                    text = page.toString(),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = if (page == currentPage) FontWeight.Bold else FontWeight.Normal
+                                    ),
+                                    color = if (page == currentPage) White else Gray700,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
-                }
 
-                // Next button
-                PaginationButton(
-                    isIcon = true,
-                    isActive = false,
-                    enabled = currentPage < totalPages,
-                    onClick = {
-                        if (currentPage < totalPages)
-                            viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page + 1))
+                    // Next button
+                    PaginationButton(
+                        isIcon = true,
+                        isActive = false,
+                        enabled = currentPage < totalPages,
+                        onClick = {
+                            if (currentPage < totalPages)
+                                viewModel.onEvent(TransactionHistoryEvent.OnPageChange(page + 1))
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Next",
+                            tint = if (currentPage > 1) Gray700 else Gray300,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Next",
-                        tint = if (currentPage > 1) Gray700 else Gray300,
-                        modifier = Modifier.size(18.dp),
-                    )
                 }
             }
         }

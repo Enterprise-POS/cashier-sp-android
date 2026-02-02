@@ -2,6 +2,7 @@ package com.pos.cashiersp.presentation.transaction_history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +44,8 @@ fun TransactionHistoryScreen(
     navController: NavController,
     viewModel: TransactionHistoryViewModel = hiltViewModel()
 ) {
+    val storeName = viewModel.storeName.value
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,18 +79,26 @@ fun TransactionHistoryScreen(
                     }
                 },
                 actions = {
-                    Text(
-                        "POS 1",
-                        fontSize = 11.sp,
-                        color = Primary,
-                        fontWeight = FontWeight.W500,
-                        modifier = Modifier
-                            .background(
-                                Primary100,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    Box(
+                        contentAlignment = Alignment.CenterEnd,
+                        modifier = Modifier.width(120.dp)
                     )
+                    {
+                        Text(
+                            storeName,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 11.sp,
+                            color = Primary,
+                            fontWeight = FontWeight.W500,
+                            modifier = Modifier
+                                .background(
+                                    Primary100,
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                     Spacer(Modifier.width(12.dp))
                 }
             )
