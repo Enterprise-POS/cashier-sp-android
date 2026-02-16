@@ -160,6 +160,7 @@ fun TransactionCompleteDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // Print Button
+                /*
                 OutlinedButton(
                     onClick = onPrint,
                     modifier = Modifier
@@ -183,7 +184,7 @@ fun TransactionCompleteDialog(
                         fontWeight = FontWeight.Medium
                     )
                 }
-
+                */
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Cancel and Confirm Buttons

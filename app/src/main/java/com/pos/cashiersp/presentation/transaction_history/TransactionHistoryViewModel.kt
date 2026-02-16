@@ -7,16 +7,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.cashiersp.common.Resource
+import com.pos.cashiersp.controller.BluetoothController
 import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.QueryFilter
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
+import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent.*
+import com.pos.cashiersp.presentation.util.BluetoothUIState
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.OrderItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.ceil
@@ -25,6 +32,7 @@ import kotlin.math.ceil
 class TransactionHistoryViewModel @Inject constructor(
     private val dataStoreUseCase: DataStoreUseCase,
     private val orderItemUseCase: OrderItemUseCase,
+    private val bluetoothController: BluetoothController
 ) : ViewModel() {
 
     private val _tenantId = mutableIntStateOf(0)
@@ -68,6 +76,20 @@ class TransactionHistoryViewModel @Inject constructor(
 
     private val _itemsPerPage = mutableStateOf(ItemsPerPage.TEN)
     val itemsPerPage: State<ItemsPerPage> = _itemsPerPage
+
+    // Transaction History screen only print for connected only printers
+    private val _isPrinting = mutableStateOf(false)
+    private val _bluetoothDevices = MutableStateFlow(BluetoothUIState())
+    val bluetoothDevices = combine(
+        bluetoothController.scannedDevices,
+        bluetoothController.pairedDevices,
+        _bluetoothDevices
+    ) { scannedDevices, pairedDevices, bluetoothDevices ->
+        bluetoothDevices.copy(
+            scannedDevices = scannedDevices,
+            pairedDevices = pairedDevices
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _bluetoothDevices.value)
 
     init {
         loadDataStoreData()
@@ -219,12 +241,53 @@ class TransactionHistoryViewModel @Inject constructor(
             }
 
             TransactionHistoryEvent.OnCloseGeneralDialog ->
-                _generalAlertDialogStatus.value = _generalAlertDialogStatus.value.copy(showDialog = false)
+                _generalAlertDialogStatus.value = GeneralAlertDialogStatus()
 
             TransactionHistoryEvent.OnClickResetBtn -> {
-                this.onEvent(TransactionHistoryEvent.OnChangePeriodFilter(PeriodFilter.TODAY))
-                this.onEvent(TransactionHistoryEvent.OnPickColumnsDropDown(ColumnName.CREATED_AT))
-                this.onEvent(TransactionHistoryEvent.OnPickSortersDropDown(SortDirection.DESC))
+                this.onEvent(OnChangePeriodFilter(PeriodFilter.TODAY))
+                this.onEvent(OnPickColumnsDropDown(ColumnName.CREATED_AT))
+                this.onEvent(OnPickSortersDropDown(SortDirection.DESC))
+            }
+
+            is TransactionHistoryEvent.OnLongPressedAndClickPrint -> {
+                val connectedDevices = bluetoothController.pairedDevices.value
+
+                if (connectedDevices.isEmpty()) {
+                    _generalAlertDialogStatus.value =
+                        GeneralAlertDialogStatus.error("Print Error", "No printer connected. Please check you devices")
+                    return
+                }
+
+                if (_isPrinting.value) return
+                _isPrinting.value = true
+
+
+                // Tell user we are printing the receipt by AlertDialog
+                _generalAlertDialogStatus.value = GeneralAlertDialogStatus.loading("Printing...")
+
+                orderItemUseCase.findTransactionsById(event.id, _tenantId.intValue).onEach { resource ->
+                    when (resource) {
+                        is Resource.Error -> {
+                            _generalAlertDialogStatus.value =
+                                GeneralAlertDialogStatus.error(
+                                    "Print error",
+                                    resource.message ?: "Unexpected error from findTransactionsById"
+                                )
+                            _isPrinting.value = false
+                        }
+
+                        is Resource.Loading -> {}
+
+                        is Resource.Success -> {
+                            // Start printing
+                            bluetoothController.withConnectedDevicesPrintReceipt2(connectedDevices, resource.data!!)
+
+                            _isPrinting.value = false
+                            _generalAlertDialogStatus.value = GeneralAlertDialogStatus()
+                        }
+                    }
+                }.launchIn(viewModelScope)
+
             }
         }
     }

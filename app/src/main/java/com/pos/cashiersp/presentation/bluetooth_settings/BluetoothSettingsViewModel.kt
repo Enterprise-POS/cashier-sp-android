@@ -1,15 +1,10 @@
 package com.pos.cashiersp.presentation.bluetooth_settings
 
-import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.content.Context
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection
 import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.controller.BluetoothController
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
@@ -17,7 +12,6 @@ import com.pos.cashiersp.presentation.util.BluetoothUIState
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +48,6 @@ class BluetoothSettingsViewModel @Inject constructor(
     val isLoading: State<Boolean> = _isLoading
 
     private var deviceConnectionJob: Job? = null
-
 
     /////////////////
     // Functionality

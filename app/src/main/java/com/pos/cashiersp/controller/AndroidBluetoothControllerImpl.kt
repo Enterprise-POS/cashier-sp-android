@@ -14,6 +14,7 @@ import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection
 import com.pos.cashiersp.model.domain.BluetoothDevice
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
 import com.pos.cashiersp.model.domain.toBluetoothDeviceDomain
+import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -160,12 +161,11 @@ class AndroidBluetoothControllerImpl(
                 val printer = EscPosPrinter(connection, 183, 76.5f, 48)
                 val formattedText = createFormattedText(printer)
 
-                // Important: Give time for print job to complete
+                // Give time for print job to complete
                 // delay(2000) // 2 seconds delay between printers
 
                 printer.printFormattedTextAndCut(formattedText)
 
-                // Close connection explicitly if library supports it
                 // connection.disconnect()
 
             } catch (e: Exception) {
@@ -174,6 +174,70 @@ class AndroidBluetoothControllerImpl(
             }
         }
         _isPrinting.update { false }
+    }
+
+    override fun withConnectedDevicesPrintReceipt2(
+        devices: List<BluetoothDevice>,
+        findTransactionsByIdDto: FindTransactionsByIdDto,
+    ) {
+        val orderItem = findTransactionsByIdDto.orderItem
+        val purchasedItemList = findTransactionsByIdDto.purchasedItemList
+
+        _isPrinting.update { true }
+
+        try {
+            devices.forEach { device ->
+                println("Printing at: ${device.name}")
+                try {
+                    val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
+                        ?: throw IllegalStateException("Bluetooth adapter is null")
+
+                    val connection = BluetoothConnection(androidDevice)
+
+
+                    //val printer = EscPosPrinter(connection, 203, 76.5f, 48)
+                    val printer = EscPosPrinter(connection, 183, 76.5f, 48)
+
+                    // Build purchased items text
+                    val itemsText = purchasedItemList.joinToString(separator = "\n") { item ->
+                        val name = item.itemNameSnapshot
+                        val qty = item.quantity
+                        val price = String.format("%.2f", item.totalAmount.toDouble())
+                        val storePriceSnapshot = item.storePriceSnapshot
+
+                        return@joinToString "[L]<b>$name</b>    [R]$price\n" +
+                                "[L] $storePriceSnapshot x $qty"
+                    }
+
+                    val subtotal = String.format("%.2f", orderItem.subtotal.toDouble())
+                    val discountAmount = String.format("%.2f", orderItem.discountAmount.toDouble())
+                    val totalAmount = String.format("%.2f", orderItem.totalAmount.toDouble())
+                    val cash = String.format("%.2f", orderItem.purchasedPrice.toDouble())
+                    val change = orderItem.purchasedPrice - orderItem.totalAmount
+                    val text =
+                        "[C]<font size='big'>Enterprise POS</font>\n" +
+                                "[C]Order #${orderItem.id}\n" +
+                                "[C]================================\n" +
+                                itemsText + "\n" +
+                                "[C]--------------------------------\n" +
+                                "[R]SUBTOTAL:                  ￥$subtotal\n" +
+                                "[R]DISCOUNT:                  ￥$discountAmount\n" +
+                                "[C]================================\n" +
+                                "[R]<b>TOTAL:                    ￥$totalAmount</b>\n" +
+                                "[R]<b>CASH:                    ￥$cash</b>\n" +
+                                "[R]<b>CHANGE:                    ￥$change</b>\n" +
+                                "[L]\n" +
+                                "[L]\n"
+
+                    printer.printFormattedTextAndCut(text)
+
+                } catch (e: Exception) {
+                    println("Printer Failed to print to ${device.name}: ${e.message}")
+                }
+            }
+        } finally {
+            _isPrinting.update { false }
+        }
     }
 
     suspend fun waitForBond(device: android.bluetooth.BluetoothDevice) {
@@ -199,7 +263,7 @@ class AndroidBluetoothControllerImpl(
 
     private fun createFormattedText(printer: EscPosPrinter): String {
         return "[C]<font size='big'>TASTY BITES</font>\n" +
-                "[C]Order #123 | Table 5\n" +
+                "[C]Order #123\n" +
                 "[C]================================\n" +
                 "[L]<b>Burger Deluxe</b>          12.99\n" +
                 "[L]  - No onions\n" +
@@ -210,7 +274,6 @@ class AndroidBluetoothControllerImpl(
                 "[L]  x2\n" +
                 "[C]--------------------------------\n" +
                 "[R]SUBTOTAL:                  20.48\n" +
-                "[R]TIP (18%):                  3.69\n" +
                 "[C]================================\n" +
                 "[R]<b>TOTAL:                    24.17</b>\n"
         /*

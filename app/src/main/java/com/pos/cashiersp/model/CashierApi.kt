@@ -3,6 +3,7 @@ package com.pos.cashiersp.model
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.model.dto.CashierDataDto
 import com.pos.cashiersp.model.dto.CreateTransactionParams
+import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.GetAllStoreDto
 import com.pos.cashiersp.model.dto.GetTenantWithUserDto
 import com.pos.cashiersp.model.dto.LoginResponseDto
@@ -83,4 +84,10 @@ interface CashierApi {
         @Path("tenantId") tenantId: Int,
         @Body searchTransactionsRequestBody: SearchTransactionsRequestBody
     ): Response<HTTPStatus.SuccessResponse<SearchTransactionsDto>>
+
+    @GET("order_items/details/{tenantId}")
+    suspend fun findTransactionsById(
+        @Path("tenantId") tenantId: Int,
+        @Query("order_item_id") id: Int
+    ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>>
 }

@@ -3,6 +3,7 @@ package com.pos.cashiersp.repository
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.DateFilter
+import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.QueryFilter
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.TransactionResponse
@@ -18,4 +19,9 @@ interface OrderItemRepository {
     suspend fun searchTransactions(
         searchTransactionsRequestBody: SearchTransactionsRequestBody
     ): Response<HTTPStatus.SuccessResponse<SearchTransactionsDto>>
+
+    suspend fun findTransactionsById(
+        id: Int,
+        tenantId: Int
+    ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>>
 }

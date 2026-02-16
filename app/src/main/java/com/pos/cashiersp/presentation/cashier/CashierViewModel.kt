@@ -289,7 +289,7 @@ class CashierViewModel @Inject constructor(
                         dtoItem(
                             itemId = cartItem.item.itemId,
                             quantity = cartItem.quantity,
-                            purchasedPrice = cartItem.storeStock.price,
+                            storePriceSnapshot = cartItem.storeStock.price,
                             discountAmount = 0,
                             totalAmount = cartItem.storeStock.price * cartItem.quantity,
                             itemNameSnapshot = cartItem.item.itemName

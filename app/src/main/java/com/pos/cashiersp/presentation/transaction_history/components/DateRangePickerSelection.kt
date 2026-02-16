@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.ColumnName
@@ -228,7 +227,7 @@ fun DateRangePickerSection(
                     onDismissRequest = {
                         viewModel.onEvent(TransactionHistoryEvent.OnClickSortersDropDown(false))
                     },
-                    modifier = Modifier.background(White),
+                    containerColor = White
                 ) {
                     SortDirection.entries.forEach { option ->
                         DropdownMenuItem(

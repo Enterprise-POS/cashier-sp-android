@@ -1,6 +1,7 @@
 package com.pos.cashiersp.controller
 
 import com.pos.cashiersp.model.domain.BluetoothDevice
+import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,10 @@ interface BluetoothController {
     fun connectToDevice(device: BluetoothDevice): Flow<ConnectionResult>
 
     fun withConnectedDevicesPrintReceipt(device: List<BluetoothDevice> = pairedDevices.value)
+    fun withConnectedDevicesPrintReceipt2(
+        device: List<BluetoothDevice> = pairedDevices.value,
+        findTransactionsByIdDto: FindTransactionsByIdDto,
+    )
 
     fun closeConnection()
     fun release()
