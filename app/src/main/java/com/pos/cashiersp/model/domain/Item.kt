@@ -9,4 +9,5 @@ data class Item(
     val stocks: Int,
     val isActive: Boolean,
     val stockType: StockType,
+    val basePrice: Int,
 )

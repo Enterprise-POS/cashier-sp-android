@@ -22,5 +22,7 @@ data class Item(
     @SerializedName("total_amount")
     val totalAmount: Int,
     @SerializedName("item_name_snapshot")
-    val itemNameSnapshot: String
+    val itemNameSnapshot: String,
+    @SerializedName("base_price_snapshot")
+    val basePriceSnapshot: Int
 )

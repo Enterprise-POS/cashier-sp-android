@@ -131,7 +131,6 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
                         contentPadding = PaddingValues(0.dp),
                         onClick = {
                             navController.navigate(title)
-                            scope.launch { drawerState.close() }
                         }
                     ) {
                         Row(

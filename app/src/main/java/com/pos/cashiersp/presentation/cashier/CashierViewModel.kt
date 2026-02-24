@@ -149,7 +149,8 @@ class CashierViewModel @Inject constructor(
                         item.itemName,
                         item.stocks,
                         item.isActive,
-                        item.stockType
+                        item.stockType,
+                        item.basePrice
                     ),
                     storeStock = StoreStock(
                         item.storeStockId,
@@ -293,7 +294,8 @@ class CashierViewModel @Inject constructor(
                             storePriceSnapshot = cartItem.storeStock.price,
                             discountAmount = 0,
                             totalAmount = cartItem.storeStock.price * cartItem.quantity,
-                            itemNameSnapshot = cartItem.item.itemName
+                            itemNameSnapshot = cartItem.item.itemName,
+                            basePriceSnapshot = cartItem.item.basePrice,
                         )
                     )
                 }
