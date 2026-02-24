@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,6 +83,7 @@ import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.StoreStockV2
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.CashierEvent
+import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
@@ -100,6 +102,7 @@ import com.pos.cashiersp.presentation.ui.theme.Purple700
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 
@@ -116,7 +119,6 @@ fun StockManagementScreen(
     val itemsTotal = viewModel.itemsTotal.value
     val requestingState = viewModel.requestingState.value
 
-    val scope = rememberCoroutineScope()
     val searchTextFieldState = viewModel.searchTextFieldState
     val openAlertDialog = remember { mutableStateOf(false) }
 
@@ -133,6 +135,19 @@ fun StockManagementScreen(
 
         if (item.stocks <= 5 && item.stockType == StockType.TRACKED) {
             lowOrOufOfStock++
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is StockManagementViewModel.UIEvent.ErrorAndMustNavigateToSelectTenantScreen -> {
+                    navController.navigate(Screen.SELECT_TENANT) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
         }
     }
 

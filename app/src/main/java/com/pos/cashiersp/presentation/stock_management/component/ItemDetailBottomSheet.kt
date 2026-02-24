@@ -75,7 +75,6 @@ fun ItemDetailBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
-        sheetState.hide()
         viewModel.uiBottomSheet.collectLatest { event ->
             when (event) {
                 is StockManagementViewModel.UIBottomSheet.ShowModalBottomSheet -> {
