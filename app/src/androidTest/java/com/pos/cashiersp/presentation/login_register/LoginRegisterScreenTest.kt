@@ -1,5 +1,6 @@
 package com.pos.cashiersp.presentation.login_register
 
+import android.Manifest
 import androidx.compose.material3.DrawerState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
@@ -12,6 +13,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.test.rule.GrantPermissionRule
 import com.pos.cashiersp.common.Constants
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.di.AppModule
@@ -140,6 +142,19 @@ class LoginRegisterScreenTest {
             }
         }
     }
+
+    /*
+    The UI test will ask for location access. so neverForLocation required to prevent pop up
+    For android <= 11
+    * */
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.BLUETOOTH_SCAN,
+        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.BLUETOOTH_ADVERTISE,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
 
     @Test
     fun titleText_displayingWelcome_whenFirstOpen() {

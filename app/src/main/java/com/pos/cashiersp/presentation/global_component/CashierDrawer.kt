@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,9 +61,13 @@ import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun CashierDrawer(navController: NavController, content: @Composable (drawerState: DrawerState) -> Unit) {
+    val scope = rememberCoroutineScope()
+
     // Get the title from navController instance
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentTitle: String? = navBackStackEntry.value?.destination?.route
@@ -70,7 +75,7 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
     // Metadata
     val pagesUtils = mapOf<String, Pair<String, ImageVector>>(
         Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
-        //Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
+        Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
         Screen.TRANSACTION_HISTORY to Pair("Transaction History Screen Navigation", Icons.Outlined.Archive),
         Screen.BLUETOOTH_SETTINGS to Pair("Bluetooth Settings Navigation", Icons.Default.Bluetooth)
     )
@@ -124,7 +129,10 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
                             .fillMaxWidth()
                             .height(36.dp), // Button height but padding like
                         contentPadding = PaddingValues(0.dp),
-                        onClick = { navController.navigate(title) }
+                        onClick = {
+                            navController.navigate(title)
+                            scope.launch { drawerState.close() }
+                        }
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

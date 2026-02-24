@@ -57,7 +57,7 @@ interface CashierApi {
     ): Response<HTTPStatus.SuccessResponse<GetAllStoreDto>>
 
     // Store Stock
-    @GET("store_stocks/{tenantId}")
+    @GET("store_stocks/v2/{tenantId}")
     suspend fun storeStockGetV2(
         @Path("tenantId") tenantId: Int,
         @Query("page") page: Int,

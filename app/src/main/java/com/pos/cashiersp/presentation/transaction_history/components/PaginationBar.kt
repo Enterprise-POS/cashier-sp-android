@@ -248,8 +248,8 @@ fun PaginationButton(
     }
 }
 
-fun getPageNumbers(currentPage: Int, totalPages: Int): List<Int> {
-    if (totalPages <= 3) {
+fun getPageNumbers(currentPage: Int, totalPages: Int, totalButtons: Int = 3): List<Int> {
+    if (totalPages <= totalButtons) {
         return (1..totalPages).toList()
     }
 

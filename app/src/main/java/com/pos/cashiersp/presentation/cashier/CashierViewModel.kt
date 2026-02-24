@@ -159,7 +159,8 @@ class CashierViewModel @Inject constructor(
                         item.storeStockStocks,
                         now().toString(),
                         now().toString(),
-                        _storeId.intValue
+                        _storeId.intValue,
+                        item.stockType,
                     ),
                     quantity = 1
                 ))

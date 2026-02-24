@@ -71,7 +71,6 @@ import java.util.Locale
 @Composable
 fun DateRangePickerSection(
     viewModel: TransactionHistoryViewModel = hiltViewModel(),
-    onDateRangeSelected: (startDate: String, endDate: String) -> Unit = { _, _ -> }
 ) {
     val selectedPeriod = viewModel.selectedPeriod.value
     val showSortMenu = viewModel.showSortMenu.value

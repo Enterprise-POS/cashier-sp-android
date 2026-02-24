@@ -77,6 +77,7 @@ class AndroidBluetoothControllerImpl(
         )
 
         updatePairedDevices()
+        println(bluetoothAdapter)
 
         bluetoothAdapter?.startDiscovery()
     }

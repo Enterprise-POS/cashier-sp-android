@@ -13,16 +13,16 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="Tests in 'com.pos.cashiersp'">
+      <SelectionState runConfigName="LoginRegisterScreenTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="SelectTenantScreenTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="openAddNewTenantDialog_createNewTenant()">
+      <SelectionState runConfigName="selectTenantScreenAllButtons_isClickable()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="userClickSwitchAccount_redirectToLoginRegisterScreen()">
+      <SelectionState runConfigName="loginSide_signIn()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="afterSelectTenant_thenGoToCashierScreen()">
