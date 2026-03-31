@@ -287,7 +287,6 @@ class TransactionHistoryViewModel @Inject constructor(
                         }
                     }
                 }.launchIn(viewModelScope)
-
             }
         }
     }

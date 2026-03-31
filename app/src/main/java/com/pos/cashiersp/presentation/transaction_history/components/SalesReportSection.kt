@@ -192,12 +192,12 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                     ) {
                         CompactDetail(
                             label = "Cash-in",
-                            value = "¥${sale.purchasedPrice}",
+                            value = "Rp ${sale.purchasedPrice}",
                             modifier = Modifier.weight(1f)
                         )
                         CompactDetail(
                             label = "Change",
-                            value = "¥${sale.purchasedPrice - sale.totalAmount}",
+                            value = "Rp ${sale.purchasedPrice - sale.totalAmount}",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -218,7 +218,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                     modifier = Modifier.height(68.dp)
                 ) {
                     TextWithNoPadding(
-                        text = "¥${sale.subtotal}",
+                        text = "Rp ${sale.subtotal}",
                         color = Primary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
