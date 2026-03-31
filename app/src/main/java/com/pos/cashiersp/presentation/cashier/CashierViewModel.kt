@@ -44,7 +44,6 @@ import javax.inject.Inject
 import com.pos.cashiersp.model.domain.Item as domainItem
 import com.pos.cashiersp.model.dto.Item as dtoItem
 
-@RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class CashierViewModel @Inject constructor(
     private val dataStoreUseCase: DataStoreUseCase,
@@ -122,7 +121,7 @@ class CashierViewModel @Inject constructor(
         viewModelScope.launch { loadProfile() }
     }
 
-    private fun now() = Date.from(Instant.now())
+    private fun now() = Date()
 
     fun onEvent(event: CashierEvent) {
         when (event) {

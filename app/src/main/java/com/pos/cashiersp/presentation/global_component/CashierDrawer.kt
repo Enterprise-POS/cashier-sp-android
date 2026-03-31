@@ -1,9 +1,7 @@
 package com.pos.cashiersp.presentation.global_component
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,17 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.outlined.Architecture
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ExitToApp
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.List
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -37,11 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,7 +40,6 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -57,42 +47,45 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.pos.cashiersp.R
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
-import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
-import com.pos.cashiersp.presentation.ui.theme.Secondary
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+
+private val pagesUtils = mapOf(
+    Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
+    Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
+    Screen.TRANSACTION_HISTORY to Pair("Transaction History Screen Navigation", Icons.Outlined.Archive),
+    Screen.BLUETOOTH_SETTINGS to Pair("Bluetooth Settings Navigation", Icons.Default.Bluetooth)
+)
+
+private val othersUtils = mapOf(
+    Screen.LOGOUT to Pair("Logout Button", Icons.Outlined.ExitToApp)
+)
 
 @Composable
 fun CashierDrawer(navController: NavController, content: @Composable (drawerState: DrawerState) -> Unit) {
     val scope = rememberCoroutineScope()
+    val currentRoute by navController.currentBackStackEntryAsState()
+    val currentTitle = remember(currentRoute) { currentRoute?.destination?.route }
 
-    // Get the title from navController instance
-    val navBackStackEntry = navController.currentBackStackEntryAsState()
-    val currentTitle: String? = navBackStackEntry.value?.destination?.route
+    val isAllowedToOpen = remember(currentTitle) {
+        when {
+            currentTitle == Screen.LOGIN_REGISTER -> false
+            currentTitle == Screen.SELECT_TENANT -> false
+            currentTitle?.contains(Screen.SELECT_STORE) == true -> false
+            else -> true
+        }
+    }
 
-    // Metadata
-    val pagesUtils = mapOf<String, Pair<String, ImageVector>>(
-        Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
-        Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
-        Screen.TRANSACTION_HISTORY to Pair("Transaction History Screen Navigation", Icons.Outlined.Archive),
-        Screen.BLUETOOTH_SETTINGS to Pair("Bluetooth Settings Navigation", Icons.Default.Bluetooth)
-    )
-    val othersUtils = mapOf<String, Pair<String, ImageVector>>(
-        //Screen.SETTINGS to Pair("Settings Screen Navigation", Icons.Outlined.Settings),
-        Screen.LOGOUT to Pair("Logout Button", Icons.Outlined.ExitToApp)
-    )
-
-    val isAllowedToOpen = when {
-        currentTitle == Screen.LOGIN_REGISTER -> false
-        currentTitle == Screen.SELECT_TENANT -> false
-        currentTitle?.contains(Screen.SELECT_STORE) == true -> false
-        else -> true
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val onNavigate: (String) -> Unit = remember {
+        { route ->
+            scope.launch { drawerState.close() }
+            navController.navigate(route)
+        }
     }
 
     // Content
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = isAllowedToOpen,
@@ -130,7 +123,7 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
                             .height(36.dp), // Button height but padding like
                         contentPadding = PaddingValues(0.dp),
                         onClick = {
-                            navController.navigate(title)
+                            onNavigate(title)
                         }
                     ) {
                         Row(
@@ -184,7 +177,7 @@ fun CashierDrawer(navController: NavController, content: @Composable (drawerStat
                                 .fillMaxWidth()
                                 .height(36.dp), // Button height but padding like
                             contentPadding = PaddingValues(0.dp),
-                            onClick = { navController.navigate(title) }
+                            onClick = { onNavigate(title) }
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

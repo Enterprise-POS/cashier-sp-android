@@ -71,9 +71,9 @@ fun TransactionCompleteDialog(
         )
     )
 
-    val transactionId = completeTransactionParams.getOrDefault("transactionId", 0)
-    val totalAmount = completeTransactionParams.getOrDefault("totalAmount", 0)
-    val change = completeTransactionParams.getOrDefault("change", 0)
+    val transactionId = completeTransactionParams["transactionId"] ?: 0
+    val totalAmount = completeTransactionParams["totalAmount"] ?: 0
+    val change = completeTransactionParams["change"] ?: 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -137,7 +137,7 @@ fun TransactionCompleteDialog(
                                 color = Color(0xFF1E293B)
                             )
                             Text(
-                                text = "$totalAmount 円",
+                                text = "Rp $totalAmount",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFEA580C)
@@ -149,7 +149,7 @@ fun TransactionCompleteDialog(
                         // Change Amount
                         DetailRow(
                             label = "Change",
-                            value = "$change 円"
+                            value = "Rp $change"
                         )
                     }
                 }

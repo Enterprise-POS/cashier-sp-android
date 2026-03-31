@@ -1,12 +1,13 @@
 package com.pos.cashiersp.model.dto
 
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable
-import java.time.OffsetDateTime
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Serializable
 data class OrderItem(
@@ -30,12 +31,11 @@ data class OrderItem(
     val totalQuantity: Int
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
-    val instant = OffsetDateTime.parse(this.createdAt).toInstant()
-
     val cal = Calendar.getInstance().apply {
-        timeInMillis = instant.toEpochMilli()
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC") // important: Z means UTC
+        time = sdf.parse(createdAt) ?: Date()
     }
     return com.pos.cashiersp.model.domain.OrderItem(
         id = this.id,

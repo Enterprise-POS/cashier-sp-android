@@ -13,24 +13,18 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.RemoveRedEye
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,7 +38,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -57,7 +50,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,23 +59,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pos.cashiersp.R
-import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.StoreStockV2
 import com.pos.cashiersp.presentation.Screen
-import com.pos.cashiersp.presentation.cashier.CashierEvent
-import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
@@ -97,14 +84,18 @@ import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Orange
 import com.pos.cashiersp.presentation.ui.theme.Primary
-import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Purple700
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlin.math.ceil
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,19 +114,16 @@ fun StockManagementScreen(
     val openAlertDialog = remember { mutableStateOf(false) }
 
     val totalPages = ceil(itemsTotal.toDouble() / itemsPerPage.value.toDouble()).toInt()
-    var unlimitedStock = 0
-    var trackedStock = 0
-    var lowOrOufOfStock = 0
-    for (item in storeStocksV2) {
-        if (item.stockType == StockType.UNLIMITED) {
-            unlimitedStock++
-        } else {
-            trackedStock++
+    val (unlimitedStock, trackedStock, lowOrOufOfStock) = remember(storeStocksV2) {
+        var unlimited = 0;
+        var tracked = 0;
+        var lowOrOut = 0
+        for (item in storeStocksV2) {
+            if (item.stockType == StockType.UNLIMITED) unlimited++ else tracked++
+            if (item.stocks <= 5 && item.stockType == StockType.TRACKED) lowOrOut++
         }
 
-        if (item.stocks <= 5 && item.stockType == StockType.TRACKED) {
-            lowOrOufOfStock++
-        }
+        return@remember Triple(unlimited, tracked, lowOrOut)
     }
 
     LaunchedEffect(Unit) {
@@ -353,11 +341,15 @@ fun ItemRowFlat(
                 color = Color(0xFFF3F0EC),
                 modifier = Modifier.size(40.dp),
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.noimage_compressed),
-                    contentDescription = stringResource(id = R.string.enterprise_pos_logo),
-                    modifier = Modifier
-                        .fillMaxSize()
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(R.drawable.noimage_compressed)
+                        .size(120, 120) // sample down to needed size
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Product image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
 
@@ -661,11 +653,11 @@ private fun ProductCatalogCard(
                         }
                     }
                 } else {
-                    items(storeStocksV2.size) { index ->
+                    itemsIndexed(storeStocksV2, key = { _, item -> item.id }) { index, item ->
                         ItemRowFlat(
-                            item = storeStocksV2[index],
+                            item = item,
                             showDivider = index < storeStocksV2.lastIndex,
-                            viewModel = viewModel
+                            viewModel = viewModel,
                         )
                     }
                 }

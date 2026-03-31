@@ -70,8 +70,9 @@ import kotlinx.coroutines.flow.onEach
 fun ItemDetailBottomSheet(
     viewModel: StockManagementViewModel = hiltViewModel()
 ) {
-    val openDetailStockDialog = viewModel.openDetailStockDialog.value
-    val selectedItem = viewModel.selectedDetailStockDialog.value
+    val openDetailStockDialog by viewModel.openDetailStockDialog
+    val selectedItem: StoreStockV2? = viewModel.selectedDetailStockDialog.value
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {

@@ -31,22 +31,12 @@ fun EditItemStockDialog(
     dialogText: String,
     icon: ImageVector,
 ) {
-    var email by remember { mutableStateOf("") }
+    var stockInput by remember { mutableStateOf("") }
 
-    val emailHasErrors by remember {
+    val hasErrors by remember {
         derivedStateOf {
-            if (email.isNotEmpty()) {
-                // Email is considered erroneous until it completely matches EMAIL_ADDRESS.
-                //!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-                true
-            } else {
-                false
-            }
+            stockInput.isNotEmpty() && stockInput.toIntOrNull() == null
         }
-    }
-
-    fun updateEmail(input: String) {
-        email = input
     }
 
     AlertDialog(
@@ -62,13 +52,13 @@ fun EditItemStockDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp),
-                value = email,
+                value = stockInput,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                onValueChange = { input -> updateEmail(input) },
+                onValueChange = { stockInput = it },
                 label = { Text("Enter stock") },
-                isError = emailHasErrors,
+                isError = hasErrors,
                 supportingText = {
-                    if (emailHasErrors) {
+                    if (hasErrors) {
                         Text("Incorrect email format.")
                     }
                 }

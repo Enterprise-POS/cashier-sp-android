@@ -26,9 +26,12 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
@@ -39,6 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.pos.cashiersp.R
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.model.dto.CashierItem
@@ -50,15 +56,25 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewModel()) {
+fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
     val cart: Map<Int, CartItem> = viewModel.cart.value
     var price = cashierItem.storeStockPrice.toDouble()
-    val addedToCart = cart.containsKey(cashierItem.itemId)
+    val currentCartItemStatus: CartItem? = remember(cart, cashierItem.itemId) {
+        cart[cashierItem.itemId]
+    }
+    val addedToCart = currentCartItemStatus != null
 
-    // If nothing found at cart then null
-    val currentCartItemStatus = if (addedToCart) cart[cashierItem.itemId] else null
+    val compactTextStyle = LocalTextStyle.current.merge(
+        TextStyle(
+            lineHeight = 14.sp,
+            platformStyle = PlatformTextStyle(includeFontPadding = false),
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.None
+            )
+        )
+    )
 
     Card(
         modifier = Modifier
@@ -89,20 +105,20 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewMod
                     fallback = painterResource(id = R.drawable.noimage_compressed)
                 )
                  */
-                Image(
-                    painter = painterResource(id = R.drawable.noimage_compressed),
-                    contentDescription = stringResource(id = R.string.enterprise_pos_logo),
-                    modifier = Modifier
-                        .fillMaxSize()
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(R.drawable.noimage_compressed)
+                        .size(120, 120)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Product image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
 
             // Content Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                // Title
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = cashierItem.itemName,
                     fontSize = 12.sp,
@@ -112,107 +128,37 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewMod
                     modifier = Modifier.height(20.dp),
                 )
 
-                // Size and Volume
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Later will be use as label
-                    Text(
-                        text = "ID",
-                        fontSize = 10.sp,
-                        color = Gray300,
-                        fontWeight = FontWeight.W400,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                lineHeight = 14.sp,
-                                platformStyle = PlatformTextStyle(
-                                    includeFontPadding = false
-                                ),
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.None
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .height(12.dp)
-                    )
-                    Text(
-                        text = " • ",
-                        fontSize = 10.sp,
-                        color = Gray300,
-                        fontWeight = FontWeight.W400,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                lineHeight = 14.sp,
-                                platformStyle = PlatformTextStyle(
-                                    includeFontPadding = false
-                                ),
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.None
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .height(12.dp)
-                    )
-                    Text(
-                        text = cashierItem.itemId.toString(),
-                        fontSize = 10.sp,
-                        color = Gray300,
-                        fontWeight = FontWeight.W400,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                lineHeight = 14.sp,
-                                platformStyle = PlatformTextStyle(
-                                    includeFontPadding = false
-                                ),
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.None
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .height(12.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    listOf("ID", " • ", cashierItem.itemId.toString()).forEach { label ->
+                        Text(
+                            text = label,
+                            fontSize = 10.sp,
+                            color = Gray300,
+                            fontWeight = FontWeight.W400,
+                            style = compactTextStyle,
+                            modifier = Modifier.height(12.dp)
+                        )
+                    }
                 }
 
-                // Price
                 Text(
-                    text = if (price > 0) "${String.format("%.2f", price)} 円" else "0 円",
+                    text = if (price > 0) "Rp ${"%.2f".format(price)}" else "Rp 0",
                     fontSize = 12.sp,
                     color = Secondary
                 )
 
-                // Price and Add Button
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (addedToCart) {
-                        // Minus Button
-                        Button(
+                    if (addedToCart && currentCartItemStatus != null) {
+                        CartButton(
                             onClick = { viewModel.onEvent(CashierEvent.OnDecreaseQuantity(cashierItem, 1)) },
-                            modifier = Modifier.size(18.dp),
-                            enabled = currentCartItemStatus!!.quantity > 0,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Primary,
-                                disabledContentColor = Gray300,
-                                disabledContainerColor = Gray100
-                            ),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.KeyboardArrowDown,
-                                contentDescription = "Add to cart",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
+                            enabled = currentCartItemStatus.quantity > 0,
+                            icon = Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = "Decrease quantity"
+                        )
 
                         Text(
                             currentCartItemStatus.quantity.toString(),
@@ -220,26 +166,12 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewMod
                             color = Secondary
                         )
 
-                        // Add Button
-                        Button(
+                        CartButton(
                             onClick = { viewModel.onEvent(CashierEvent.OnAddQuantity(cashierItem, 1)) },
-                            modifier = Modifier.size(18.dp),
-                            shape = RoundedCornerShape(12.dp),
                             enabled = currentCartItemStatus.quantity <= 99,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Primary,
-                                disabledContentColor = Gray300,
-                                disabledContainerColor = Gray100
-                            ),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.KeyboardArrowUp,
-                                contentDescription = "Add to cart",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
+                            icon = Icons.Outlined.KeyboardArrowUp,
+                            contentDescription = "Increase quantity"
+                        )
                     } else {
                         TextButton(
                             shape = RoundedCornerShape(12.dp),
@@ -256,5 +188,33 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel = hiltViewMod
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CartButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.size(18.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Primary,
+            disabledContentColor = Gray300,
+            disabledContainerColor = Gray100
+        ),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(32.dp)
+        )
     }
 }
