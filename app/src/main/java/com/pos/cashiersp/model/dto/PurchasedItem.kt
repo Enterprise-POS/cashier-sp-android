@@ -26,3 +26,14 @@ data class PurchasedItem(
     @SerializedName("total_amount")
     val totalAmount: Int
 )
+
+fun PurchasedItem.toDomain() = com.pos.cashiersp.model.domain.PurchasedItem(
+    id = this.id,
+    totalAmount = this.totalAmount,
+    discountAmount = this.discountAmount,
+    itemId = this.itemId,
+    storePriceSnapshot = this.storePriceSnapshot,
+    quantity = this.quantity,
+    itemNameSnapshot = this.itemNameSnapshot,
+    orderItemId = this.orderItemId,
+)

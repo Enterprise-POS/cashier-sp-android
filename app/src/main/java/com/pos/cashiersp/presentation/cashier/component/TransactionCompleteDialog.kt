@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -47,14 +48,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pos.cashiersp.model.dto.TransactionResponse
 import com.pos.cashiersp.presentation.ui.theme.Primary
 
 @Composable
 fun TransactionCompleteDialog(
-    completeTransactionParams: Map<String, Int>,
-    onDismiss: () -> Unit = {},
-    onConfirm: () -> Unit = {},
-    onPrint: () -> Unit = {}
+    completeTransactionParams: TransactionResponse?,
+    isPrinting: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onPrint: () -> Unit,
 ) {
     // Animation for scale-in effect
     var visible by remember { mutableStateOf(false) }
@@ -71,152 +74,229 @@ fun TransactionCompleteDialog(
         )
     )
 
-    val transactionId = completeTransactionParams["transactionId"] ?: 0
-    val totalAmount = completeTransactionParams["totalAmount"] ?: 0
-    val change = completeTransactionParams["change"] ?: 0
+    println("DEBUG HERE: ${completeTransactionParams}")
+    if (completeTransactionParams != null) {
+        val transactionId = completeTransactionParams.createdOrderItemId
+        val totalAmount = completeTransactionParams.totalAmount
+        val purchasedPrice = completeTransactionParams.purchasedPrice
+        val change = purchasedPrice - totalAmount
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.scale(scale),
-        icon = {
-            SuccessIcon()
-        },
-        title = {
-            Text(
-                text = "Transaction Complete",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
-                textAlign = TextAlign.Center,
-                lineHeight = 26.sp,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Transaction Details Card
-                Surface(
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            modifier = Modifier.scale(scale),
+            icon = {
+                SuccessIcon()
+            },
+            title = {
+                Text(
+                    text = "Transaction Complete",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 26.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFF7ED)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                    // Transaction Details Card
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF7ED)
                     ) {
-                        // Transaction ID
-                        DetailRow(
-                            label = "Transaction ID",
-                            value = transactionId.toString()
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Order Number
-                        DetailRow(
-                            label = "Order No.",
-                            value = "77"
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Total Amount
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            Text(
-                                text = "Total Amount",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1E293B)
+                            // Transaction ID
+                            DetailRow(
+                                label = "Transaction ID",
+                                value = transactionId.toString()
                             )
-                            Text(
-                                text = "Rp $totalAmount",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFEA580C)
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Order Number
+                            DetailRow(
+                                label = "Order No.",
+                                value = "77"
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Total Amount
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Total Amount",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF1E293B)
+                                )
+                                Text(
+                                    text = "Rp $totalAmount",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFEA580C)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Change Amount
+                            DetailRow(
+                                label = "Change",
+                                value = "Rp $change"
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Change Amount
-                        DetailRow(
-                            label = "Change",
-                            value = "Rp $change"
-                        )
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Print Button
-                /*
-                OutlinedButton(
-                    onClick = onPrint,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .padding(horizontal = 24.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1E293B)
-                    )
+            },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Print,
-                        contentDescription = "Print",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Print Receipt",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                */
-                Spacer(modifier = Modifier.height(8.dp))
+                    // Print Button
+                    OutlinedButton(
+                        enabled = !isPrinting,
+                        onClick = onPrint,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .padding(horizontal = 24.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF1E293B)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Print,
+                            contentDescription = "Print",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isPrinting) "Printing..." else "Print Receipt",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // Cancel and Confirm Buttons
+                    // Cancel and Confirm Buttons
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Confirm Button
+                        Button(
+                            enabled = !isPrinting,
+                            onClick = onConfirm,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Primary
+                            )
+                        ) {
+                            Text(
+                                text = "Confirm",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            modifier = Modifier.scale(scale),
+            icon = {
+                ErrorIcon()
+            },
+            title = {
+                Text(
+                    text = "Transaction Failed",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 26.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF1F2)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Something went wrong while processing your transaction. Please try again.",
+                                fontSize = 14.sp,
+                                color = Color(0xFF64748B),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 20.sp
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Confirm Button
                     Button(
-                        onClick = onConfirm,
+                        onClick = onDismiss,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary
+                            containerColor = Color(0xFFEF4444)
                         )
                     ) {
                         Text(
-                            text = "Confirm",
+                            text = "Dismiss",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(16.dp)
-    )
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }
 
 @Composable
@@ -265,6 +345,58 @@ fun SuccessIcon() {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Success",
+                modifier = Modifier.size(32.dp),
+                tint = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun ErrorIcon() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Outer pulsing circle
+        Box(
+            modifier = Modifier
+                .size(70.dp)
+                .scale(pulseScale)
+                .background(
+                    color = Color(0xFFEF4444).copy(alpha = 0.2f),
+                    shape = CircleShape
+                )
+        )
+
+        // Inner gradient circle
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFEF4444),
+                            Color(0xFFDC2626)
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Error",
                 modifier = Modifier.size(32.dp),
                 tint = Color.White
             )

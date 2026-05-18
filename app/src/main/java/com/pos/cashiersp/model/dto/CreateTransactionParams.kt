@@ -2,8 +2,9 @@ package com.pos.cashiersp.model.dto
 
 
 import com.google.gson.annotations.SerializedName
-import kotlinx.serialization.SerialName
+import com.pos.cashiersp.model.domain.OrderItem
 import kotlinx.serialization.Serializable
+import java.util.Calendar
 
 @Serializable
 data class CreateTransactionParams(
@@ -28,3 +29,23 @@ data class CreateTransactionParams(
     @SerializedName("store_id")
     val storeId: Int,
 )
+
+// Because CreateTransactionParams is for requesting. createdAt,transactionId must be assigned manually
+fun CreateTransactionParams.toOrderItemDomain(
+    transactionId: Int,
+    createdAt: Calendar,
+    storeName: String = ""
+): OrderItem {
+    return OrderItem(
+        id = transactionId,
+        createdAt = createdAt,
+        discountAmount = this.discountAmount,
+        storeId = this.storeId,
+        tenantId = this.tenantId,
+        totalAmount = this.totalAmount,
+        subtotal = this.subTotal,
+        totalQuantity = this.totalQuantity,
+        purchasedPrice = this.purchasedPrice,
+        storeName = storeName
+    )
+}

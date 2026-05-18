@@ -90,6 +90,7 @@ fun CashierScreen(
     val loadAllProductsDialogStatus by viewModel.loadAllProductsDialogStatus
     val transactionCompleteDialogState by viewModel.transactionCompleteDialogState
     val completeTransactionParams by viewModel.completeTransactionReference
+    val isPrinting by viewModel.isPrinting
 
     // scope
     val scope = rememberCoroutineScope()
@@ -347,6 +348,7 @@ fun CashierScreen(
         if (transactionCompleteDialogState) {
             TransactionCompleteDialog(
                 completeTransactionParams = completeTransactionParams,
+                isPrinting = isPrinting,
                 onConfirm = {
                     viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
                     showBottomSheet = false
@@ -354,7 +356,8 @@ fun CashierScreen(
                 onDismiss = {
                     viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
                     showBottomSheet = false
-                }
+                },
+                onPrint = { viewModel.onEvent(CashierEvent.OnPressPrintReceipt) }
             )
         }
 

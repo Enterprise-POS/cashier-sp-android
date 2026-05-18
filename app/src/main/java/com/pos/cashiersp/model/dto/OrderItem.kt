@@ -2,6 +2,7 @@ package com.pos.cashiersp.model.dto
 
 
 import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.presentation.util.parseDateString
 import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -28,15 +29,17 @@ data class OrderItem(
     @SerializedName("total_amount")
     val totalAmount: Int,
     @SerializedName("total_quantity")
-    val totalQuantity: Int
+    val totalQuantity: Int,
+
+    // Store
+    @SerializedName("store_name")
+    val storeName: String
 )
 
 fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
-    val cal = Calendar.getInstance().apply {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC") // important: Z means UTC
-        time = sdf.parse(createdAt) ?: Date()
-    }
+    val calendar = parseDateString(this.createdAt)
+        ?: throw IllegalStateException("Failed to parse createdAt date: '${this.createdAt}' for order item id=${this.id}")
+
     return com.pos.cashiersp.model.domain.OrderItem(
         id = this.id,
         subtotal = this.subtotal,
@@ -46,6 +49,6 @@ fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
         discountAmount = this.discountAmount,
         totalQuantity = this.totalQuantity,
         purchasedPrice = this.purchasedPrice,
-        createdAt = cal,
+        createdAt = calendar,
     )
 }

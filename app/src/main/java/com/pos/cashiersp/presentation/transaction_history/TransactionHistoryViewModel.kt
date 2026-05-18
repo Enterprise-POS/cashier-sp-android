@@ -280,6 +280,7 @@ class TransactionHistoryViewModel @Inject constructor(
 
                         is Resource.Success -> {
                             // Start printing
+                            println(resource.data!!)
                             bluetoothController.withConnectedDevicesPrintReceipt2(connectedDevices, resource.data!!)
 
                             _isPrinting.value = false

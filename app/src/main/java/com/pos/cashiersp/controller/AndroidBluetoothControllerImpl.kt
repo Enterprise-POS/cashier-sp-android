@@ -13,8 +13,11 @@ import com.dantsu.escposprinter.EscPosPrinter
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection
 import com.pos.cashiersp.model.domain.BluetoothDevice
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
+import com.pos.cashiersp.model.domain.OrderItem
+import com.pos.cashiersp.model.domain.PurchasedItem as domainPurchasedItem
 import com.pos.cashiersp.model.domain.toBluetoothDeviceDomain
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
+import com.pos.cashiersp.model.dto.PurchasedItem as dtoPurchasedItem
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -26,6 +29,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 @SuppressLint("MissingPermission")
@@ -177,6 +183,39 @@ class AndroidBluetoothControllerImpl(
         _isPrinting.update { false }
     }
 
+    override fun printReceipt(
+        devices: List<BluetoothDevice>,
+        orderItem: OrderItem,
+        receiptItems: List<ReceiptLineItem>
+    ) {
+        val orderData = OrderData(
+            id = orderItem.id.toString(),
+            storeName = orderItem.storeName,
+            items = receiptItems,
+            discountAmount = orderItem.discountAmount.toDouble(),
+            cash = orderItem.purchasedPrice.toDouble(),
+            taxRate = 0.0,
+        )
+
+        _isPrinting.update { true }
+        try {
+            devices.forEach { device ->
+                println("Printing at: ${device.name}")
+                try {
+                    val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
+                        ?: throw IllegalStateException("Bluetooth adapter is null")
+                    val connection = BluetoothConnection(androidDevice)
+                    val printer = EscPosPrinter(connection, 183, 76.5f, 48)
+                    printer.printFormattedTextAndCut(buildReceiptText(orderData))
+                } catch (e: Exception) {
+                    println("Printer failed for ${device.name}: ${e.message}")
+                }
+            }
+        } finally {
+            _isPrinting.update { false }
+        }
+    }
+
     override fun withConnectedDevicesPrintReceipt2(
         devices: List<BluetoothDevice>,
         findTransactionsByIdDto: FindTransactionsByIdDto,
@@ -184,56 +223,35 @@ class AndroidBluetoothControllerImpl(
         val orderItem = findTransactionsByIdDto.orderItem
         val purchasedItemList = findTransactionsByIdDto.purchasedItemList
 
-        _isPrinting.update { true }
+        val receiptItems = purchasedItemList.map { item ->
+            ReceiptLineItem(
+                name = item.itemNameSnapshot,
+                qty = item.quantity,
+                unitPrice = item.storePriceSnapshot.toDouble(),
+            )
+        }
 
+        val orderData = OrderData(
+            id = orderItem.id.toString(),
+            storeName = orderItem.storeName,
+            items = receiptItems,
+            discountAmount = orderItem.discountAmount.toDouble(),
+            cash = orderItem.purchasedPrice.toDouble(),
+            taxRate = 0.0,
+        )
+
+        _isPrinting.update { true }
         try {
             devices.forEach { device ->
                 println("Printing at: ${device.name}")
                 try {
                     val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
                         ?: throw IllegalStateException("Bluetooth adapter is null")
-
                     val connection = BluetoothConnection(androidDevice)
-
-
-                    //val printer = EscPosPrinter(connection, 203, 76.5f, 48)
                     val printer = EscPosPrinter(connection, 183, 76.5f, 48)
-
-                    // Build purchased items text
-                    val itemsText = purchasedItemList.joinToString(separator = "\n") { item ->
-                        val name = item.itemNameSnapshot
-                        val qty = item.quantity
-                        val price = String.format("%.2f", item.totalAmount.toDouble())
-                        val storePriceSnapshot = item.storePriceSnapshot
-
-                        return@joinToString "[L]<b>$name</b>    [R]$price\n" +
-                                "[L] $storePriceSnapshot x $qty"
-                    }
-
-                    val subtotal = String.format("%.2f", orderItem.subtotal.toDouble())
-                    val discountAmount = String.format("%.2f", orderItem.discountAmount.toDouble())
-                    val totalAmount = String.format("%.2f", orderItem.totalAmount.toDouble())
-                    val cash = String.format("%.2f", orderItem.purchasedPrice.toDouble())
-                    val change = orderItem.purchasedPrice - orderItem.totalAmount
-                    val text =
-                        "[C]<font size='big'>Enterprise POS</font>\n" +
-                                "[C]Order #${orderItem.id}\n" +
-                                "[C]================================\n" +
-                                itemsText + "\n" +
-                                "[C]--------------------------------\n" +
-                                "[R]SUBTOTAL:                  ￥$subtotal\n" +
-                                "[R]DISCOUNT:                  ￥$discountAmount\n" +
-                                "[C]================================\n" +
-                                "[R]<b>TOTAL:                    ￥$totalAmount</b>\n" +
-                                "[R]<b>CASH:                    ￥$cash</b>\n" +
-                                "[R]<b>CHANGE:                    ￥$change</b>\n" +
-                                "[L]\n" +
-                                "[L]\n"
-
-                    printer.printFormattedTextAndCut(text)
-
+                    printer.printFormattedTextAndCut(buildReceiptText(orderData))
                 } catch (e: Exception) {
-                    println("Printer Failed to print to ${device.name}: ${e.message}")
+                    println("Printer failed for ${device.name}: ${e.message}")
                 }
             }
         } finally {
@@ -337,5 +355,90 @@ class FoundDeviceReceiver(
                 device?.let(onDeviceFound)
             }
         }
+    }
+}
+
+// This is a special data class that, the printer only required information when printing the receipt
+// Could be use for converting PurchasedItem, Item
+// this data required because sometime we don't know yet the Item id yet
+data class ReceiptLineItem(
+    val name: String,
+    val qty: Int,
+    val unitPrice: Double,
+) {
+    val lineTotal: Double get() = qty * unitPrice
+}
+
+data class OrderData(
+    val id: String,
+    val storeName: String,
+    val items: List<ReceiptLineItem> = emptyList(),
+    val discountAmount: Double = 0.0,
+    val cash: Double = 0.0,
+    val taxRate: Double = 0.0,
+)
+
+// ── Receipt text builder ──────────────────────────────────────────────────────
+fun buildReceiptText(order: OrderData): String {
+    val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+    val fmt = { v: Double -> "Rp %.0f".format(v) }
+
+    val subtotal = order.items.sumOf { it.lineTotal }
+    val afterDiscount = subtotal - order.discountAmount
+    val taxAmount = afterDiscount * order.taxRate
+    val totalAmount = afterDiscount + taxAmount
+    val change = order.cash - totalAmount
+
+    // 48 chars fills full width at 183dpi / 76.5mm
+    val divider = "[C]================================================\n"
+    val thinLine = "[C]------------------------------------------------\n"
+
+    return buildString {
+        // ── Header ────────────────────────────────────────────────────────
+        append("[C]<font size='big'>${order.storeName}</font>\n")
+        append(divider)
+        append("[L]Order : #${order.id}\n")
+        append("[L]Date  : $dateStr\n")
+        append(divider)
+
+        // ── Column header ─────────────────────────────────────────────────
+        append("[L]<b>ITEM</b>[R]<b>AMOUNT</b>\n")
+        append(thinLine)
+
+        // ── Items ─────────────────────────────────────────────────────────
+        order.items.forEach { item ->
+            append("[L]<b>${item.name}</b>[R]${fmt(item.lineTotal)}\n")
+            append("[L]  ${fmt(item.unitPrice)} x ${item.qty}\n")
+        }
+
+        // ── Subtotals ─────────────────────────────────────────────────────
+        append(thinLine)
+        append("[L]Subtotal[R]${fmt(subtotal)}\n")
+
+        if (order.discountAmount > 0) {
+            append("[L]Discount[R]-${fmt(order.discountAmount)}\n")
+        }
+
+        if (order.taxRate > 0) {
+            val pct = (order.taxRate * 100).toInt()
+            append("[L]Tax ($pct%)[R]${fmt(taxAmount)}\n")
+        }
+
+        // ── Grand total ───────────────────────────────────────────────────
+        append(divider)
+        append("[L]<font size='big'><b>TOTAL</b></font>[R]<font size='big'><b>${fmt(totalAmount)}</b></font>\n")
+        append(divider)
+
+        // ── Payment ───────────────────────────────────────────────────────
+        append("[L]Cash[R]${fmt(order.cash)}\n")
+        append("[L]<b>Change</b>[R]<b>${fmt(change)}</b>\n")
+        append(thinLine)
+
+        // ── Footer ────────────────────────────────────────────────────────
+        append("[C]\n")
+        append("[C]<font size='tall'>Thank you for your visit!</font>\n")
+        append("[C]Please come again\n")
+        append("[C]\n")
+        append("[L]\n")
     }
 }

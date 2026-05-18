@@ -2,6 +2,7 @@ package com.pos.cashiersp.model.dto
 
 
 import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.controller.ReceiptLineItem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -26,3 +27,11 @@ data class Item(
     @SerializedName("base_price_snapshot")
     val basePriceSnapshot: Int
 )
+
+fun Item.toReceiptLine(): ReceiptLineItem {
+    return ReceiptLineItem(
+        name = this.itemNameSnapshot,
+        qty = this.quantity,
+        unitPrice = this.storePriceSnapshot.toDouble(),
+    )
+}
