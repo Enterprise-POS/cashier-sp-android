@@ -1,7 +1,6 @@
 package com.pos.cashiersp.presentation.cashier
 
-import android.os.Build
-import androidx.annotation.RequiresApi
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,7 +72,6 @@ import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashierScreen(
@@ -82,16 +80,17 @@ fun CashierScreen(
     viewModel: CashierViewModel = hiltViewModel()
 ) {
     // viewmodel
-    val vmState = viewModel.state.value
-    val cart = viewModel.cart.value
-    val categories = viewModel.categories.value
-    val selectedCategoryId = viewModel.selectedCategory.value
-    val cashierItems = viewModel.cashierItems.value
-    val searchProductString = viewModel.searchProductString.value
-    val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
-    val loadAllProductsDialogStatus = viewModel.loadAllProductsDialogStatus.value
-    val transactionCompleteDialogState = viewModel.transactionCompleteDialogState.value
-    val completeTransactionParams = viewModel.completeTransactionReference.value
+    val vmState by viewModel.state
+    val cart by viewModel.cart
+    val categories by viewModel.categories
+    val selectedCategoryId by viewModel.selectedCategory
+    val cashierItems by viewModel.cashierItems
+    val searchProductString by viewModel.searchProductString
+    val generalAlertDialogStatus by viewModel.generalAlertDialogStatus
+    val loadAllProductsDialogStatus by viewModel.loadAllProductsDialogStatus
+    val transactionCompleteDialogState by viewModel.transactionCompleteDialogState
+    val completeTransactionParams by viewModel.completeTransactionReference
+    val isPrinting by viewModel.isPrinting
 
     // scope
     val scope = rememberCoroutineScope()
@@ -99,26 +98,26 @@ fun CashierScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val searchTextFieldState = remember { TextFieldState() }
 
-    val onHandleBottomSheet = fun() {
-        showBottomSheet = !showBottomSheet
+    val onHandleBottomSheet = remember {
+        { showBottomSheet = !showBottomSheet }
     }
-    val filteredCashierItems =
+    val filteredCashierItems = remember(searchProductString, selectedCategoryId, cashierItems) {
         if (searchProductString.isNotEmpty()) {
-            // If user input something at Search Bar
             if (selectedCategoryId == -1) {
-                // User input something at Search Bar but don't select any categories available / default at 'All'
                 cashierItems.filter { it.itemName.contains(searchProductString) }
             } else {
-                // User input something at Search Bar and select of the categories available
                 cashierItems.filter { it.itemName.contains(searchProductString) && it.categoryId == selectedCategoryId }
             }
         } else if (selectedCategoryId == -1) {
-            // If User don't input something, and don't select any categories available / default as 'All'
             cashierItems
         } else {
-            // If User don't input something, but click 1 of the categories available
             cashierItems.filter { it.categoryId == selectedCategoryId }
         }
+    }
+
+    val sortedCategories = remember(categories) {
+        categories.entries.sortedBy { it.key }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -308,7 +307,7 @@ fun CashierScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    categories.toSortedMap().forEach { item(it.key) { CategoryCard(it.value) } }
+                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value) }
                 }
 
                 Spacer(Modifier.height(4.dp))
@@ -326,7 +325,8 @@ fun CashierScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    filteredCashierItems.forEach { item { ItemCard(it) } }
+                    // Passing the viewModel because don't want to generate new viewModel for every card
+                    items(filteredCashierItems, key = { it.itemId }) { ItemCard(it, viewModel) }
                 }
             }
         }
@@ -348,6 +348,7 @@ fun CashierScreen(
         if (transactionCompleteDialogState) {
             TransactionCompleteDialog(
                 completeTransactionParams = completeTransactionParams,
+                isPrinting = isPrinting,
                 onConfirm = {
                     viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
                     showBottomSheet = false
@@ -355,7 +356,8 @@ fun CashierScreen(
                 onDismiss = {
                     viewModel.onEvent(CashierEvent.OnConfirmTransactionBtnDialog)
                     showBottomSheet = false
-                }
+                },
+                onPrint = { viewModel.onEvent(CashierEvent.OnPressPrintReceipt) }
             )
         }
 

@@ -1,5 +1,7 @@
 package com.pos.cashiersp.model.domain
 
+import com.pos.cashiersp.model.dto.StockType
+
 data class StoreStock(
     val id: Int,
     val itemId: Int,
@@ -9,4 +11,5 @@ data class StoreStock(
     val createdAt: String,
     val lastUpdate: String,
     val storeId: Int,
+    val stockType: StockType
 )

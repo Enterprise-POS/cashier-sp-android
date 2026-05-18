@@ -27,5 +27,7 @@ sealed class TransactionHistoryEvent {
     object OnClickShowReportBtn : TransactionHistoryEvent()
     object OnClickResetBtn : TransactionHistoryEvent()
 
+    data class OnLongPressedAndClickPrint(val id: Int) : TransactionHistoryEvent()
+
     object OnCloseGeneralDialog : TransactionHistoryEvent()
 }

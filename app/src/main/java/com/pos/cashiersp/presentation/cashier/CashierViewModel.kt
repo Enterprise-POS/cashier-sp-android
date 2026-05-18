@@ -1,18 +1,23 @@
 package com.pos.cashiersp.presentation.cashier
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.cashiersp.common.Resource
+import com.pos.cashiersp.controller.BluetoothController
+import com.pos.cashiersp.controller.ReceiptLineItem
+import com.pos.cashiersp.model.domain.BluetoothDevice
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.model.domain.Category
+import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.model.domain.StoreStock
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.model.dto.CreateTransactionParams
+import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.toOrderItemDomain
+import com.pos.cashiersp.model.dto.toReceiptLine
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddQuantity
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddToCart
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnDecreaseQuantity
@@ -25,10 +30,12 @@ import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.StateStatus
+import com.pos.cashiersp.presentation.util.parseDateString
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.OrderItemUseCase
 import com.pos.cashiersp.use_case.StoreStockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -37,509 +44,544 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.time.Instant
+import kotlinx.coroutines.withContext
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import com.pos.cashiersp.model.domain.Item as domainItem
 import com.pos.cashiersp.model.dto.Item as dtoItem
 
-@RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class CashierViewModel @Inject constructor(
     private val dataStoreUseCase: DataStoreUseCase,
     private val storeStockUseCase: StoreStockUseCase,
     private val orderItemUseCase: OrderItemUseCase,
+    private val bluetoothController: BluetoothController,
     private val jwtStore: JwtStore,
 ) : ViewModel() {
+    // UI State
+
     private val _state = mutableStateOf(StateStatus())
     val state: State<StateStatus> = _state
+
+    private val _transactionState = mutableStateOf(StateStatus())
+    val transactionState: State<StateStatus> = _transactionState
+
     private val _loadAllProductsDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
     val loadAllProductsDialogStatus: State<GeneralAlertDialogStatus> = _loadAllProductsDialogStatus
 
+    private val _generalAlertDialogState = mutableStateOf(GeneralAlertDialogStatus())
+    val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogState
+
+    // Store / Tenant
+
     private val _tenantId = mutableIntStateOf(0)
     private val _storeId = mutableIntStateOf(0)
+    private val _storeName = mutableStateOf("")
 
-    private val _cashierItems = mutableStateOf<List<CashierItem>>(listOf())
+    // Products
+
+    private val _cashierItems = mutableStateOf<List<CashierItem>>(emptyList())
     val cashierItems: State<List<CashierItem>> = _cashierItems
 
-    /*
-    * -1 = "All"
-    * 0 = "Uncategorized"
-    * else = --From user--
-    * */
-    private val _categories = mutableStateOf<Map<Int, Category>>(mapOf())
+    private val _categories = mutableStateOf<Map<Int, Category>>(emptyMap())
     val categories: State<Map<Int, Category>> = _categories
+
+    /**
+     * -1 = "All", 0 = "Uncategorized", else = user-defined category
+     */
     private val _selectedCategory = mutableIntStateOf(-1)
     val selectedCategory: State<Int> = _selectedCategory
-    private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
-    val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
-
-    // Sometimes state still take time to disable UI so AtomicBoolean is needed
-    private val isProcessingTransaction = AtomicBoolean(false)
-    private val _transactionState = mutableStateOf(StateStatus())
-    val transactionState: State<StateStatus> = _transactionState
 
     private val _searchProductString = mutableStateOf("")
     val searchProductString: State<String> = _searchProductString
 
-    // For any error or notification alert.
-    private val _generalAlertDialogState = mutableStateOf(GeneralAlertDialogStatus())
-    val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogState
+    // Cart
 
-    /*
-    * Key = Item.itemId
-    * */
-    private val _cart = mutableStateOf<Map<Int, CartItem>>(mapOf())
+    /**
+     * Key = Item.itemId
+     */
+    private val _cart = mutableStateOf<Map<Int, CartItem>>(emptyMap())
     val cart: State<Map<Int, CartItem>> = _cart
+
+    // Payment
+
+    /**
+     * Currently only Cash is supported.
+     * Credit Card and QR Code are not yet implemented.
+     */
+    private val _selectedPaymentMethod = mutableStateOf(PaymentMethod.CASH)
+    val selectedPaymentMethod: State<PaymentMethod> = _selectedPaymentMethod
+
+    private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
+    val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
+
+    // Transaction
 
     private val _transactionCompleteDialogState = mutableStateOf(false)
     val transactionCompleteDialogState: State<Boolean> = _transactionCompleteDialogState
-    private val _completeTransactionReference = mutableStateOf<Map<String, Int>>(mapOf())
-    val completeTransactionReference: State<Map<String, Int>> = _completeTransactionReference
+
+    private val _completeTransactionReference = mutableStateOf<TransactionResponse?>(null)
+    val completeTransactionReference: State<TransactionResponse?> = _completeTransactionReference
+
+    // Saved locally to avoid re-fetching when printing
+    private val _completeOrderItemReference = mutableStateOf<OrderItem?>(null)
+    private val _completeTransactionCartReference = mutableStateOf<List<ReceiptLineItem>>(emptyList())
+
+    // Printing
+
+    private val _isPrinting = mutableStateOf(false)
+    val isPrinting: State<Boolean> = _isPrinting
+
+    // Staff
 
     private val _staffName = mutableStateOf("")
     val staffName: State<String> = _staffName
+
     private val _staffId = mutableIntStateOf(0)
     val staffId: State<Int> = _staffId
 
-    /*
-    * Payment method
-    * 1. Cash / Immediate payment (ok)
-    * 2. Credit Card (x)
-    * 3. QR code (x)
-    * */
-    private val _selectedPaymentMethod = mutableStateOf(PaymentMethod.CASH)
-    val selectedPaymentMethod: State<PaymentMethod> = _selectedPaymentMethod
+    // Internal
+
+    // AtomicBoolean prevents race conditions from rapid tapping
+    private val isProcessingTransaction = AtomicBoolean(false)
+    private var transactionJob: Job? = null
 
     private val _uiEvent = MutableSharedFlow<UIEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    private var transactionJob: Job? = null
+    // Init
 
     init {
-        loadData()
+        loadStoreAndTenantData()
         viewModelScope.launch { loadProfile() }
     }
 
-    private fun now() = Date.from(Instant.now())
+    // Event Handler
 
     fun onEvent(event: CashierEvent) {
         when (event) {
-            is OnSelectCategory -> {
-                // Null = no category selected = "All"
-                _selectedCategory.intValue = event.categoryId
-            }
-
-            is OnAddToCart -> {
-                if (isProcessingTransaction.get()) {
-                    viewModelScope.launch {
-                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
-                    }
-                    return
-                }
-                val item = event.cashierItem
-                val currentCart = _cart.value
-
-                _cart.value = currentCart + (item.itemId.toInt() to CartItem(
-                    category = Category(item.categoryId, item.categoryName, _tenantId.intValue, now()),
-                    item = domainItem(
-                        item.itemId,
-                        _tenantId.intValue,
-                        item.itemName,
-                        item.stocks,
-                        item.isActive,
-                        item.stockType
-                    ),
-                    storeStock = StoreStock(
-                        item.storeStockId,
-                        item.itemId,
-                        item.itemName,
-                        item.storeStockPrice,
-                        item.storeStockStocks,
-                        now().toString(),
-                        now().toString(),
-                        _storeId.intValue
-                    ),
-                    quantity = 1
-                ))
-            }
-
-            is OnAddQuantity -> {
-                if (isProcessingTransaction.get()) {
-                    viewModelScope.launch {
-                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
-                    }
-                    return
-                }
-                val quantity = event.quantity
-                val item = event.cashierItem
-                val existingItem = _cart.value[event.cashierItem.itemId]
-                val currentCart = _cart.value
-
-
-                if (existingItem != null) {
-                    // Item exists, increment quantity
-                    if (existingItem.quantity + 1 <= 999) {
-                        _cart.value = currentCart + (item.itemId.toInt() to existingItem.copy(
-                            quantity = existingItem.quantity + quantity
-                        ))
-                    }
-                } else {
-                    val title = "FATAL ERROR"
-                    val message = "Increasing on not exist item at cart"
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
-                }
-            }
-
-            is OnDecreaseQuantity -> {
-                if (isProcessingTransaction.get()) {
-                    viewModelScope.launch {
-                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
-                    }
-                    return
-                }
-                val quantity = event.quantity
-                val item: CashierItem = event.cashierItem
-                val existingCartItem: CartItem? = _cart.value[item.itemId]
-                val currentCart: MutableMap<Int, CartItem> = _cart.value.toMutableMap()
-
-                if (existingCartItem != null) {
-                    if (existingCartItem.quantity - quantity > 0) {
-                        // Item exists, increment quantity
-                        _cart.value = currentCart + (item.itemId.toInt() to existingCartItem.copy(
-                            quantity = existingCartItem.quantity - quantity
-                        ))
-                    } else {
-                        // If user click decrease on item that already 1 quantity
-                        // then also remove the item from cart. This will recursive onEvent for RemovingItemFromCart
-                        this.onEvent(OnRemoveFromCart(item))
-                    }
-                } else {
-                    val title = "FATAL ERROR"
-                    val message = "Decreasing on not exist item at cart"
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
-                }
-            }
-
-            is OnRemoveFromCart -> {
-                if (isProcessingTransaction.get()) {
-                    viewModelScope.launch {
-                        _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transactions under processing. Try again later"))
-                    }
-                    return
-                }
-
-                val item: CashierItem = event.cashierItem
-                val existingCartItem: CartItem? = _cart.value[item.itemId]
-                val currentCart: MutableMap<Int, CartItem> = _cart.value.toMutableMap()
-                if (existingCartItem != null) {
-                    currentCart.remove(existingCartItem.id)
-                    _cart.value = currentCart
-                } else {
-                    val title = "FATAL ERROR"
-                    val message = "Removing item from cart that not exist item at cart"
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
-                }
-            }
-
-            is OnSelectPaymentMethod -> {
-                // Currently only support Cash
-                _selectedPaymentMethod.value = PaymentMethod.CASH
-            }
-
-            is PlaceOrder -> {
-                // Prevent mash clicking - check if transaction is already running
-                if (transactionJob?.isActive == true) {
-                    return
-                }
-                // Atomic check-and-set - prevents race conditions
-                if (!isProcessingTransaction.compareAndSet(false, true)) {
-                    // Already processing, ignore this click
-                    return
-                }
-                // Validate input
-                if (_inpCashPaymentMethod.value.text.isEmpty()) {
-                    isProcessingTransaction.set(false) // Reset flag
-                    val title = "Warning"
-                    val message = "Please fill the (Amount Received) first before transaction"
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
-                    return
-                }
-                val currentCart = _cart.value
-                if (currentCart.isEmpty()) {
-                    val title = "Warning"
-                    val message = "Select at least 1 item / product before make transaction"
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(title, message)
-                    isProcessingTransaction.set(false)
-                    return
-                }
-                _transactionState.value = StateStatus(isLoading = true)
-
-                val purchasedPrice = _inpCashPaymentMethod.value.text.toInt()
-                var subTotal = 0
-                var totalQuantity = 0
-                val discountAmount = 0
-                val items: MutableList<dtoItem> = mutableListOf()
-                for ((_, cartItem) in currentCart) {
-                    subTotal += cartItem.storeStock.price * cartItem.quantity
-                    totalQuantity += cartItem.quantity
-                    // discountAmount += ...
-                    items.add(
-                        dtoItem(
-                            itemId = cartItem.item.itemId,
-                            quantity = cartItem.quantity,
-                            purchasedPrice = cartItem.storeStock.price,
-                            discountAmount = 0,
-                            totalAmount = cartItem.storeStock.price * cartItem.quantity,
-                            itemNameSnapshot = cartItem.item.itemName
-                        )
-                    )
-                }
-                val totalAmount = subTotal - discountAmount
-                if (purchasedPrice < totalAmount) {
-                    _transactionState.value = StateStatus(error = "Insufficient Payment")
-                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
-                        "Insufficient Payment",
-                        "Amount received (¥$purchasedPrice) is less than total (¥$totalAmount)"
-                    )
-                    isProcessingTransaction.set(false)
-                    return
-                }
-
-                val params = CreateTransactionParams(
-                    items = items,
-                    purchasedPrice = purchasedPrice,
-                    totalQuantity = totalQuantity,
-                    totalAmount = totalAmount,
-                    discountAmount = discountAmount,
-                    subTotal = subTotal,
-
-                    tenantId = _tenantId.intValue,
-                    storeId = _storeId.intValue,
-                    userId = _staffId.intValue
-                )
-                transactionJob = orderItemUseCase.transaction(params).onEach { resource ->
-                    when (resource) {
-                        is Resource.Error -> {
-                            // This onEvent reset flag
-                            isProcessingTransaction.set(false)
-
-                            val title = "Transaction failed"
-                            val message = resource.message!!
-                            _transactionState.value = StateStatus(error = message)
-                            _generalAlertDialogState.value =
-                                GeneralAlertDialogStatus.error(title, message)
-                        }
-
-                        is Resource.Loading -> {
-                            /*
-                                We don't change loading state while start requesting. Otherwise it will be late because
-                                asynchronous execute late
-                            * */
-                        }
-
-                        is Resource.Success -> {
-                            // This onEvent reset flag
-                            isProcessingTransaction.set(false)
-                            _transactionState.value = StateStatus()
-
-                            //_generalAlertDialogState.value =
-                            //    GeneralAlertDialogStatus.success(title, message)
-                            _transactionCompleteDialogState.value = true
-                            _completeTransactionReference.value = mapOf(
-                                "transactionId" to resource.data!!.transactionId,
-                                "totalAmount" to params.totalAmount,
-                                "change" to params.purchasedPrice - params.totalAmount,
-                            )
-
-                            // Reset the cart and input
-                            _cart.value = emptyMap()
-                            _inpCashPaymentMethod.value = InpTextFieldState()
-                        }
-                    }
-                }.launchIn(viewModelScope)
-            }
-
-            is CashierEvent.EnteredCashBalance -> {
-                // This will guaranteed that every input that user input is only Int. So it's safe to use .toInt()
-                _inpCashPaymentMethod.value =
-                    _inpCashPaymentMethod.value.copy(text = event.value.filter { it.isDigit() })
-            }
-
-            is CashierEvent.OnConfirmTransactionBtnDialog -> {
-                _transactionCompleteDialogState.value = false
-            }
-
-            is CashierEvent.OnConfirmGeneralAlertDialog -> {
-                // Close the dialog
-                _generalAlertDialogState.value = GeneralAlertDialogStatus()
-            }
-
-            is CashierEvent.OnSearchProduct -> {
-                // Will find the item base what user search
-                _searchProductString.value = event.text
-            }
-
-            is CashierEvent.OnClearSearchProduct -> {
-                // Reset search bar input when x icon clicked
-                _searchProductString.value = ""
-            }
-
-            is CashierEvent.TryAgainRequestAllProducts -> {
-                // Close the dialog first
-                _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
-
-                // Reload the data with current tenant and store
-                loadAllStoreStock(_tenantId.intValue, _storeId.intValue)
-            }
-
-            is CashierEvent.OnDismissTryAgainRequestAllProducts -> {
-                // Close try again request all products dialog
-                _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
-            }
+            is OnSelectCategory -> onSelectCategory(event)
+            is OnAddToCart -> onAddToCart(event)
+            is OnAddQuantity -> onAddQuantity(event)
+            is OnDecreaseQuantity -> onDecreaseQuantity(event)
+            is OnRemoveFromCart -> onRemoveFromCart(event)
+            is OnSelectPaymentMethod -> onSelectPaymentMethod()
+            is PlaceOrder -> onPlaceOrder()
+            is CashierEvent.EnteredCashBalance -> onEnteredCashBalance(event)
+            is CashierEvent.OnConfirmTransactionBtnDialog -> onConfirmTransactionDialog()
+            is CashierEvent.OnConfirmGeneralAlertDialog -> onConfirmGeneralAlertDialog()
+            is CashierEvent.OnSearchProduct -> onSearchProduct(event)
+            is CashierEvent.OnClearSearchProduct -> onClearSearchProduct()
+            is CashierEvent.TryAgainRequestAllProducts -> onTryAgainRequestAllProducts()
+            is CashierEvent.OnDismissTryAgainRequestAllProducts -> onDismissTryAgainDialog()
+            is CashierEvent.OnPressPrintReceipt -> onPressPrintReceipt()
         }
     }
 
-    private fun loadData() {
-        combine(
-            dataStoreUseCase.getCurrentTenant(),
-            dataStoreUseCase.getCurrentStore()
-        ) { tenantResource, storeResource ->
-            Pair(tenantResource, storeResource)
-        }.onEach { (tenantResource, storeResource) ->
-            when {
-                tenantResource is Resource.Success && storeResource is Resource.Success -> {
-                    // Both data arrived successfully
-                    /*
-                    println("Tenant: ${tenantResource.data}")
-                    println("Store: ${storeResource.data}")
-                    */
-                    // 01 Try to fetch the data with the available data
+    // Implementations
 
-                    // 02 If the data return as UNAUTHORIZED action then
-
-                    // 03a Delete tenant and store data store
-
-                    // 03b Proceed to fetch all store stock
-                    val tenantId = tenantResource.data!!.id
-                    val storeId = storeResource.data!!.id
-
-                    _tenantId.intValue = tenantId
-                    _storeId.intValue = storeId
-
-                    this.loadAllStoreStock(tenantId, storeId)
-                }
-
-                tenantResource is Resource.Error || storeResource is Resource.Error -> {
-                    // 01 Do not proceed to fetch the all store
-
-                    // 02 Go back to select tenant screen
-
-                    // 03 Delete store data store
-                    /*
-                    println("If store not found then name user choose the store first")
-                    println("Error message from store resource: ${storeResource.message}")
-                    println("Store error: ${storeResource.message}")
-                    * */
-
-                    // 01 Fetch again the selected tenant all store
-                    _uiEvent.emit(UIEvent.ErrorAndMustNavigateToSelectTenantScreen("Fatal Error while get cashier data."))
-                }
-
-                tenantResource is Resource.Loading || storeResource is Resource.Loading -> {}
-            }
-        }.launchIn(viewModelScope)
+    private fun onSelectCategory(event: OnSelectCategory) {
+        _selectedCategory.intValue = event.categoryId
     }
 
-    /*
-    * Because always repeating from tenant to store is tiring job, For LoginRegisterScreen change from navigating to SELECT_TENANT into CASHIER
-    * Don't forget to change the tenantId and storeId while debugging. If we directly change at MainActivity into CASHIER
-    * the cookies will apply. Later need change
-    * */
-    private fun loadAllStoreStock(tenantId: Int, storeId: Int): Job {
-        return storeStockUseCase.loadCashierData(tenantId, storeId).onEach { resource ->
+    private fun onAddToCart(event: OnAddToCart) {
+        if (isTransactionBlocked()) return
+        val item = event.cashierItem
+        val now = Date()
+
+        val cartItem = CartItem(
+            category = Category(
+                id = item.categoryId,
+                categoryName = item.categoryName,
+                tenantId = _tenantId.intValue,
+                createdAt = now
+            ),
+            item = domainItem(
+                itemId = item.itemId,
+                tenantId = _tenantId.intValue,
+                itemName = item.itemName,
+                stocks = item.stocks,
+                isActive = item.isActive,
+                stockType = item.stockType,
+                basePrice = item.basePrice
+            ),
+            storeStock = StoreStock(
+                id = item.storeStockId,
+                itemId = item.itemId,
+                itemName = item.itemName,
+                price = item.storeStockPrice,
+                stocks = item.storeStockStocks,
+                createdAt = now.toString(),
+                lastUpdate = now.toString(),
+                storeId = _storeId.intValue,
+                stockType = item.stockType,
+            ),
+            quantity = 1
+        )
+
+        _cart.value = _cart.value + (item.itemId.toInt() to cartItem)
+    }
+
+    private fun onAddQuantity(event: OnAddQuantity) {
+        if (isTransactionBlocked()) return
+
+        val existingItem = _cart.value[event.cashierItem.itemId]
+            ?: return showFatalError("Increasing quantity on item not in cart")
+
+        val newQuantity = existingItem.quantity + event.quantity
+        if (newQuantity > MAX_ITEM_QUANTITY) return
+
+        _cart.value = _cart.value + (event.cashierItem.itemId.toInt() to existingItem.copy(quantity = newQuantity))
+    }
+
+    private fun onDecreaseQuantity(event: OnDecreaseQuantity) {
+        if (isTransactionBlocked()) return
+
+        val existingItem = _cart.value[event.cashierItem.itemId]
+            ?: return showFatalError("Decreasing quantity on item not in cart")
+
+        val newQuantity = existingItem.quantity - event.quantity
+        if (newQuantity <= 0) {
+            // Auto-remove when quantity reaches 0
+            onEvent(OnRemoveFromCart(event.cashierItem))
+        } else {
+            _cart.value = _cart.value + (event.cashierItem.itemId.toInt() to existingItem.copy(quantity = newQuantity))
+        }
+    }
+
+    private fun onRemoveFromCart(event: OnRemoveFromCart) {
+        if (isTransactionBlocked()) return
+
+        val existingItem = _cart.value[event.cashierItem.itemId]
+            ?: return showFatalError("Removing item not in cart")
+
+        _cart.value = _cart.value.toMutableMap().also { it.remove(existingItem.id) }
+    }
+
+    private fun onSelectPaymentMethod() {
+        // Currently only Cash is supported
+        _selectedPaymentMethod.value = PaymentMethod.CASH
+    }
+
+    private fun onPlaceOrder() {
+        // Prevent double-tap / race conditions
+        if (transactionJob?.isActive == true) return
+        if (!isProcessingTransaction.compareAndSet(false, true)) return
+
+        // ── Validation ──
+        val cashInput = _inpCashPaymentMethod.value.text
+        if (cashInput.isEmpty()) {
+            isProcessingTransaction.set(false)
+            return showWarning("Please fill the (Amount Received) first before transaction")
+        }
+
+        val currentCart = _cart.value
+        if (currentCart.isEmpty()) {
+            isProcessingTransaction.set(false)
+            return showWarning("Select at least 1 item / product before make transaction")
+        }
+
+        // ── Build order ──
+        val purchasedPrice = cashInput.toIntOrNull() ?: run {
+            isProcessingTransaction.set(false)
+            return showWarning("Invalid payment amount entered")
+        }
+
+        var subTotal = 0
+        var totalQuantity = 0
+        val discountAmount = 0 // TODO: Implement discount voucher
+        val items = mutableListOf<dtoItem>()
+
+        for ((_, cartItem) in currentCart) {
+            val lineTotal = cartItem.storeStock.price * cartItem.quantity
+            subTotal += lineTotal
+            totalQuantity += cartItem.quantity
+            items.add(
+                dtoItem(
+                    itemId = cartItem.item.itemId,
+                    quantity = cartItem.quantity,
+                    storePriceSnapshot = cartItem.storeStock.price,
+                    discountAmount = 0,
+                    totalAmount = lineTotal,
+                    itemNameSnapshot = cartItem.item.itemName,
+                    basePriceSnapshot = cartItem.item.basePrice,
+                )
+            )
+        }
+
+        val totalAmount = subTotal - discountAmount
+
+        if (purchasedPrice < totalAmount) {
+            isProcessingTransaction.set(false)
+            _transactionState.value = StateStatus(error = "Insufficient Payment")
+            _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                "Insufficient Payment",
+                "Amount received (¥$purchasedPrice) is less than total (¥$totalAmount)"
+            )
+            return
+        }
+
+        val params = CreateTransactionParams(
+            items = items,
+            purchasedPrice = purchasedPrice,
+            totalQuantity = totalQuantity,
+            totalAmount = totalAmount,
+            discountAmount = discountAmount,
+            subTotal = subTotal,
+            tenantId = _tenantId.intValue,
+            storeId = _storeId.intValue,
+            userId = _staffId.intValue
+        )
+
+        _transactionState.value = StateStatus(isLoading = true)
+        executeTransaction(params, items)
+    }
+
+    private fun executeTransaction(params: CreateTransactionParams, items: List<dtoItem>) {
+        transactionJob = orderItemUseCase.transaction(params).onEach { resource ->
             when (resource) {
-                is Resource.Error -> {
-                    _state.value = StateStatus(isLoading = false, error = resource.message)
-                    val title = "Couldn't get store products."
-                    val unexpectedErrorMessage =
-                        "Unexpected error happened :(]\nWe will try fix this functionality as soon as possible"
-                    _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
-                        title,
-                        resource.message ?: unexpectedErrorMessage
-                    )
-                    println("[ERROR] ${resource.message} CashierViewModel.loadAllStoreStock")
+                is Resource.Loading -> {
+                    // Loading state already set before calling this function
                 }
 
-                is Resource.Loading -> {
-                    _state.value = StateStatus(
-                        isLoading = true,
-                        loadingMessage = "Please wait...\nRequesting all products data and caching data"
+                is Resource.Error -> {
+                    isProcessingTransaction.set(false)
+                    _transactionState.value = StateStatus(error = resource.message)
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                        "Transaction Failed",
+                        resource.message ?: "An unexpected error occurred"
                     )
                 }
 
                 is Resource.Success -> {
-                    val data: List<CashierItem>? = resource.data
-                    if (data == null) {
-                        _state.value = StateStatus(
-                            isLoading = false,
-                            error = "Unexpected error occurred ! Data return nothing / null"
+                    isProcessingTransaction.set(false)
+                    _transactionState.value = StateStatus()
+
+                    val data = resource.data ?: run {
+                        showFatalError("Transaction succeeded but returned no data")
+                        return@onEach
+                    }
+
+                    // Parse date and build order item reference for printing
+                    val storeName = _storeName.value.ifEmpty { "-E" }
+                    val calendar = parseDateString(data.createdAt)
+                    _completeOrderItemReference.value = if (calendar != null) {
+                        params.toOrderItemDomain(data.createdOrderItemId, calendar, storeName = storeName)
+                    } else {
+                        null // Printing will show an error if this is null
+                    }
+
+                    _completeTransactionReference.value = data
+                    _completeTransactionCartReference.value = items.map { it.toReceiptLine() }
+                    _transactionCompleteDialogState.value = true
+
+                    // Reset cart and payment input
+                    _cart.value = emptyMap()
+                    _inpCashPaymentMethod.value = InpTextFieldState()
+                }
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun onEnteredCashBalance(event: CashierEvent.EnteredCashBalance) {
+        // Filter to digits only — safe to call .toInt() later
+        _inpCashPaymentMethod.value = _inpCashPaymentMethod.value.copy(
+            text = event.value.filter { it.isDigit() }
+        )
+    }
+
+    private fun onConfirmTransactionDialog() {
+        _transactionCompleteDialogState.value = false
+    }
+
+    private fun onConfirmGeneralAlertDialog() {
+        _generalAlertDialogState.value = GeneralAlertDialogStatus()
+    }
+
+    private fun onSearchProduct(event: CashierEvent.OnSearchProduct) {
+        _searchProductString.value = event.text
+    }
+
+    private fun onClearSearchProduct() {
+        _searchProductString.value = ""
+    }
+
+    private fun onTryAgainRequestAllProducts() {
+        _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
+        loadAllStoreStock(_tenantId.intValue, _storeId.intValue)
+    }
+
+    private fun onDismissTryAgainDialog() {
+        _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus()
+    }
+
+    private fun onPressPrintReceipt() {
+        val connectedDevices: List<BluetoothDevice> = bluetoothController.pairedDevices.value
+        if (connectedDevices.isEmpty()) {
+            _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                "Print Error",
+                "No printer connected. Please check your devices.\nYou can access transaction data from the transaction screen."
+            )
+            return
+        }
+
+        val transactionResponse = _completeTransactionReference.value
+        val purchasedItems = _completeTransactionCartReference.value
+        val orderItem = _completeOrderItemReference.value
+
+        if (transactionResponse == null || orderItem == null || purchasedItems.isEmpty()) {
+            _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                "Print Error",
+                "No data available to print."
+            )
+            return
+        }
+
+        if (_isPrinting.value) return
+
+        _isPrinting.value = true
+        _transactionCompleteDialogState.value = false
+        _generalAlertDialogState.value = GeneralAlertDialogStatus.loading("Printing...")
+
+        viewModelScope.launch(Dispatchers.IO) {
+            bluetoothController.printReceipt(connectedDevices, orderItem, purchasedItems)
+
+            withContext(Dispatchers.Main) {
+                _isPrinting.value = false
+                _generalAlertDialogState.value = GeneralAlertDialogStatus()
+                _transactionCompleteDialogState.value = true
+            }
+        }
+    }
+
+    // Data Loading
+
+    private fun loadStoreAndTenantData() {
+        combine(
+            dataStoreUseCase.getCurrentTenant(),
+            dataStoreUseCase.getCurrentStore()
+        ) { tenant, store -> Pair(tenant, store) }
+            .onEach { (tenantResource, storeResource) ->
+                when {
+                    tenantResource is Resource.Success && storeResource is Resource.Success -> {
+                        val tenantId = tenantResource.data!!.id
+                        val storeId = storeResource.data!!.id
+                        _tenantId.intValue = tenantId
+                        _storeId.intValue = storeId
+                        _storeName.value = storeResource.data.name
+                        loadAllStoreStock(tenantId, storeId)
+                    }
+
+                    tenantResource is Resource.Error || storeResource is Resource.Error -> {
+                        _uiEvent.emit(
+                            UIEvent.ErrorAndMustNavigateToSelectTenantScreen(
+                                "Fatal Error while getting cashier data."
+                            )
                         )
+                    }
+
+                    else -> { /* Loading — do nothing */
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun loadAllStoreStock(tenantId: Int, storeId: Int): Job {
+        return storeStockUseCase.loadCashierData(tenantId, storeId).onEach { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    _state.value = StateStatus(
+                        isLoading = true,
+                        loadingMessage = "Please wait…\nRequesting all products and caching data"
+                    )
+                }
+
+                is Resource.Error -> {
+                    _state.value = StateStatus(error = resource.message)
+                    _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
+                        "Couldn't get store products",
+                        resource.message ?: "An unexpected error occurred"
+                    )
+                }
+
+                is Resource.Success -> {
+                    val data = resource.data
+                    if (data == null) {
+                        _state.value = StateStatus(error = "Server returned no data")
                         _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
                             "Data Error",
-                            "Unexpected error occurred! Data return nothing / null"
+                            "Server returned no data unexpectedly"
                         )
                         return@onEach
                     }
 
-                    // Applying to viewmodel
                     _cashierItems.value = data
-
-                    val tempCategories = hashMapOf<Int, Category>(
-                        -1 to Category(-1, "All", tenantId, now(), data.size),
-                        0 to Category(0, "Uncategorized", tenantId, now())
-                    )
-                    for (cashierItem in data) {
-                        val categoryId = cashierItem.categoryId
-                        val categoryName = cashierItem.categoryName
-                        if (tempCategories.containsKey(categoryId)) {
-                            tempCategories[categoryId]!!.count += 1
-                        } else {
-                            tempCategories.put(
-                                categoryId, Category(categoryId, categoryName, tenantId, now(), 1)
-                            )
-                        }
-                    }
-                    _categories.value = tempCategories.toMap()
+                    _categories.value = buildCategoryMap(data, tenantId)
                     _state.value = StateStatus()
                 }
             }
         }.launchIn(viewModelScope)
     }
 
-    /*
-    * This is not immediately required request, Keep it simple for this time
-    * maybe change in the future
-    * */
     private suspend fun loadProfile() {
-        val userPayload = jwtStore.getPayload().first()
-        if (userPayload == null) {
-            /*
-                ERROR
-                // Check if user really logged in
-                // Then try again
-            */
-
-        } else {
-            _staffName.value = userPayload.name
-            _staffId.intValue = userPayload.sub
-        }
+        val userPayload = jwtStore.getPayload().first() ?: return
+        _staffName.value = userPayload.name
+        _staffId.intValue = userPayload.sub
     }
+
+    // Helpers
+
+    /**
+     * Returns true and emits a snackbar if a transaction is currently being processed.
+     */
+    private fun isTransactionBlocked(): Boolean {
+        if (isProcessingTransaction.get()) {
+            viewModelScope.launch {
+                _uiEvent.emit(UIEvent.ShowErrorSnackbar("Transaction in progress. Please wait."))
+            }
+            return true
+        }
+        return false
+    }
+
+    private fun showFatalError(message: String) {
+        _generalAlertDialogState.value = GeneralAlertDialogStatus.error("Fatal Error", message)
+    }
+
+    private fun showWarning(message: String) {
+        _generalAlertDialogState.value = GeneralAlertDialogStatus.error("Warning", message)
+    }
+
+    private fun buildCategoryMap(items: List<CashierItem>, tenantId: Int): Map<Int, Category> {
+        val now = Date()
+        val map = hashMapOf(
+            -1 to Category(-1, "All", tenantId, now, items.size),
+            0 to Category(0, "Uncategorized", tenantId, now)
+        )
+        for (item in items) {
+            val id = item.categoryId
+            if (map.containsKey(id)) {
+                map[id]!!.count += 1
+            } else {
+                map[id] = Category(id, item.categoryName, tenantId, now, 1)
+            }
+        }
+        return map.toMap()
+    }
+
+    // UI Events
 
     sealed class UIEvent {
         data class ErrorAndMustNavigateToSelectTenantScreen(val message: String) : UIEvent()
         object CloseCashierPartialSheet : UIEvent()
         data class ShowErrorSnackbar(val message: String) : UIEvent()
+    }
+
+    // Constants
+
+    companion object {
+        private const val MAX_ITEM_QUANTITY = 999
     }
 }

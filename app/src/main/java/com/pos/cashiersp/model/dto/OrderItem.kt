@@ -1,12 +1,14 @@
 package com.pos.cashiersp.model.dto
 
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.presentation.util.parseDateString
 import kotlinx.serialization.Serializable
-import java.time.OffsetDateTime
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Serializable
 data class OrderItem(
@@ -27,16 +29,17 @@ data class OrderItem(
     @SerializedName("total_amount")
     val totalAmount: Int,
     @SerializedName("total_quantity")
-    val totalQuantity: Int
+    val totalQuantity: Int,
+
+    // Store
+    @SerializedName("store_name")
+    val storeName: String
 )
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
-    val instant = OffsetDateTime.parse(this.createdAt).toInstant()
+    val calendar = parseDateString(this.createdAt)
+        ?: throw IllegalStateException("Failed to parse createdAt date: '${this.createdAt}' for order item id=${this.id}")
 
-    val cal = Calendar.getInstance().apply {
-        timeInMillis = instant.toEpochMilli()
-    }
     return com.pos.cashiersp.model.domain.OrderItem(
         id = this.id,
         subtotal = this.subtotal,
@@ -46,6 +49,6 @@ fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
         discountAmount = this.discountAmount,
         totalQuantity = this.totalQuantity,
         purchasedPrice = this.purchasedPrice,
-        createdAt = cal,
+        createdAt = calendar,
     )
 }

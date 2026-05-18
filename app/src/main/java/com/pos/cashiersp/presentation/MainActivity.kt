@@ -47,7 +47,6 @@ class MainActivity : ComponentActivity() {
     private val isBluetoothEnabled: Boolean
         get() = bluetoothAdapter?.isEnabled == true
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -113,7 +112,7 @@ class MainActivity : ComponentActivity() {
                                 CashierScreen(navController, drawerState)
                             }
                             composable(route = Screen.STOCK_MANAGEMENT) {
-                                StockManagementScreen(drawerState)
+                                StockManagementScreen(drawerState, navController)
                             }
                             composable(route = Screen.TRANSACTION_HISTORY) {
                                 TransactionHistoryScreen(navController)
@@ -146,6 +145,7 @@ class MainActivity : ComponentActivity() {
                             composable(route = Screen.BLUETOOTH_SETTINGS) {
                                 BluetoothSettingsScreen(navController, drawerState)
                             }
+
                             composable(route = Screen.LOGOUT) {
                                 LogoutScreen(navController, drawerState)
                             }

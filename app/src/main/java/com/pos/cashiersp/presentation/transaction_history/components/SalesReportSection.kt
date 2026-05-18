@@ -1,6 +1,6 @@
 package com.pos.cashiersp.presentation.transaction_history.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,17 +12,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +42,7 @@ import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.toDomain
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.ItemsPerPage
+import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryViewModel
 import com.pos.cashiersp.presentation.ui.theme.Dark
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -41,6 +50,7 @@ import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray500
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
+import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 import java.text.SimpleDateFormat
@@ -101,7 +111,7 @@ fun SalesReportSection(
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            salesData.forEach { item(key = it.id) { SaleCard(it) } }
+            salesData.forEach { item(key = it.id) { SaleCard(it, viewModel) } }
         }
         Spacer(Modifier.height(8.dp))
     } else {
@@ -124,90 +134,131 @@ private val dateFormat = SimpleDateFormat(
 )
 
 @Composable
-private fun SaleCard(sale: OrderItem) {
+private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
+    var expanded by remember { mutableStateOf(false) }
+
     // Calculate date range based on selected period
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { /* Navigate to details */ },
-        colors = CardDefaults.cardColors(
-            containerColor = White
-        ),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    Box(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .combinedClickable(
+                    onClick = {
+                        println("Tap")
+                    },
+                    onLongClick = {
+                        expanded = true
+                    }
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = White
+            ),
+            shape = RoundedCornerShape(8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
         ) {
-            // Left Section
-            Column(
-                modifier = Modifier.fillMaxWidth(.72f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // ID and Time
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Left Section
+                Column(
+                    modifier = Modifier.fillMaxWidth(.72f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    // ID and Time
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "#${sale.id}",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Dark,
+                            fontSize = 16.sp,
+                        )
+                    }
+
+                    // Details in compact row format
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CompactDetail(
+                            label = "Cash-in",
+                            value = "Rp ${sale.purchasedPrice}",
+                            modifier = Modifier.weight(1f)
+                        )
+                        CompactDetail(
+                            label = "Change",
+                            value = "Rp ${sale.purchasedPrice - sale.totalAmount}",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Date
                     Text(
-                        text = "#${sale.id}",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Dark,
-                        fontSize = 16.sp,
+                        text = dateFormat.format(sale.createdAt.time),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Gray400,
+                        fontSize = 11.sp
                     )
                 }
 
-                // Details in compact row format
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // Right Section - Total Amount
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.SpaceAround,
+                    modifier = Modifier.height(68.dp)
                 ) {
-                    CompactDetail(
-                        label = "Cash-in",
-                        value = "¥${sale.purchasedPrice}",
-                        modifier = Modifier.weight(1f)
+                    TextWithNoPadding(
+                        text = "Rp ${sale.subtotal}",
+                        color = Primary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    CompactDetail(
-                        label = "Change",
-                        value = "¥${sale.purchasedPrice - sale.totalAmount}",
-                        modifier = Modifier.weight(1f)
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "View details",
+                        tint = Gray300,
+                        modifier = Modifier.size(20.dp)
                     )
+
+                    // Place here so the drop down will render at the right
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        containerColor = Primary100
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Print,
+                                        contentDescription = "Print shortcut",
+                                        tint = Secondary,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    TextWithNoPadding("Print", color = Secondary, fontSize = 14.sp)
+                                }
+                            },
+                            onClick = {
+                                expanded = false
+                                viewModel.onEvent(TransactionHistoryEvent.OnLongPressedAndClickPrint(sale.id))
+                            }
+                        )
+                    }
                 }
 
-                // Date
-                Text(
-                    text = dateFormat.format(sale.createdAt.time),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Gray400,
-                    fontSize = 11.sp
-                )
-            }
-
-            // Right Section - Total Amount
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.SpaceAround,
-                modifier = Modifier.height(68.dp)
-            ) {
-                TextWithNoPadding(
-                    text = "¥${sale.subtotal}",
-                    color = Primary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "View details",
-                    tint = Gray300,
-                    modifier = Modifier.size(20.dp)
-                )
             }
         }
     }

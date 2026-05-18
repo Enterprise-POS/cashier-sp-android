@@ -21,6 +21,8 @@ data class CashierItem(
     @SerializedName("stock_type")
     val stockType: StockType,
     val stocks: Int,
+    @SerializedName("base_price")
+    val basePrice: Int,
     @SerializedName("store_stock_id")
     val storeStockId: Int,
     @SerializedName("store_stock_price")
@@ -38,6 +40,7 @@ fun CashierItem.toDBEntity(tenantId: Int, storeId: Int): CashierItemEntity {
         itemName = this.itemName,
         stockType = this.stockType,
         stocks = this.stocks,
+        // basePrice = this.basePrice,
         storeStockId = this.storeStockId,
         storeStockPrice = this.storeStockPrice,
         storeStockStocks = this.storeStockStocks,

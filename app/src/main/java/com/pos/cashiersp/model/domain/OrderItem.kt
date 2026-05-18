@@ -12,5 +12,8 @@ data class OrderItem(
     val subtotal: Int,
     val tenantId: Int,
     val totalAmount: Int,
-    val totalQuantity: Int
+    val totalQuantity: Int,
+
+    // Store
+    val storeName: String = "",
 )

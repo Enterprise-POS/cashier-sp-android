@@ -1,5 +1,6 @@
 package com.pos.cashiersp.presentation.select_tenant
 
+import android.Manifest
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -22,9 +23,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.test.rule.GrantPermissionRule
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.di.AppModule
 import com.pos.cashiersp.di.RetrofitModule
@@ -35,6 +39,7 @@ import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.CashierScreen
 import com.pos.cashiersp.presentation.global_component.CashierDrawer
 import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
+import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import com.pos.cashiersp.presentation.util.JwtStore
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -83,6 +88,19 @@ class SelectTenantScreenTest {
             "Unknown Tenant"
         }
     }
+
+    /*
+    The UI test will ask for location access. so neverForLocation required to prevent pop up
+    For android <= 11
+    * */
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.BLUETOOTH_SCAN,
+        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.BLUETOOTH_ADVERTISE,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
 
     @Before
     fun setUp() = runBlocking {
@@ -192,6 +210,21 @@ class SelectTenantScreenTest {
                         composable(route = Screen.CASHIER) {
                             CashierScreen(navController, drawerState)
                         }
+                        composable(
+                            route = Screen.SELECT_STORE + "/{tenantId}/{tenantName}",
+                            arguments = listOf(
+                                navArgument(name = "tenantId") {
+                                    type = NavType.IntType
+                                    defaultValue = -1
+                                },
+                                navArgument(name = "tenantName") {
+                                    type = NavType.StringType
+                                    defaultValue = ""
+                                }
+                            )
+                        ) {
+                            // Render nothing
+                        }
                     }
                 }
             }
@@ -283,8 +316,8 @@ class SelectTenantScreenTest {
             composeRule.onAllNodesWithTag(TestTags.SelectTenantScreen.TENANT_CARD_BUTTON)
                 .fetchSemanticsNodes().size == 2
         }
-        composeRule.onAllNodesWithTag(TestTags.SelectTenantScreen.TENANT_CARD_BUTTON)[0].performClick()
 
+        composeRule.onAllNodesWithTag(TestTags.SelectTenantScreen.TENANT_CARD_BUTTON)[0].performClick()
         composeRule.waitForIdle()
 
         // Verify "Current" label appears
@@ -299,17 +332,6 @@ class SelectTenantScreenTest {
             .performClick()
 
         composeRule.waitForIdle()
-
-        composeRule.waitUntil(timeoutMillis = 5000) {
-            composeRule.onAllNodesWithTag(TestTags.CashierScreen.CASHIER_TITLE)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-
-        // Now assert it's displayed
-        composeRule.onNodeWithTag(TestTags.CashierScreen.CASHIER_TITLE)
-            .assertExists()
-            .assertIsDisplayed()
     }
 
     @Test

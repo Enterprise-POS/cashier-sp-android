@@ -106,7 +106,7 @@ fun FoodItem(number: Int, cartItem: CartItem) {
 
             // Price (right aligned)
             Text(
-                text = "${priceFormatter.format(price * quantity)} 円",
+                text = "Rp ${priceFormatter.format(price * quantity)}",
                 color = Secondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold

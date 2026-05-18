@@ -24,7 +24,6 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CategoryCard(category: Category, viewModel: CashierViewModel = hiltViewModel()) {
     val selectedCategoryId = viewModel.selectedCategory.value

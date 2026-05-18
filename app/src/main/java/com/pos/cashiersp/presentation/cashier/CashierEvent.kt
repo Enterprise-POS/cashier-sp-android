@@ -1,6 +1,7 @@
 package com.pos.cashiersp.presentation.cashier
 
 import com.pos.cashiersp.model.dto.CashierItem
+import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent
 import com.pos.cashiersp.presentation.util.PaymentMethod
 
 sealed class CashierEvent {
@@ -24,4 +25,6 @@ sealed class CashierEvent {
     object OnConfirmGeneralAlertDialog : CashierEvent()
 
     object PlaceOrder : CashierEvent()
+
+    object OnPressPrintReceipt : CashierEvent()
 }

@@ -50,7 +50,7 @@ fun LoginOrRegisterSegmentedButton(
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
-                modifier = Modifier.testTag(TestTags.LoginRegisterScreen.SEGMENTED_BUTTON),
+                modifier = modifier.testTag(TestTags.LoginRegisterScreen.SEGMENTED_BUTTON),
                 shape = SegmentedButtonDefaults.itemShape(
                     index = index,
                     count = options.size,

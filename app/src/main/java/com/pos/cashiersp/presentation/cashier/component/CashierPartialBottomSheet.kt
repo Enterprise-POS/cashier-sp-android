@@ -26,12 +26,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,7 +72,6 @@ import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
 import java.text.DecimalFormat
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashierPartialBottomSheet(
@@ -95,13 +94,26 @@ fun CashierPartialBottomSheet(
     * We could add new feature such as add customer info for continuous customer
     * */
 
-    val subTotal = cart.entries.fold(initial = 0) { acc, (_, cartItem) ->
-        acc + (cartItem.storeStock.price * cartItem.quantity)
-    }
 
     // Feature for sumDiscount (not implemented)
     val sumDiscount: Float = 0f
+
+    val subTotal = remember(cart) {
+        cart.entries.fold(0) { acc, (_, cartItem) ->
+            acc + (cartItem.storeStock.price * cartItem.quantity)
+        }
+    }
+
     val total = subTotal + sumDiscount
+
+    val centeredTextStyle = remember {
+        TextStyle(
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            )
+        )
+    }
 
     ModalBottomSheet(
         sheetState = sheetState,
@@ -133,30 +145,14 @@ fun CashierPartialBottomSheet(
                             "Order no. 77",
                             color = Secondary,
                             fontSize = 18.sp,
-                            style = LocalTextStyle.current.merge(
-                                TextStyle(
-                                    fontWeight = FontWeight.W500,
-                                    lineHeightStyle = LineHeightStyle(
-                                        alignment = LineHeightStyle.Alignment.Center,
-                                        trim = LineHeightStyle.Trim.Both,
-                                    )
-                                ),
-                            ),
+                            style = LocalTextStyle.current.merge(centeredTextStyle),
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "staff: $staffName",
                             color = Gray700,
                             fontSize = 12.sp,
-                            style = LocalTextStyle.current.merge(
-                                TextStyle(
-                                    fontWeight = FontWeight.W500,
-                                    lineHeightStyle = LineHeightStyle(
-                                        alignment = LineHeightStyle.Alignment.Center,
-                                        trim = LineHeightStyle.Trim.Both,
-                                    )
-                                ),
-                            ),
+                            style = LocalTextStyle.current.merge(centeredTextStyle),
                         )
                     }
                 }
@@ -215,29 +211,13 @@ fun CashierPartialBottomSheet(
                         "Subtotal",
                         color = Gray500,
                         fontSize = 14.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "${priceFormatter.format(subTotal)} 円",
+                        "Rp ${priceFormatter.format(subTotal)}",
                         color = Secondary,
                         fontSize = 14.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                 }
 
@@ -252,29 +232,13 @@ fun CashierPartialBottomSheet(
                         "Sum discount",
                         color = Gray500,
                         fontSize = 14.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "${priceFormatter.format(sumDiscount)} 円",
+                        "Rp ${priceFormatter.format(sumDiscount)}",
                         color = Secondary,
                         fontSize = 14.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                 }
 
@@ -301,29 +265,13 @@ fun CashierPartialBottomSheet(
                         "Total",
                         color = Secondary,
                         fontSize = 16.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "${priceFormatter.format(total)} 円",
+                        "Rp ${priceFormatter.format(total)}",
                         color = Primary,
                         fontSize = 20.sp,
-                        style = LocalTextStyle.current.merge(
-                            TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both,
-                                )
-                            ),
-                        ),
+                        style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                 }
 
@@ -335,15 +283,7 @@ fun CashierPartialBottomSheet(
                         .fillMaxWidth(),
                     color = Secondary,
                     fontSize = 14.sp,
-                    style = LocalTextStyle.current.merge(
-                        TextStyle(
-                            fontWeight = FontWeight.Normal,
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    ),
+                    style = LocalTextStyle.current.merge(centeredTextStyle),
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -424,21 +364,12 @@ fun CashierPartialBottomSheet(
                                 "Amount received",
                                 color = Gray500,
                                 fontSize = 14.sp,
-                                style = LocalTextStyle.current.merge(
-                                    TextStyle(
-                                        fontWeight = FontWeight.Normal,
-                                        lineHeightStyle = LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center,
-                                            trim = LineHeightStyle.Trim.Both,
-                                        )
-                                    ),
-                                ),
+                                style = LocalTextStyle.current.merge(centeredTextStyle),
                             )
                             TextField(
                                 value = inpCashPaymentMethod.text,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 isError = inpCashPaymentMethod.isError,
-                                //enabled = !transactionState.isLoading,
                                 enabled = !transactionState.isLoading,
                                 shape = RoundedCornerShape(0.dp),
                                 onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
@@ -455,7 +386,7 @@ fun CashierPartialBottomSheet(
                                 textStyle = LocalTextStyle.current.copy(
                                     textAlign = TextAlign.End
                                 ),
-                                suffix = { Text("円", color = Secondary) },
+                                suffix = { Text("Rp", color = Secondary) },
                                 colors = TextFieldDefaults.colors(
                                     cursorColor = Primary,
                                     unfocusedContainerColor = Color.Transparent,
@@ -487,29 +418,13 @@ fun CashierPartialBottomSheet(
                                 "Change",
                                 color = Gray500,
                                 fontSize = 14.sp,
-                                style = LocalTextStyle.current.merge(
-                                    TextStyle(
-                                        fontWeight = FontWeight.Normal,
-                                        lineHeightStyle = LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center,
-                                            trim = LineHeightStyle.Trim.Both,
-                                        )
-                                    ),
-                                ),
+                                style = LocalTextStyle.current.merge(centeredTextStyle),
                             )
                             Text(
-                                "${priceFormatter.format(if (inpCashPaymentMethod.text.isNotEmpty()) inpCashPaymentMethod.text.toInt() - subTotal else 0)} 円",
+                                "Rp ${priceFormatter.format(if (inpCashPaymentMethod.text.isNotEmpty()) inpCashPaymentMethod.text.toInt() - subTotal else 0)}",
                                 color = Secondary,
                                 fontSize = 14.sp,
-                                style = LocalTextStyle.current.merge(
-                                    TextStyle(
-                                        fontWeight = FontWeight.Normal,
-                                        lineHeightStyle = LineHeightStyle(
-                                            alignment = LineHeightStyle.Alignment.Center,
-                                            trim = LineHeightStyle.Trim.Both,
-                                        )
-                                    ),
-                                ),
+                                style = LocalTextStyle.current.merge(centeredTextStyle),
                             )
                         }
                     }

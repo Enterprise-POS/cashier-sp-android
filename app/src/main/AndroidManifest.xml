@@ -15,7 +15,10 @@
         android:maxSdkVersion="30" />
 
     <!-- Bluetooth permissions for Android 12 and above -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <!-- The UI test will ask for location access. so neverForLocation required to prevent pop up. For android >= 11   -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 

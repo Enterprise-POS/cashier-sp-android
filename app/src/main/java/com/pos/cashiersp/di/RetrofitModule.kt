@@ -15,6 +15,7 @@ import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
+import com.pos.cashiersp.use_case.FindTransactionsById
 import com.pos.cashiersp.use_case.GetAllStore
 import com.pos.cashiersp.use_case.GetTenantMembers
 import com.pos.cashiersp.use_case.GetTenantWithUser
@@ -142,7 +143,8 @@ object RetrofitModule {
     fun provideOrderItemUseCase(repository: OrderItemRepository): OrderItemUseCase {
         return OrderItemUseCase(
             transaction = Transactions(repository),
-            searchTransactions = SearchTransactions(repository)
+            searchTransactions = SearchTransactions(repository),
+            findTransactionsById = FindTransactionsById(repository)
         )
     }
 }

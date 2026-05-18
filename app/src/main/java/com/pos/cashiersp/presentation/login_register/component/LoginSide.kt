@@ -121,6 +121,7 @@ fun LoginSide(snackbarHostState: SnackbarHostState, viewModel: LoginRegisterView
             .testTag(TestTags.LoginRegisterScreen.LOGIN_PASSWORD_INPUT),
     )
 
+    /*
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -145,6 +146,7 @@ fun LoginSide(snackbarHostState: SnackbarHostState, viewModel: LoginRegisterView
         Spacer(Modifier.width(12.dp))
         Text("Remember this account", fontSize = 14.sp, color = Gray600)
     }
+     */
 
     Spacer(Modifier.height(12.dp))
     TextButton(
