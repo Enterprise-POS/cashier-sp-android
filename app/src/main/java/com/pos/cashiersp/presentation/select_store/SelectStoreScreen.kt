@@ -95,7 +95,7 @@ fun SelectStoreScreen(
         modifier = Modifier
             .background(color = Secondary100)
     ) { innerPadding ->
-        Box {
+        Box(modifier = Modifier.padding(innerPadding)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -210,7 +210,7 @@ fun SelectStoreScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("You can change store later from Setting > Select Store", fontSize = 12.sp)
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(10.dp))
             }
         }
     }

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -59,6 +60,7 @@ private val pagesUtils = mapOf(
 )
 
 private val othersUtils = mapOf(
+    Screen.SETTINGS to Pair("Settings Button", Icons.Outlined.Settings),
     Screen.LOGOUT to Pair("Logout Button", Icons.Outlined.ExitToApp)
 )
 
