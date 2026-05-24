@@ -30,6 +30,7 @@ import com.pos.cashiersp.presentation.login_register.LoginRegisterScreen
 import com.pos.cashiersp.presentation.logout.LogoutScreen
 import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
+import com.pos.cashiersp.presentation.settings.SettingsScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
@@ -144,6 +145,10 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(route = Screen.BLUETOOTH_SETTINGS) {
                                 BluetoothSettingsScreen(navController, drawerState)
+                            }
+
+                            composable(route = Screen.SETTINGS) {
+                                SettingsScreen(navController)
                             }
 
                             composable(route = Screen.LOGOUT) {

@@ -96,7 +96,7 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
         modifier = Modifier
             .background(color = Secondary100)
     ) { innerPadding ->
-        Box {
+        Box(modifier = Modifier.padding(innerPadding)) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -241,7 +241,9 @@ fun SelectTenantScreen(navController: NavController, viewModel: SelectTenantView
                 ) {
                     Text("Switch account")
                 }
-                Spacer(Modifier.height(20.dp))
+
+                // Make a little space. Maybe user button a bit close with home button. So make it a bit upper
+                Spacer(Modifier.height(10.dp))
             }
         }
 

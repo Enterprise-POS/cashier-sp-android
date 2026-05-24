@@ -1,7 +1,6 @@
 package com.pos.cashiersp.presentation.stock_management
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -59,14 +59,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.pos.cashiersp.R
 import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.StoreStockV2
@@ -90,12 +93,6 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.ceil
-import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -463,16 +460,18 @@ private fun PaginationRow(
     itemsPerPage: ItemsPerPage,
     viewModel: StockManagementViewModel,
 ) {
-
     val requestingState = viewModel.requestingState.value
+
     Column(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
             text = "Page $currentPage of $totalPages · ${itemsPerPage.value} products per page",
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             color = Gray400,
         )
+
+        Spacer(Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -481,27 +480,30 @@ private fun PaginationRow(
         ) {
             OutlinedButton(
                 onClick = { viewModel.onEvent(StockManagementEvent.OnTapPrevPageButton) },
-                enabled = currentPage > 1 || !!requestingState.isLoading,
+                enabled = currentPage > 1 && !requestingState.isLoading,  // fix: was !!
                 shape = RoundedCornerShape(7.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                modifier = Modifier.height(28.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 0.dp),
+                modifier = Modifier.height(38.dp),
                 border = BorderStroke(0.8.dp, Gray100),
             ) {
-                Text("‹ Prev", fontSize = 11.sp, color = Secondary)
+                Text("‹ Prev", fontSize = 13.sp, color = Secondary)
             }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Called from  PaginationBar from transactionHistory
                 getPageNumbers(currentPage, totalPages, 7).forEach { page ->
                     if (page == -1) {
                         Text("…", fontSize = 12.sp, color = Gray400)
                     } else {
                         val isActive = page == currentPage
                         Button(
-                            onClick = { viewModel.onEvent(StockManagementEvent.OnTapPaginationPageButton(page)) },
+                            onClick = {
+                                viewModel.onEvent(
+                                    StockManagementEvent.OnTapPaginationPageButton(page)
+                                )
+                            },
                             shape = RoundedCornerShape(7.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isActive) Primary else White,
@@ -509,12 +511,12 @@ private fun PaginationRow(
                             ),
                             border = if (!isActive) BorderStroke(0.8.dp, Gray100) else null,
                             contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(38.dp),
                             elevation = ButtonDefaults.buttonElevation(0.dp),
                         ) {
                             Text(
                                 text = "$page",
-                                fontSize = 11.sp,
+                                fontSize = 13.sp,
                                 fontWeight = if (isActive) FontWeight.W700 else FontWeight.W400,
                             )
                         }
@@ -524,13 +526,13 @@ private fun PaginationRow(
 
             Button(
                 onClick = { viewModel.onEvent(StockManagementEvent.OnTapNextPageButton) },
-                enabled = currentPage < totalPages || !!requestingState.isLoading,
+                enabled = currentPage < totalPages && !requestingState.isLoading,  // fix: was !!
                 shape = RoundedCornerShape(7.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                modifier = Modifier.height(28.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 0.dp),
+                modifier = Modifier.height(38.dp),
             ) {
-                Text("Next ›", fontSize = 11.sp, fontWeight = FontWeight.W600)
+                Text("Next ›", fontSize = 13.sp, fontWeight = FontWeight.W600)
             }
         }
     }
@@ -557,17 +559,19 @@ private fun ProductCatalogCard(
     Card(
         border = BorderStroke(width = 0.8.dp, color = Gray100.copy(alpha = 0.4f)),
         colors = CardDefaults.cardColors(containerColor = White),
-        modifier = Modifier.padding(horizontal = 6.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp)
+            .fillMaxHeight(),        // ← fill remaining height given by parent Column
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.1.dp),
     ) {
         Column(
             modifier = Modifier
                 .padding(horizontal = 14.dp, vertical = 16.dp)
-                .fillMaxWidth(),
+                .fillMaxSize(),      // ← fill the card fully
         ) {
 
-            // ── Header ───────────────────────────────────────────────────────
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -587,68 +591,53 @@ private fun ProductCatalogCard(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Refresh
-                    Button(
-                        onClick = { viewModel.onEvent(StockManagementEvent.OnRefreshItemCatalogButton) },
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = !requestingState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(36.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Sort",
-                            tint = White,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-
-                    // Sort icon button  ↕
-                    /*
-                    Button(
-                        onClick = { },
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = !requestingState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SwapVert,
-                            contentDescription = "Sort",
-                            tint = White,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                     */
+                Button(
+                    onClick = { viewModel.onEvent(StockManagementEvent.OnRefreshItemCatalogButton) },
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !requestingState.isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = White,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // ── Item list ────────────────────────────────────────────────────
+            // Item list — weight(1f) so it takes all space ABOVE pagination ─
             LazyVerticalStaggeredGrid(
                 verticalItemSpacing = 0.dp,
                 columns = StaggeredGridCells.Fixed(1),
                 modifier = Modifier
                     .nestedScroll(nestedScrollConnection)
                     .fillMaxWidth()
-                    .fillMaxHeight(.84f),
+                    .weight(1f),     // flex grow instead of fixed fraction
             ) {
                 if (requestingState.isLoading) {
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(300.dp), // or whatever fits your layout
+                                .height(300.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = Primary, modifier = Modifier.size(18.dp))
+                                CircularProgressIndicator(
+                                    color = Primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(Modifier.height(8.dp))
-                                Text("Please wait while requesting...", color = Gray400, fontSize = 12.sp)
+                                Text(
+                                    "Please wait while requesting...",
+                                    color = Gray400,
+                                    fontSize = 12.sp
+                                )
                             }
                         }
                     }
@@ -663,18 +652,18 @@ private fun ProductCatalogCard(
                 }
             }
 
+            // Divider + Pagination always visible at bottom
             Spacer(Modifier.height(14.dp))
 
             HorizontalDivider(color = Gray100.copy(alpha = 0.6f), thickness = 0.8.dp)
 
             Spacer(Modifier.height(10.dp))
 
-            // ── Pagination ────────────────────────────────────────────────────
             PaginationRow(
                 currentPage = currentPage,
                 totalPages = totalPages,
                 itemsPerPage = itemsPerPage,
-                viewModel
+                viewModel = viewModel,
             )
         }
     }
