@@ -233,7 +233,7 @@ class AndroidBluetoothControllerImpl(
 
         val orderData = OrderData(
             id = orderItem.id.toString(),
-            storeName = orderItem.storeName,
+            storeName = orderItem.storeName.toString(),
             items = receiptItems,
             discountAmount = orderItem.discountAmount.toDouble(),
             cash = orderItem.purchasedPrice.toDouble(),

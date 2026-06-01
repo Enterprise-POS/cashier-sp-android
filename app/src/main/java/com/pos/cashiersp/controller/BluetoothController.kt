@@ -2,7 +2,6 @@ package com.pos.cashiersp.controller
 
 import com.pos.cashiersp.model.domain.BluetoothDevice
 import com.pos.cashiersp.model.domain.OrderItem
-import com.pos.cashiersp.model.domain.PurchasedItem
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import kotlinx.coroutines.flow.Flow

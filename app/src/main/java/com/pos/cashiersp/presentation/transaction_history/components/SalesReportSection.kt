@@ -53,6 +53,8 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.dateFormatter
+import com.pos.cashiersp.presentation.util.parseDateString
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -127,12 +129,6 @@ fun SalesReportSection(
     }
 }
 
-// Define Locale here must restart the app to see change
-private val dateFormat = SimpleDateFormat(
-    "dd MMM yyyy - HH:mm",
-    Locale.getDefault()
-)
-
 @Composable
 private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
     var expanded by remember { mutableStateOf(false) }
@@ -146,7 +142,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = {
-                        println("Tap")
+                        viewModel.onEvent(TransactionHistoryEvent.OnTapSaleCard(sale.id))
                     },
                     onLongClick = {
                         expanded = true
@@ -204,7 +200,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
 
                     // Date
                     Text(
-                        text = dateFormat.format(sale.createdAt.time),
+                        text = dateFormatter(sale.createdAt.time, "dd MMM yyyy - HH:mm"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Gray400,
                         fontSize = 11.sp

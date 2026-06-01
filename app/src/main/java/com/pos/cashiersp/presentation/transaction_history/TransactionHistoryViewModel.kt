@@ -11,19 +11,22 @@ import com.pos.cashiersp.controller.BluetoothController
 import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.QueryFilter
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
-import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent.*
+import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryViewModel.UIEvent.*
 import com.pos.cashiersp.presentation.util.BluetoothUIState
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.OrderItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.ceil
@@ -66,6 +69,12 @@ class TransactionHistoryViewModel @Inject constructor(
     private val _selectedColumn = mutableStateOf(ColumnName.CREATED_AT)
     val selectedColumn: State<ColumnName> = _selectedColumn
 
+    // Floating action button and invoice search modal
+    private val _showSearchInvoiceModal = mutableStateOf(false)
+    val showSearchInvoiceModal: State<Boolean> = _showSearchInvoiceModal
+    private val _inputInvoiceId = mutableIntStateOf(0)
+    val inputInvoiceId: State<Int> = _inputInvoiceId
+
     private val _generalAlertDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
     val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogStatus
     private val _isRequesting = mutableStateOf(false)
@@ -76,6 +85,9 @@ class TransactionHistoryViewModel @Inject constructor(
 
     private val _itemsPerPage = mutableStateOf(ItemsPerPage.TEN)
     val itemsPerPage: State<ItemsPerPage> = _itemsPerPage
+
+    private val _uiEvent = MutableSharedFlow<TransactionHistoryViewModel.UIEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
 
     // Transaction History screen only print for connected only printers
     private val _isPrinting = mutableStateOf(false)
@@ -99,7 +111,7 @@ class TransactionHistoryViewModel @Inject constructor(
 
     fun onEvent(event: TransactionHistoryEvent) {
         when (event) {
-            is TransactionHistoryEvent.SetStartCalendar -> {
+            is SetStartCalendar -> {
                 if (_startCalendar.value == null) return
                 val calendar = _startCalendar.value!!.clone() as Calendar
                 event.pairOfCalendarSetters.forEach { (field, value) ->
@@ -108,7 +120,7 @@ class TransactionHistoryViewModel @Inject constructor(
                 _startCalendar.value = calendar
             }
 
-            is TransactionHistoryEvent.SetEndCalendar -> {
+            is SetEndCalendar -> {
                 if (_endCalendar.value == null) return
                 val calendar = _endCalendar.value!!.clone() as Calendar
                 event.pairOfCalendarSetters.forEach { (field, value) ->
@@ -117,10 +129,10 @@ class TransactionHistoryViewModel @Inject constructor(
                 _endCalendar.value = calendar
             }
 
-            is TransactionHistoryEvent.OnChangeStartCalendar -> _startCalendar.value = event.startCalendar
-            is TransactionHistoryEvent.OnChangeEndCalendar -> _endCalendar.value = event.endCalendar
+            is OnChangeStartCalendar -> _startCalendar.value = event.startCalendar
+            is OnChangeEndCalendar -> _endCalendar.value = event.endCalendar
 
-            is TransactionHistoryEvent.OnChangePeriodFilter -> {
+            is OnChangePeriodFilter -> {
                 _selectedPeriod.value = event.selectedPeriodFilter
                 if (event.selectedPeriodFilter == PeriodFilter.CUSTOM) return
 
@@ -171,7 +183,7 @@ class TransactionHistoryViewModel @Inject constructor(
                 _endCalendar.value = end
             }
 
-            is TransactionHistoryEvent.PickersInput -> {
+            is PickersInput -> {
                 when (event.selectPicker) {
                     Pickers.DATE_RANGE_PICKER -> _dateRangePicker.value = event.setInto
                     Pickers.START_TIME_PICKER -> _startTimePicker.value = event.setInto
@@ -179,13 +191,13 @@ class TransactionHistoryViewModel @Inject constructor(
                 }
             }
 
-            is TransactionHistoryEvent.OnClickColumnsDropDown -> _showColumnMenu.value = event.setInto
-            is TransactionHistoryEvent.OnPickColumnsDropDown -> _selectedColumn.value = event.columnName
+            is OnClickColumnsDropDown -> _showColumnMenu.value = event.setInto
+            is OnPickColumnsDropDown -> _selectedColumn.value = event.columnName
 
-            is TransactionHistoryEvent.OnClickSortersDropDown -> _showSortMenu.value = event.setInto
-            is TransactionHistoryEvent.OnPickSortersDropDown -> _selectedSort.value = event.sortDirection
+            is OnClickSortersDropDown -> _showSortMenu.value = event.setInto
+            is OnPickSortersDropDown -> _selectedSort.value = event.sortDirection
 
-            TransactionHistoryEvent.OnClickShowReportBtn -> {
+            OnClickShowReportBtn -> {
                 if (_startCalendar.value == null || _endCalendar.value == null) return
 
                 val isRequesting = _isRequesting.value
@@ -205,7 +217,7 @@ class TransactionHistoryViewModel @Inject constructor(
                 )
             }
 
-            is TransactionHistoryEvent.OnPageChange -> {
+            is OnPageChange -> {
                 val currentDto = _searchTransactionsDto.value
                 if (currentDto == null) return
 
@@ -236,20 +248,20 @@ class TransactionHistoryViewModel @Inject constructor(
                 )
             }
 
-            is TransactionHistoryEvent.OnClickItemsPerPage -> {
+            is OnClickItemsPerPage -> {
                 _itemsPerPage.value = event.value
             }
 
-            TransactionHistoryEvent.OnCloseGeneralDialog ->
+            OnCloseGeneralDialog ->
                 _generalAlertDialogStatus.value = GeneralAlertDialogStatus()
 
-            TransactionHistoryEvent.OnClickResetBtn -> {
+            OnClickResetBtn -> {
                 this.onEvent(OnChangePeriodFilter(PeriodFilter.TODAY))
                 this.onEvent(OnPickColumnsDropDown(ColumnName.CREATED_AT))
                 this.onEvent(OnPickSortersDropDown(SortDirection.DESC))
             }
 
-            is TransactionHistoryEvent.OnLongPressedAndClickPrint -> {
+            is OnLongPressedAndClickPrint -> {
                 val connectedDevices = bluetoothController.pairedDevices.value
 
                 if (connectedDevices.isEmpty()) {
@@ -288,6 +300,42 @@ class TransactionHistoryViewModel @Inject constructor(
                         }
                     }
                 }.launchIn(viewModelScope)
+            }
+
+            is OnTapSaleCard -> {
+                val id = event.orderItemId
+                viewModelScope.launch {
+                    _uiEvent.emit(GotoInvoiceDetailScreen(id))
+                }
+            }
+
+            OnTapFloatingActionBtn -> _showSearchInvoiceModal.value = true
+            OnClickCancelAtInvoiceSearchModal -> {
+                _inputInvoiceId.intValue = 0
+                _showSearchInvoiceModal.value = false
+            }
+
+            is OnChangeInvoiceSearchInput -> {
+                val inp = event.inp
+
+                if (inp.isEmpty()) {
+                    _inputInvoiceId.intValue = 0
+                    return
+                }
+
+                if (!inp.all { it.isDigit() }) return
+
+                _inputInvoiceId.intValue = inp.toInt()
+            }
+
+            OnClickConfirmAtInvoiceSearchModal -> {
+                if (_inputInvoiceId.intValue <= 0) return
+                viewModelScope.launch {
+                    _uiEvent.emit(UIEvent.GotoInvoiceDetailScreen(_inputInvoiceId.intValue))
+
+                    _inputInvoiceId.intValue = 0
+                    _showSearchInvoiceModal.value = false
+                }
             }
         }
     }
@@ -356,6 +404,10 @@ class TransactionHistoryViewModel @Inject constructor(
                 }
             }
         }.launchIn(viewModelScope)
+    }
+
+    sealed class UIEvent {
+        data class GotoInvoiceDetailScreen(val orderItemId: Int) : UIEvent()
     }
 }
 

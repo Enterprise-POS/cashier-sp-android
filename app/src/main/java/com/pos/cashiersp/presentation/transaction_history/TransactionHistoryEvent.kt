@@ -30,4 +30,11 @@ sealed class TransactionHistoryEvent {
     data class OnLongPressedAndClickPrint(val id: Int) : TransactionHistoryEvent()
 
     object OnCloseGeneralDialog : TransactionHistoryEvent()
+
+    data class OnTapSaleCard(val orderItemId: Int) : TransactionHistoryEvent()
+
+    object OnTapFloatingActionBtn : TransactionHistoryEvent()
+    object OnClickCancelAtInvoiceSearchModal : TransactionHistoryEvent()
+    object OnClickConfirmAtInvoiceSearchModal : TransactionHistoryEvent()
+    data class OnChangeInvoiceSearchInput(val inp: String) : TransactionHistoryEvent()
 }

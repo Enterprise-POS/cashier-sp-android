@@ -70,6 +70,7 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
+import com.pos.cashiersp.presentation.util.toRupiah
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,18 +137,10 @@ fun CashierPartialBottomSheet(
                             shape = RoundedCornerShape(8.dp),
                         )
                         .fillMaxWidth()
-                        .height(68.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)
                     ) {
-                        Text(
-                            "Order no. 77",
-                            color = Secondary,
-                            fontSize = 18.sp,
-                            style = LocalTextStyle.current.merge(centeredTextStyle),
-                        )
-                        Spacer(Modifier.height(6.dp))
                         Text(
                             "staff: $staffName",
                             color = Gray700,
@@ -214,7 +207,7 @@ fun CashierPartialBottomSheet(
                         style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "Rp ${priceFormatter.format(subTotal)}",
+                        subTotal.toRupiah(),
                         color = Secondary,
                         fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(centeredTextStyle),
@@ -235,7 +228,7 @@ fun CashierPartialBottomSheet(
                         style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "Rp ${priceFormatter.format(sumDiscount)}",
+                        sumDiscount.toRupiah(),
                         color = Secondary,
                         fontSize = 14.sp,
                         style = LocalTextStyle.current.merge(centeredTextStyle),
@@ -268,7 +261,7 @@ fun CashierPartialBottomSheet(
                         style = LocalTextStyle.current.merge(centeredTextStyle),
                     )
                     Text(
-                        "Rp ${priceFormatter.format(total)}",
+                        total.toRupiah(),
                         color = Primary,
                         fontSize = 20.sp,
                         style = LocalTextStyle.current.merge(centeredTextStyle),
@@ -386,7 +379,7 @@ fun CashierPartialBottomSheet(
                                 textStyle = LocalTextStyle.current.copy(
                                     textAlign = TextAlign.End
                                 ),
-                                suffix = { Text("Rp", color = Secondary) },
+                                prefix = { Text("Rp", color = Secondary) },
                                 colors = TextFieldDefaults.colors(
                                     cursorColor = Primary,
                                     unfocusedContainerColor = Color.Transparent,
@@ -421,7 +414,7 @@ fun CashierPartialBottomSheet(
                                 style = LocalTextStyle.current.merge(centeredTextStyle),
                             )
                             Text(
-                                "Rp ${priceFormatter.format(if (inpCashPaymentMethod.text.isNotEmpty()) inpCashPaymentMethod.text.toInt() - subTotal else 0)}",
+                                if (inpCashPaymentMethod.text.isNotEmpty()) (inpCashPaymentMethod.text.toInt() - subTotal).toRupiah() else "Rp 0",
                                 color = Secondary,
                                 fontSize = 14.sp,
                                 style = LocalTextStyle.current.merge(centeredTextStyle),

@@ -55,6 +55,7 @@ import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.toRupiah
 
 @Composable
 fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
@@ -142,7 +143,7 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                 }
 
                 Text(
-                    text = if (price > 0) "Rp ${"%.2f".format(price)}" else "Rp 0",
+                    text = if (price > 0) price.toRupiah() else "Rp 0",
                     fontSize = 12.sp,
                     color = Secondary
                 )

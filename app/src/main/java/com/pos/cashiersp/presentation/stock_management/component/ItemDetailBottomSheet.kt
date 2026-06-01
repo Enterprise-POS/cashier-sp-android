@@ -62,6 +62,8 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Success
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.dateFormatter
+import com.pos.cashiersp.presentation.util.parseDateString
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
 
@@ -234,7 +236,7 @@ fun ItemDetailBottomSheet(
                         subtitle = "Read-only audit info",
                     ) {
                         Text(
-                            text = selectedItem.createdAt,
+                            text = dateFormatter(parseDateString(selectedItem.createdAt), "dd MMM yyyy - HH:mm"),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.W500,
                             color = Secondary,
