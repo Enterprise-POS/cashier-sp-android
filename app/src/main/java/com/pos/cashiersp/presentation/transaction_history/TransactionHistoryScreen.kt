@@ -8,11 +8,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -20,23 +25,38 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.svg.SvgDecoder
+import com.pos.cashiersp.R
+import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.components.DateRangePickerSection
 import com.pos.cashiersp.presentation.transaction_history.components.SalesReportSection
+import com.pos.cashiersp.presentation.transaction_history.components.SearchInvoiceModal
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
+import com.pos.cashiersp.presentation.ui.theme.Success
+import com.pos.cashiersp.presentation.ui.theme.Success100
+import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.PaymentMethod
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +65,16 @@ fun TransactionHistoryScreen(
     viewModel: TransactionHistoryViewModel = hiltViewModel()
 ) {
     val storeName = viewModel.storeName.value
+
+    var showSearchModal = viewModel.showSearchInvoiceModal.value
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is TransactionHistoryViewModel.UIEvent.GotoInvoiceDetailScreen -> navController.navigate(Screen.INVOICE_DETAIL + "/${event.orderItemId}")
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -103,6 +133,24 @@ fun TransactionHistoryScreen(
                 }
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.onEvent(TransactionHistoryEvent.OnTapFloatingActionBtn) },
+                containerColor = Primary,
+                contentColor = White,
+                shape = CircleShape,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search Icon",
+                    tint = White,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                )
+            }
+        },
         modifier = Modifier.background(color = Secondary100)
     ) { innerPadding ->
         Column(
@@ -112,6 +160,13 @@ fun TransactionHistoryScreen(
         ) {
             DateRangePickerSection()
             SalesReportSection()
+
+            if (showSearchModal) {
+                SearchInvoiceModal(
+                    onDismiss = { viewModel.onEvent(TransactionHistoryEvent.OnClickCancelAtInvoiceSearchModal) },
+                    onConfirm = { viewModel.onEvent(TransactionHistoryEvent.OnClickConfirmAtInvoiceSearchModal) }
+                )
+            }
         }
     }
 }
