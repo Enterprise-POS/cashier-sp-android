@@ -265,8 +265,8 @@ class CashierViewModel @Inject constructor(
 
         when (selectedPaymentMethod) {
             PaymentMethod.CASH -> _selectedPaymentMethod.value = PaymentMethod.CASH
-            PaymentMethod.CARD, PaymentMethod.EWALLET, PaymentMethod.QRIS -> _selectedPaymentMethod.value =
-                PaymentMethod.CASH
+            PaymentMethod.CARD, PaymentMethod.EWALLET, PaymentMethod.QRIS -> { /* Do nothing for now */
+            }
 
             PaymentMethod.OTHER -> _selectedPaymentMethod.value = PaymentMethod.OTHER
         }

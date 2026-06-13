@@ -167,7 +167,7 @@ fun CashierScreen(
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
                         onClick = onHandleBottomSheet,
                         modifier = Modifier
-                            .width(140.dp)
+                            .padding(horizontal = 8.dp)
                             .testTag(TestTags.CashierScreen.CHART_BUTTON),
                     ) {
                         Icon(
@@ -206,8 +206,7 @@ fun CashierScreen(
                                 imageVector = Icons.Outlined.Menu,
                                 contentDescription = "Menu to open drawer (Hamburger Button)",
                                 tint = White,
-                                modifier = Modifier
-                                    .size(24.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
