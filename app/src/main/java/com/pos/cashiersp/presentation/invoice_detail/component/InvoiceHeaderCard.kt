@@ -39,7 +39,7 @@ import com.pos.cashiersp.presentation.util.toRupiah
 fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
     var orderItem = viewModel.orderItem.value!!
     val date = dateFormatter(orderItem.createdAt, "dd MMM yyyy")
-    val time = dateFormatter(orderItem.createdAt, "HH:mm a")
+    val time = dateFormatter(orderItem.createdAt, "HH:mm")
 
     Card(
         border = BorderStroke(width = .8.dp, color = Gray100.copy(alpha = .4f)),
@@ -120,7 +120,7 @@ fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                     value = "${orderItem.totalQuantity} item${if (orderItem.totalQuantity > 1) "s" else ""}",
                     modifier = Modifier.weight(1f)
                 )
-                InfoBox(label = "Cash-in", value = orderItem.totalAmount.toRupiah(), modifier = Modifier.weight(1f))
+                InfoBox(label = "Cash-in", value = orderItem.purchasedPrice.toRupiah(), modifier = Modifier.weight(1f))
             }
         }
     }

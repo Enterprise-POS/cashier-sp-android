@@ -2,6 +2,7 @@ package com.pos.cashiersp.model.dto
 
 
 import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.parseDateString
 import kotlinx.serialization.Serializable
 
@@ -25,10 +26,16 @@ data class OrderItem(
     val totalAmount: Int,
     @SerializedName("total_quantity")
     val totalQuantity: Int,
+    @SerializedName("payment_type")
+    val paymentMethod: PaymentMethod,
 
     // Store
     @SerializedName("store_name")
-    val storeName: String?
+    val storeName: String?,
+    @SerializedName("address")
+    val address: String?,
+    @SerializedName("phone_number")
+    val phoneNumber: String?
 )
 
 fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
@@ -44,8 +51,11 @@ fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
         totalQuantity = this.totalQuantity,
         purchasedPrice = this.purchasedPrice,
         createdAt = calendar,
+        paymentMethod = this.paymentMethod,
 
         // Store. May not available
-        storeName = this.storeName ?: ""
+        storeName = this.storeName ?: "",
+        address = this.address ?: "",
+        phoneNumber = this.phoneNumber ?: ""
     )
 }

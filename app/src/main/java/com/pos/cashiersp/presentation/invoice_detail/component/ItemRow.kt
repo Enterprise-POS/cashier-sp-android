@@ -69,7 +69,7 @@ fun ItemRow(
             Spacer(Modifier.height(2.dp))
             val meta = buildString {
                 append("Qty ${item.quantity}")
-                if (item.discountAmount > 0) append(" · -¥${item.discountAmount}")
+                if (item.discountAmount > 0) append(" · -${item.discountAmount.toRupiah()}")
             }
             Text(
                 text = meta,
@@ -88,7 +88,7 @@ fun ItemRow(
                 color = Primary,
             )
             Text(
-                text = "unit ¥${item.storePriceSnapshot.toRupiah()}",
+                text = "unit ${item.storePriceSnapshot.toRupiah()}",
                 fontSize = 10.sp,
                 color = Gray400,
             )

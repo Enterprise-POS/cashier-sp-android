@@ -3,6 +3,8 @@ package com.pos.cashiersp.presentation.cashier.component
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +54,7 @@ import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray300
+import com.pos.cashiersp.presentation.ui.theme.Gray500
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
@@ -78,13 +81,12 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
     )
 
     Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = White
-        ),
+            .height(160.dp)
+            .border(0.5.dp, Gray100, RoundedCornerShape(16.dp)),
     ) {
         Column(
             modifier = Modifier
@@ -95,7 +97,8 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
+                    .height(64.dp)
+                    .background(Gray100.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 /*
@@ -113,8 +116,10 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                         .crossfade(true)
                         .build(),
                     contentDescription = "Product image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
 
@@ -122,7 +127,8 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = cashierItem.itemName,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = Secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -134,7 +140,7 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                         Text(
                             text = label,
                             fontSize = 10.sp,
-                            color = Gray300,
+                            color = Gray500,
                             fontWeight = FontWeight.W400,
                             style = compactTextStyle,
                             modifier = Modifier.height(12.dp)
@@ -144,8 +150,9 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
 
                 Text(
                     text = if (price > 0) price.toRupiah() else "Rp 0",
-                    fontSize = 12.sp,
-                    color = Secondary
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Primary
                 )
 
                 Row(
@@ -164,6 +171,7 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                         Text(
                             currentCartItemStatus.quantity.toString(),
                             fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = Secondary
                         )
 
@@ -183,7 +191,12 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                                 .padding(horizontal = 10.dp),
                             onClick = { viewModel.onEvent(CashierEvent.OnAddToCart(cashierItem)) }
                         ) {
-                            Text("Add to cart", fontSize = 8.sp)
+                            Text(
+                                "Add to cart",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = White
+                            )
                         }
                     }
                 }

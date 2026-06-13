@@ -14,10 +14,7 @@ import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection
 import com.pos.cashiersp.model.domain.BluetoothDevice
 import com.pos.cashiersp.model.domain.BluetoothDeviceDomain
 import com.pos.cashiersp.model.domain.OrderItem
-import com.pos.cashiersp.model.domain.PurchasedItem as domainPurchasedItem
 import com.pos.cashiersp.model.domain.toBluetoothDeviceDomain
-import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
-import com.pos.cashiersp.model.dto.PurchasedItem as dtoPurchasedItem
 import com.pos.cashiersp.presentation.util.ConnectionResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -32,21 +29,16 @@ import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 @SuppressLint("MissingPermission")
 class AndroidBluetoothControllerImpl(
     private val context: Context,
 ) : BluetoothController {
-    private val bluetoothManager by lazy {
-        context.getSystemService(BluetoothManager::class.java)
-    }
+    private val bluetoothManager by lazy { context.getSystemService(BluetoothManager::class.java) }
 
     // get own address, bluetooth name, get list of scan devices, get list of pair devices
     // to initiate scan, to initiate connection, to start server
-    private val bluetoothAdapter by lazy {
-        bluetoothManager?.adapter
-    }
+    private val bluetoothAdapter by lazy { bluetoothManager.adapter }
 
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())
     override val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>
@@ -154,35 +146,6 @@ class AndroidBluetoothControllerImpl(
         }.flowOn(Dispatchers.IO)
     }
 
-    /*
-        We don't pass the value to function because interface already now which printer by default should print
-        bluetoothController.withConnectedDevicesPrintReceipt(_state.value.pairedDevices)
-    * */
-    override fun withConnectedDevicesPrintReceipt(devices: List<BluetoothDevice>) {
-        _isPrinting.update { true }
-        devices.forEach { device ->
-            try {
-                val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
-                val connection = BluetoothConnection(androidDevice)
-
-                val printer = EscPosPrinter(connection, 183, 76.5f, 48)
-                val formattedText = createFormattedText(printer)
-
-                // Give time for print job to complete
-                // delay(2000) // 2 seconds delay between printers
-
-                printer.printFormattedTextAndCut(formattedText)
-
-                // connection.disconnect()
-
-            } catch (e: Exception) {
-                println("Printer Failed to print to ${device.name}: ${e.message}")
-                // Continue to next printer even if one fails
-            }
-        }
-        _isPrinting.update { false }
-    }
-
     override fun printReceipt(
         devices: List<BluetoothDevice>,
         orderItem: OrderItem,
@@ -194,49 +157,8 @@ class AndroidBluetoothControllerImpl(
             items = receiptItems,
             discountAmount = orderItem.discountAmount.toDouble(),
             cash = orderItem.purchasedPrice.toDouble(),
-            taxRate = 0.0,
-        )
-
-        _isPrinting.update { true }
-        try {
-            devices.forEach { device ->
-                println("Printing at: ${device.name}")
-                try {
-                    val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
-                        ?: throw IllegalStateException("Bluetooth adapter is null")
-                    val connection = BluetoothConnection(androidDevice)
-                    val printer = EscPosPrinter(connection, 183, 76.5f, 48)
-                    printer.printFormattedTextAndCut(buildReceiptText(orderData))
-                } catch (e: Exception) {
-                    println("Printer failed for ${device.name}: ${e.message}")
-                }
-            }
-        } finally {
-            _isPrinting.update { false }
-        }
-    }
-
-    override fun withConnectedDevicesPrintReceipt2(
-        devices: List<BluetoothDevice>,
-        findTransactionsByIdDto: FindTransactionsByIdDto,
-    ) {
-        val orderItem = findTransactionsByIdDto.orderItem
-        val purchasedItemList = findTransactionsByIdDto.purchasedItemList
-
-        val receiptItems = purchasedItemList.map { item ->
-            ReceiptLineItem(
-                name = item.itemNameSnapshot,
-                qty = item.quantity,
-                unitPrice = item.storePriceSnapshot.toDouble(),
-            )
-        }
-
-        val orderData = OrderData(
-            id = orderItem.id.toString(),
-            storeName = orderItem.storeName.toString(),
-            items = receiptItems,
-            discountAmount = orderItem.discountAmount.toDouble(),
-            cash = orderItem.purchasedPrice.toDouble(),
+            phoneNumber = orderItem.phoneNumber,
+            address = orderItem.address,
             taxRate = 0.0,
         )
 
@@ -276,61 +198,34 @@ class AndroidBluetoothControllerImpl(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    companion object {
-        val SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-    }
+    /*
+    We don't pass the value to function because interface already now which printer by default should print
+    bluetoothController.withConnectedDevicesPrintReceipt(_state.value.pairedDevices)
+    * */
+    @Deprecated("TEST ONLY")
+    override fun withConnectedDevicesPrintReceipt(devices: List<BluetoothDevice>) {
+        _isPrinting.update { true }
+        devices.forEach { device ->
+            try {
+                val androidDevice = bluetoothAdapter?.getRemoteDevice(device.address)
+                val connection = BluetoothConnection(androidDevice)
 
-    private fun createFormattedText(printer: EscPosPrinter): String {
-        return "[C]<font size='big'>TASTY BITES</font>\n" +
-                "[C]Order #123\n" +
-                "[C]================================\n" +
-                "[L]<b>Burger Deluxe</b>          12.99\n" +
-                "[L]  - No onions\n" +
-                "[L]  - Extra cheese\n" +
-                "[L]\n" +
-                "[L]<b>Fries (Large)</b>           4.99\n" +
-                "[L]<b>Coke</b>                    2.50\n" +
-                "[L]  x2\n" +
-                "[C]--------------------------------\n" +
-                "[R]SUBTOTAL:                  20.48\n" +
-                "[C]================================\n" +
-                "[R]<b>TOTAL:                    24.17</b>\n"
-        /*
-        return "[C]<img>" + PrinterTextParserImg.bitmapToHexadecimalString(
-            printer,
-            context.resources.getDrawableForDensity(
-                R.drawable.logo, DisplayMetrics.DENSITY_MEDIUM
-            )
-        ) + "</img>\n" +
-                "[L]\n" +
-                "[C]<u><font size='big'>ORDER N°045</font></u>\n" +
-                "[L]\n" +
-                "[C]================================\n" +
-                "[L]\n" +
-                "[L]<b>BEAUTIFUL SHIRT</b>[R]9.99e\n" +
-                "[L]  + Size : S\n" +
-                "[L]\n" +
-                "[L]<b>AWESOME HAT</b>[R]24.99e\n" +
-                "[L]  + Size : 57/58\n" +
-                "[L]\n" +
-                "[C]--------------------------------\n" +
-                "[R]TOTAL PRICE :[R]34.98e\n" +
-                "[R]TAX :[R]4.23e\n" +
-                "[L]\n" +
-                "[C]================================\n" +
-                "[L]\n" +
-                "[L]<font size='tall'>Customer :</font>\n" +
-                "[L]Raymond DUPONT\n" +
-                "[L]5 rue des girafes\n" +
-                "[L]31547 PERPETES\n" +
-                "[L]Tel : +33801201456\n" +
-                "[L]\n" +
-                "[C]<barcode type='ean13' height='10'>831254784551</barcode>\n" +
-                "[C]<qrcode size='20'>http://www.developpeur-web.dantsu.com/</qrcode>"
-                "[L]\n"
-    }
-         */
-        return "test"
+                val printer = EscPosPrinter(connection, 183, 76.5f, 48)
+                val formattedText = createFormattedText()
+
+                // Give time for print job to complete
+                // delay(2000) // 2 seconds delay between printers
+
+                printer.printFormattedTextAndCut(formattedText)
+
+                // connection.disconnect()
+
+            } catch (e: Exception) {
+                println("Printer Failed to print to ${device.name}: ${e.message}")
+                // Continue to next printer even if one fails
+            }
+        }
+        _isPrinting.update { false }
     }
 }
 
@@ -376,10 +271,12 @@ data class OrderData(
     val discountAmount: Double = 0.0,
     val cash: Double = 0.0,
     val taxRate: Double = 0.0,
+    val phoneNumber: String,
+    val address: String,
 )
 
-// ── Receipt text builder ──────────────────────────────────────────────────────
-fun buildReceiptText(order: OrderData): String {
+// ── Receipt text builder
+private fun buildReceiptText(order: OrderData): String {
     val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
     val fmt = { v: Double -> "Rp %.0f".format(v) }
 
@@ -394,24 +291,24 @@ fun buildReceiptText(order: OrderData): String {
     val thinLine = "[C]------------------------------------------------\n"
 
     return buildString {
-        // ── Header ────────────────────────────────────────────────────────
+        // ── Header
         append("[C]<font size='big'>${order.storeName}</font>\n")
         append(divider)
         append("[L]Order : #${order.id}\n")
         append("[L]Date  : $dateStr\n")
         append(divider)
 
-        // ── Column header ─────────────────────────────────────────────────
+        // ── Column header
         append("[L]<b>ITEM</b>[R]<b>AMOUNT</b>\n")
         append(thinLine)
 
-        // ── Items ─────────────────────────────────────────────────────────
+        // ── Items
         order.items.forEach { item ->
             append("[L]<b>${item.name}</b>[R]${fmt(item.lineTotal)}\n")
             append("[L]  ${fmt(item.unitPrice)} x ${item.qty}\n")
         }
 
-        // ── Subtotals ─────────────────────────────────────────────────────
+        // ── Subtotals
         append(thinLine)
         append("[L]Subtotal[R]${fmt(subtotal)}\n")
 
@@ -424,21 +321,39 @@ fun buildReceiptText(order: OrderData): String {
             append("[L]Tax ($pct%)[R]${fmt(taxAmount)}\n")
         }
 
-        // ── Grand total ───────────────────────────────────────────────────
+        // ── Grand total
         append(divider)
         append("[L]<font size='big'><b>TOTAL</b></font>[R]<font size='big'><b>${fmt(totalAmount)}</b></font>\n")
         append(divider)
 
-        // ── Payment ───────────────────────────────────────────────────────
+        // ── Payment
         append("[L]Cash[R]${fmt(order.cash)}\n")
         append("[L]<b>Change</b>[R]<b>${fmt(change)}</b>\n")
         append(thinLine)
 
-        // ── Footer ────────────────────────────────────────────────────────
+        // ── Footer
         append("[C]\n")
         append("[C]<font size='tall'>Thank you for your visit!</font>\n")
         append("[C]Please come again\n")
         append("[C]\n")
         append("[L]\n")
     }
+}
+
+private fun createFormattedText(): String {
+    return "[C]<font size='big'>TASTY BITES</font>\n" +
+            "[C]Order #123\n" +
+            "[C]================================\n" +
+            "[L]<b>Burger Deluxe</b>          12.99\n" +
+            "[L]  - No onions\n" +
+            "[L]  - Extra cheese\n" +
+            "[L]\n" +
+            "[L]<b>Fries (Large)</b>           4.99\n" +
+            "[L]<b>Coke</b>                    2.50\n" +
+            "[L]  x2\n" +
+            "[C]--------------------------------\n" +
+            "[R]SUBTOTAL:                  20.48\n" +
+            "[C]================================\n" +
+            "[R]<b>TOTAL:                    24.17</b>\n"
+    return "test"
 }
