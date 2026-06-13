@@ -1,5 +1,6 @@
 package com.pos.cashiersp.model.domain
 
+import com.pos.cashiersp.presentation.util.PaymentMethod
 import java.util.Calendar
 
 
@@ -13,6 +14,7 @@ data class OrderItem(
     val tenantId: Int,
     val totalAmount: Int,
     val totalQuantity: Int,
+    val paymentMethod: PaymentMethod,
 
     // Store
     val storeName: String = "",

@@ -50,6 +50,7 @@ fun CreateTransactionParams.toOrderItemDomain(
         subtotal = this.subTotal,
         totalQuantity = this.totalQuantity,
         purchasedPrice = this.purchasedPrice,
-        storeName = storeName
+        paymentMethod = this.paymentMethod,
+        storeName = storeName,
     )
 }

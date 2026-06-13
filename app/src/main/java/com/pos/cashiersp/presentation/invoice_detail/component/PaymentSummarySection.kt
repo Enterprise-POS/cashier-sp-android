@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.SystemSecurityUpdateGood
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,6 +41,7 @@ import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.toRupiah
 
 @Composable
@@ -115,34 +120,119 @@ fun PaymentSummarySection(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalPlatformContext.current)
-                                .data(R.raw.cash_payment_method_icon)
-                                .decoderFactory(SvgDecoder.Factory())
-                                .build(),
-                            contentDescription = "Cash payment",
-                            colorFilter = ColorFilter.tint(Primary),
-                            modifier = Modifier
-                                .size(18.dp)
-                        )
-                        Column {
-                            Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                        when (orderItem.paymentMethod) {
+                            PaymentMethod.CASH -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(R.raw.cash_payment_method_icon)
+                                        .decoderFactory(SvgDecoder.Factory())
+                                        .build(),
+                                    contentDescription = "Cash payment",
+                                    colorFilter = ColorFilter.tint(Primary),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                )
+                                Column {
+                                    Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                                    Text(
+                                        text = "Cash payment",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.W600,
+                                        color = Secondary
+                                    )
+                                }
+                            }
+
+                            PaymentMethod.OTHER -> {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Other payment method",
+                                    tint = Primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                                    Text(
+                                        text = "Other",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.W600,
+                                        color = Secondary
+                                    )
+                                }
+                            }
+
+                            PaymentMethod.CARD -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(R.raw.credit_card_payment_method_icon)
+                                        .decoderFactory(SvgDecoder.Factory())
+                                        .build(),
+                                    contentDescription = "Credit card payment",
+                                    colorFilter = ColorFilter.tint(Primary),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                                    Text(
+                                        text = "Card",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.W600,
+                                        color = Secondary
+                                    )
+                                }
+                            }
+
+                            PaymentMethod.QRIS -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(R.raw.qr_code_payment_method)
+                                        .decoderFactory(SvgDecoder.Factory())
+                                        .build(),
+                                    contentDescription = "QR code payment",
+                                    colorFilter = ColorFilter.tint(Primary),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                                    Text(
+                                        text = "QRIS",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.W600,
+                                        color = Secondary
+                                    )
+                                }
+                            }
+
+                            PaymentMethod.EWALLET -> {
+                                Icon(
+                                    imageVector = Icons.Default.SystemSecurityUpdateGood,
+                                    contentDescription = "E-Wallet payment method",
+                                    tint = Primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text(text = "Method", fontSize = 10.sp, color = Gray400)
+                                    Text(
+                                        text = "E-Wallet",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.W600,
+                                        color = Secondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (orderItem.paymentMethod == PaymentMethod.CASH) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(text = "Change", fontSize = 10.sp, color = Gray400)
                             Text(
-                                text = "Cash payment",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.W600,
+                                text = (orderItem.purchasedPrice - orderItem.totalAmount).toRupiah(),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.W700,
                                 color = Secondary
                             )
                         }
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(text = "Change", fontSize = 10.sp, color = Gray400)
-                        Text(
-                            text = (orderItem.purchasedPrice - orderItem.totalAmount).toRupiah(),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.W700,
-                            color = Secondary
-                        )
                     }
                 }
             }
