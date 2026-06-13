@@ -3,6 +3,7 @@ package com.pos.cashiersp.model.dto
 
 import com.google.gson.annotations.SerializedName
 import com.pos.cashiersp.model.domain.OrderItem
+import com.pos.cashiersp.presentation.util.PaymentMethod
 import kotlinx.serialization.Serializable
 import java.util.Calendar
 
@@ -28,6 +29,9 @@ data class CreateTransactionParams(
     val tenantId: Int,
     @SerializedName("store_id")
     val storeId: Int,
+
+    @SerializedName("payment_type")
+    val paymentMethod: PaymentMethod
 )
 
 // Because CreateTransactionParams is for requesting. createdAt,transactionId must be assigned manually

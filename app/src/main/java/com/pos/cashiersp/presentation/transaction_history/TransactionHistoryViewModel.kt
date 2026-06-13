@@ -11,6 +11,8 @@ import com.pos.cashiersp.controller.BluetoothController
 import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.QueryFilter
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
+import com.pos.cashiersp.model.dto.toDomain
+import com.pos.cashiersp.model.dto.toReceiptLine
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent.*
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryViewModel.UIEvent.*
@@ -91,17 +93,6 @@ class TransactionHistoryViewModel @Inject constructor(
 
     // Transaction History screen only print for connected only printers
     private val _isPrinting = mutableStateOf(false)
-    private val _bluetoothDevices = MutableStateFlow(BluetoothUIState())
-    val bluetoothDevices = combine(
-        bluetoothController.scannedDevices,
-        bluetoothController.pairedDevices,
-        _bluetoothDevices
-    ) { scannedDevices, pairedDevices, bluetoothDevices ->
-        bluetoothDevices.copy(
-            scannedDevices = scannedDevices,
-            pairedDevices = pairedDevices
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _bluetoothDevices.value)
 
     init {
         loadDataStoreData()
@@ -292,8 +283,10 @@ class TransactionHistoryViewModel @Inject constructor(
 
                         is Resource.Success -> {
                             // Start printing
-                            println(resource.data!!)
-                            bluetoothController.withConnectedDevicesPrintReceipt2(connectedDevices, resource.data!!)
+                            // println(resource.data!!)
+                            val orderItem = resource.data!!.orderItem.toDomain()
+                            val purchasedItemList = resource.data.purchasedItemList.map { it.toReceiptLine() }
+                            bluetoothController.printReceipt(orderItem = orderItem, purchasedItems = purchasedItemList)
 
                             _isPrinting.value = false
                             _generalAlertDialogStatus.value = GeneralAlertDialogStatus()

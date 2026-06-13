@@ -92,7 +92,7 @@ fun PaymentSummarySection(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                     color = Secondary
                 )
                 Text(
-                    text = orderItem.totalAmount.toString(),
+                    text = orderItem.totalAmount.toRupiah(),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.W600,
                     color = Primary
@@ -138,7 +138,7 @@ fun PaymentSummarySection(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(text = "Change", fontSize = 10.sp, color = Gray400)
                         Text(
-                            text = (orderItem.purchasedPrice - orderItem.totalAmount).toString(),
+                            text = (orderItem.purchasedPrice - orderItem.totalAmount).toRupiah(),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W700,
                             color = Secondary

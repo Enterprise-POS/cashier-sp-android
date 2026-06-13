@@ -28,7 +28,11 @@ data class OrderItem(
 
     // Store
     @SerializedName("store_name")
-    val storeName: String?
+    val storeName: String?,
+    @SerializedName("address")
+    val address: String?,
+    @SerializedName("phone_number")
+    val phoneNumber: String?
 )
 
 fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
@@ -46,6 +50,8 @@ fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
         createdAt = calendar,
 
         // Store. May not available
-        storeName = this.storeName ?: ""
+        storeName = this.storeName ?: "",
+        address = this.address ?: "",
+        phoneNumber = this.phoneNumber ?: ""
     )
 }

@@ -16,4 +16,6 @@ data class OrderItem(
 
     // Store
     val storeName: String = "",
+    val address: String = "",
+    val phoneNumber: String = "",
 )

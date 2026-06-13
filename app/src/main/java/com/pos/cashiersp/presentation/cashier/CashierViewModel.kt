@@ -31,6 +31,7 @@ import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.presentation.util.parseDateString
+import com.pos.cashiersp.presentation.util.toRupiah
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.OrderItemUseCase
 import com.pos.cashiersp.use_case.StoreStockUseCase
@@ -166,7 +167,7 @@ class CashierViewModel @Inject constructor(
             is OnAddQuantity -> onAddQuantity(event)
             is OnDecreaseQuantity -> onDecreaseQuantity(event)
             is OnRemoveFromCart -> onRemoveFromCart(event)
-            is OnSelectPaymentMethod -> onSelectPaymentMethod()
+            is OnSelectPaymentMethod -> onSelectPaymentMethod(event)
             is PlaceOrder -> onPlaceOrder()
             is CashierEvent.EnteredCashBalance -> onEnteredCashBalance(event)
             is CashierEvent.OnConfirmTransactionBtnDialog -> onConfirmTransactionDialog()
@@ -259,9 +260,16 @@ class CashierViewModel @Inject constructor(
         _cart.value = _cart.value.toMutableMap().also { it.remove(existingItem.id) }
     }
 
-    private fun onSelectPaymentMethod() {
-        // Currently only Cash is supported
-        _selectedPaymentMethod.value = PaymentMethod.CASH
+    private fun onSelectPaymentMethod(event: OnSelectPaymentMethod) {
+        val selectedPaymentMethod = event.paymentMethod
+
+        when (selectedPaymentMethod) {
+            PaymentMethod.CASH -> _selectedPaymentMethod.value = PaymentMethod.CASH
+            PaymentMethod.CARD, PaymentMethod.EWALLET, PaymentMethod.QRIS -> _selectedPaymentMethod.value =
+                PaymentMethod.CASH
+
+            PaymentMethod.OTHER -> _selectedPaymentMethod.value = PaymentMethod.OTHER
+        }
     }
 
     private fun onPlaceOrder() {
@@ -269,41 +277,46 @@ class CashierViewModel @Inject constructor(
         if (transactionJob?.isActive == true) return
         if (!isProcessingTransaction.compareAndSet(false, true)) return
 
-        // ── Validation ──
-        val cashInput = _inpCashPaymentMethod.value.text
-        if (cashInput.isEmpty()) {
-            isProcessingTransaction.set(false)
-            return showWarning("Please fill the (Amount Received) first before transaction")
-        }
-
         val currentCart = _cart.value
+
+        // Common validation
         if (currentCart.isEmpty()) {
             isProcessingTransaction.set(false)
             return showWarning("Select at least 1 item / product before make transaction")
         }
 
-        // ── Build order ──
-        val purchasedPrice = cashInput.toIntOrNull() ?: run {
-            isProcessingTransaction.set(false)
-            return showWarning("Invalid payment amount entered")
-        }
+        val paymentMethod = _selectedPaymentMethod.value
 
-        var subTotal = 0
+        // Build order once
+        var subTotal = 0L
         var totalQuantity = 0
-        val discountAmount = 0 // TODO: Implement discount voucher
+        val discountAmount = 0L // TODO
+
         val items = mutableListOf<dtoItem>()
 
         for ((_, cartItem) in currentCart) {
-            val lineTotal = cartItem.storeStock.price * cartItem.quantity
+
+            // Optional stock validation
+            if (cartItem.quantity > cartItem.storeStock.stocks) {
+                isProcessingTransaction.set(false)
+                return showWarning(
+                    "Insufficient stock for ${cartItem.item.itemName}"
+                )
+            }
+
+            val lineTotal =
+                cartItem.storeStock.price.toLong() * cartItem.quantity
+
             subTotal += lineTotal
             totalQuantity += cartItem.quantity
+
             items.add(
                 dtoItem(
                     itemId = cartItem.item.itemId,
                     quantity = cartItem.quantity,
                     storePriceSnapshot = cartItem.storeStock.price,
                     discountAmount = 0,
-                    totalAmount = lineTotal,
+                    totalAmount = lineTotal.toInt(),
                     itemNameSnapshot = cartItem.item.itemName,
                     basePriceSnapshot = cartItem.item.basePrice,
                 )
@@ -312,30 +325,85 @@ class CashierViewModel @Inject constructor(
 
         val totalAmount = subTotal - discountAmount
 
-        if (purchasedPrice < totalAmount) {
-            isProcessingTransaction.set(false)
-            _transactionState.value = StateStatus(error = "Insufficient Payment")
-            _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
-                "Insufficient Payment",
-                "Amount received (¥$purchasedPrice) is less than total (¥$totalAmount)"
-            )
-            return
+        when (paymentMethod) {
+
+            PaymentMethod.CASH -> {
+                // Get the user inputted value
+                val cashInput = _inpCashPaymentMethod.value.text
+
+                if (cashInput.isEmpty()) {
+                    isProcessingTransaction.set(false)
+                    return showWarning(
+                        "Please fill the (Amount Received) first before transaction"
+                    )
+                }
+
+                val purchasedPrice = cashInput.toLongOrNull()
+
+                if (purchasedPrice == null) {
+                    isProcessingTransaction.set(false)
+                    return showWarning("Invalid payment amount entered")
+                }
+
+                if (purchasedPrice < totalAmount) {
+                    isProcessingTransaction.set(false)
+
+                    _transactionState.value =
+                        StateStatus(error = "Insufficient Payment")
+
+                    _generalAlertDialogState.value =
+                        GeneralAlertDialogStatus.error(
+                            "Insufficient Payment",
+                            "Amount received (${purchasedPrice.toRupiah()}) is less than total (${totalAmount.toRupiah()})"
+                        )
+                    return
+                }
+
+                val params = CreateTransactionParams(
+                    items = items,
+                    purchasedPrice = purchasedPrice.toInt(),
+                    totalQuantity = totalQuantity,
+                    totalAmount = totalAmount.toInt(),
+                    discountAmount = discountAmount.toInt(),
+                    subTotal = subTotal.toInt(),
+                    tenantId = _tenantId.intValue,
+                    storeId = _storeId.intValue,
+                    userId = _staffId.intValue,
+                    paymentMethod = paymentMethod
+                )
+
+                _transactionState.value =
+                    StateStatus(isLoading = true)
+
+                executeTransaction(params, items)
+            }
+
+            PaymentMethod.OTHER -> {
+
+                val params = CreateTransactionParams(
+                    items = items,
+                    purchasedPrice = totalAmount.toInt(),
+                    totalQuantity = totalQuantity,
+                    totalAmount = totalAmount.toInt(),
+                    discountAmount = discountAmount.toInt(),
+                    subTotal = subTotal.toInt(),
+                    tenantId = _tenantId.intValue,
+                    storeId = _storeId.intValue,
+                    userId = _staffId.intValue,
+                    paymentMethod = paymentMethod
+                )
+
+                _transactionState.value =
+                    StateStatus(isLoading = true)
+
+                executeTransaction(params, items)
+            }
+
+            else -> {
+                isProcessingTransaction.set(false)
+                showWarning("Payment method not supported")
+            }
         }
-
-        val params = CreateTransactionParams(
-            items = items,
-            purchasedPrice = purchasedPrice,
-            totalQuantity = totalQuantity,
-            totalAmount = totalAmount,
-            discountAmount = discountAmount,
-            subTotal = subTotal,
-            tenantId = _tenantId.intValue,
-            storeId = _storeId.intValue,
-            userId = _staffId.intValue
-        )
-
-        _transactionState.value = StateStatus(isLoading = true)
-        executeTransaction(params, items)
     }
 
     private fun executeTransaction(params: CreateTransactionParams, items: List<dtoItem>) {
