@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -47,9 +48,11 @@ import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.components.DateRangePickerSection
 import com.pos.cashiersp.presentation.transaction_history.components.SalesReportSection
 import com.pos.cashiersp.presentation.transaction_history.components.SearchInvoiceModal
+import com.pos.cashiersp.presentation.transaction_history.components.TransactionSummaryModal
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
+import com.pos.cashiersp.presentation.ui.theme.Primary800
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.Success
@@ -65,8 +68,8 @@ fun TransactionHistoryScreen(
     viewModel: TransactionHistoryViewModel = hiltViewModel()
 ) {
     val storeName = viewModel.storeName.value
-
-    var showSearchModal = viewModel.showSearchInvoiceModal.value
+    val showSearchModal = viewModel.showSearchInvoiceModal.value
+    val showSummaryTransactionModal = viewModel.showSummaryTransactionModal.value
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -111,9 +114,8 @@ fun TransactionHistoryScreen(
                 actions = {
                     Box(
                         contentAlignment = Alignment.CenterEnd,
-                        modifier = Modifier.width(120.dp)
-                    )
-                    {
+                        modifier = Modifier.width(90.dp)
+                    ) {
                         Text(
                             storeName,
                             maxLines = 1,
@@ -122,11 +124,23 @@ fun TransactionHistoryScreen(
                             color = Primary,
                             fontWeight = FontWeight.W500,
                             modifier = Modifier
-                                .background(
-                                    Primary100,
-                                    RoundedCornerShape(4.dp)
-                                )
+                                .background(Primary100, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+
+                    IconButton(
+                        onClick = {
+                            viewModel.onEvent(
+                                TransactionHistoryEvent.OnToggleSummaryTransactionBtn(true)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Summarize,
+                            contentDescription = "View transaction summary",
+                            tint = Primary800
                         )
                     }
                     Spacer(Modifier.width(12.dp))
@@ -165,6 +179,12 @@ fun TransactionHistoryScreen(
                 SearchInvoiceModal(
                     onDismiss = { viewModel.onEvent(TransactionHistoryEvent.OnClickCancelAtInvoiceSearchModal) },
                     onConfirm = { viewModel.onEvent(TransactionHistoryEvent.OnClickConfirmAtInvoiceSearchModal) }
+                )
+            }
+
+            if (showSummaryTransactionModal) {
+                TransactionSummaryModal(
+                    onDismiss = { viewModel.onEvent(TransactionHistoryEvent.OnToggleSummaryTransactionBtn(false)) }
                 )
             }
         }

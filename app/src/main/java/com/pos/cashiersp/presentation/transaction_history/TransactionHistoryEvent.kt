@@ -36,5 +36,8 @@ sealed class TransactionHistoryEvent {
     object OnTapFloatingActionBtn : TransactionHistoryEvent()
     object OnClickCancelAtInvoiceSearchModal : TransactionHistoryEvent()
     object OnClickConfirmAtInvoiceSearchModal : TransactionHistoryEvent()
+
+    data class OnToggleSummaryTransactionBtn(val show: Boolean?) : TransactionHistoryEvent()
+
     data class OnChangeInvoiceSearchInput(val inp: String) : TransactionHistoryEvent()
 }

@@ -77,6 +77,10 @@ class TransactionHistoryViewModel @Inject constructor(
     private val _inputInvoiceId = mutableIntStateOf(0)
     val inputInvoiceId: State<Int> = _inputInvoiceId
 
+    // Modal component that show summary of the transaction of the selected range
+    private val _showSummaryTransactionModal = mutableStateOf(false)
+    val showSummaryTransactionModal: State<Boolean> = _showSummaryTransactionModal
+
     private val _generalAlertDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
     val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogStatus
     private val _isRequesting = mutableStateOf(false)
@@ -324,11 +328,15 @@ class TransactionHistoryViewModel @Inject constructor(
             OnClickConfirmAtInvoiceSearchModal -> {
                 if (_inputInvoiceId.intValue <= 0) return
                 viewModelScope.launch {
-                    _uiEvent.emit(UIEvent.GotoInvoiceDetailScreen(_inputInvoiceId.intValue))
+                    _uiEvent.emit(GotoInvoiceDetailScreen(_inputInvoiceId.intValue))
 
                     _inputInvoiceId.intValue = 0
                     _showSearchInvoiceModal.value = false
                 }
+            }
+
+            is OnToggleSummaryTransactionBtn -> {
+                _showSummaryTransactionModal.value = event.show ?: !_showSummaryTransactionModal.value
             }
         }
     }

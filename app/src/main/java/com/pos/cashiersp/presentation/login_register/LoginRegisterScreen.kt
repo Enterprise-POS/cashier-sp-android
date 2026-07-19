@@ -129,7 +129,7 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
                     val isRedirect = event.boolean
                     if (isRedirect)
                     // from be
-                        navController.navigate(Screen.SELECT_TENANT) {
+                        navController.navigate(Screen.TRANSACTION_HISTORY) {
                             popUpTo(Screen.LOGIN_REGISTER) { inclusive = true }
                         }
                     else
