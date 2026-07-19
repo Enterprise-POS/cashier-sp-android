@@ -32,6 +32,7 @@ import com.pos.cashiersp.presentation.logout.LogoutScreen
 import com.pos.cashiersp.presentation.select_store.SelectStoreScreen
 import com.pos.cashiersp.presentation.select_tenant.SelectTenantScreen
 import com.pos.cashiersp.presentation.settings.SettingsScreen
+import com.pos.cashiersp.presentation.splash.SplashScreen
 import com.pos.cashiersp.presentation.stock_management.StockManagementScreen
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryScreen
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
@@ -65,9 +66,11 @@ class MainActivity : ComponentActivity() {
                     CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.LOGIN_REGISTER
+                            startDestination = Screen.SPLASH
                         ) {
-
+                            composable(route = Screen.SPLASH) {
+                                SplashScreen(navController)
+                            }
                             composable(route = Screen.GREETING) {
                                 GreetingScreen(navController)
                             }

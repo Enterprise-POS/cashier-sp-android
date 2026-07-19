@@ -15,6 +15,7 @@ import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.model.domain.StoreStock
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.model.dto.CreateTransactionParams
+import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.TransactionResponse
 import com.pos.cashiersp.model.dto.toOrderItemDomain
 import com.pos.cashiersp.model.dto.toReceiptLine
@@ -297,7 +298,7 @@ class CashierViewModel @Inject constructor(
         for ((_, cartItem) in currentCart) {
 
             // Optional stock validation
-            if (cartItem.quantity > cartItem.storeStock.stocks) {
+            if (cartItem.storeStock.stockType == StockType.TRACKED && cartItem.quantity > cartItem.storeStock.stocks) {
                 isProcessingTransaction.set(false)
                 return showWarning(
                     "Insufficient stock for ${cartItem.item.itemName}"
