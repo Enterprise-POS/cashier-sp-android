@@ -46,5 +46,6 @@ fun CashierItem.toDBEntity(tenantId: Int, storeId: Int): CashierItemEntity {
         storeStockStocks = this.storeStockStocks,
         tenantId = tenantId,
         storeId = storeId,
+        basePrice = this.basePrice
     )
 }

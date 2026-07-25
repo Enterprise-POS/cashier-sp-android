@@ -21,7 +21,9 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +61,7 @@ import androidx.navigation.NavController
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CashierTopAppBar
 import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
@@ -81,7 +84,6 @@ fun CashierScreen(
 ) {
     // viewmodel
     val vmState by viewModel.state
-    val cart by viewModel.cart
     val categories by viewModel.categories
     val selectedCategoryId by viewModel.selectedCategory
     val cashierItems by viewModel.cashierItems
@@ -91,9 +93,9 @@ fun CashierScreen(
     val transactionCompleteDialogState by viewModel.transactionCompleteDialogState
     val completeTransactionParams by viewModel.completeTransactionReference
     val isPrinting by viewModel.isPrinting
+    val informationDialogStatus by viewModel.informationDialogStatus
 
     // scope
-    val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val searchTextFieldState = remember { TextFieldState() }
@@ -156,78 +158,8 @@ fun CashierScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-        topBar = {
-            TopAppBar(
-                actions = {
-                    OutlinedButton(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
-                        onClick = onHandleBottomSheet,
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
-                            .testTag(TestTags.CashierScreen.CHART_BUTTON),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ShoppingCart,
-                            contentDescription = "Shopping cart icon",
-                            tint = White
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("${cart.size} items", color = White)
-                    }
-                },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // Button to open drawer (Hamburger Button)
-                        IconButton(
-                            modifier = Modifier
-                                .width(48.dp)
-                                // Because by default the action button has padding
-                                // We need to tweak a bit offset
-                                .offset(x = (-8).dp)
-                                .testTag(TestTags.CashierScreen.MENU_DRAWER_BUTTON),
-                            colors = IconButtonColors(
-                                containerColor = Secondary,
-                                contentColor = White,
-                                disabledContainerColor = Secondary,
-                                disabledContentColor = Secondary,
-                            ),
-                            onClick = {
-                                scope.launch { drawerState.apply { if (isClosed) open() else close() } }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = "Menu to open drawer (Hamburger Button)",
-                                tint = White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-
-                        // Title Text
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Cashier",
-                                color = Secondary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.testTag(TestTags.CashierScreen.CASHIER_TITLE)
-                            )
-                        }
-                    }
-                },
-            )
-        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = { CashierTopAppBar(onHandleBottomSheet, drawerState) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -368,6 +300,10 @@ fun CashierScreen(
                 onConfirmation = { viewModel.onEvent(CashierEvent.TryAgainRequestAllProducts) },
                 onDismissRequest = { viewModel.onEvent(CashierEvent.OnDismissTryAgainRequestAllProducts) },
             )
+        }
+
+        if (informationDialogStatus.showDialog) {
+            InformationDialog(false, viewModel)
         }
     }
 }
