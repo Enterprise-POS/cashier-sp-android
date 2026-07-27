@@ -1,6 +1,5 @@
 package com.pos.cashiersp.presentation.cashier
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -49,13 +48,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -144,18 +141,20 @@ class CashierViewModel @Inject constructor(
     private val _completeTransactionCartReference = mutableStateOf<List<ReceiptLineItem>>(emptyList())
 
     // Printing
-
     private val _isPrinting = mutableStateOf(false)
     val isPrinting: State<Boolean> = _isPrinting
 
     // Staff
-
     private val _staffName = mutableStateOf("")
     val staffName: State<String> = _staffName
 
     // Cache
     private val _lastUpdated = mutableLongStateOf(0)
     val lastUpdated: State<Long> = _lastUpdated
+
+    // Categories UI
+    private val _isCategoriesExpanded = mutableStateOf(false)
+    val isCategoriesExpanded: State<Boolean> = _isCategoriesExpanded
 
     private val _staffId = mutableIntStateOf(0)
     val staffId: State<Int> = _staffId
@@ -180,6 +179,7 @@ class CashierViewModel @Inject constructor(
 
     fun onEvent(event: CashierEvent) {
         when (event) {
+            is CashierEvent.OnToggleCategoriesExpanded -> onToggleCategoriesExpanded()
             is OnSelectCategory -> onSelectCategory(event)
             is OnAddToCart -> onAddToCart(event)
             is OnAddQuantity -> onAddQuantity(event)
@@ -219,6 +219,11 @@ class CashierViewModel @Inject constructor(
 
     private fun onSelectCategory(event: OnSelectCategory) {
         _selectedCategory.intValue = event.categoryId
+        _isCategoriesExpanded.value = false // auto-collapse on selection
+    }
+
+    private fun onToggleCategoriesExpanded() {
+        _isCategoriesExpanded.value = !_isCategoriesExpanded.value
     }
 
     private fun onAddToCart(event: OnAddToCart) {

@@ -1,5 +1,8 @@
 package com.pos.cashiersp.presentation.cashier
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,29 +14,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -41,24 +35,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
 import com.pos.cashiersp.presentation.cashier.component.CashierTopAppBar
@@ -73,7 +64,6 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,11 +84,20 @@ fun CashierScreen(
     val completeTransactionParams by viewModel.completeTransactionReference
     val isPrinting by viewModel.isPrinting
     val informationDialogStatus by viewModel.informationDialogStatus
+    val isCategoriesExpanded by viewModel.isCategoriesExpanded // Collapse whenever a category gets selected
 
     // scope
     var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val searchTextFieldState = remember { TextFieldState() }
+
+    val collapsedRows = ((categories.size + 2) / 3).coerceIn(1, 3) // ceil(size/3), min 1, max 3
+    val categoriesGridHeight by animateDpAsState(
+        targetValue = if (isCategoriesExpanded) 400.dp else (40.dp * collapsedRows),
+        animationSpec = tween(durationMillis = 300),
+        label = "categoriesGridHeight"
+    )
+
 
     val onHandleBottomSheet = remember {
         { showBottomSheet = !showBottomSheet }
@@ -211,7 +210,13 @@ fun CashierScreen(
                     Spacer(modifier = Modifier.width(18.dp))
                     Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
                     Spacer(modifier = Modifier.weight(1f))
-                    if (categories.size >= 12) {
+
+                    // 3 columns x 3 rows = 9 items visible when collapsed
+                    if (categories.size > 9) {
+                        val rotation by animateFloatAsState(
+                            targetValue = if (isCategoriesExpanded) 180f else 0f,
+                            label = "chevronRotation"
+                        )
                         TextButton(
                             modifier = Modifier.height(30.dp),
                             colors = ButtonColors(
@@ -220,14 +225,25 @@ fun CashierScreen(
                                 disabledContainerColor = Secondary,
                                 disabledContentColor = Secondary,
                             ),
-                            onClick = {},
+                            onClick = { viewModel.onEvent(CashierEvent.OnToggleCategoriesExpanded) },
                         ) {
-                            Text("View all", style = TextStyle(fontSize = 14.sp))
+                            Text(
+                                if (isCategoriesExpanded) "Show less" else "View all",
+                                style = TextStyle(fontSize = 14.sp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .graphicsLayer { rotationZ = rotation }
+                            )
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-
+                /*
                 // Categories grid
                 LazyVerticalGrid(
                     modifier = Modifier
@@ -238,18 +254,29 @@ fun CashierScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value) }
+                    // items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
+                    items(20, key = { it }) { CategoryCard(Category(it, "$it category name", it, Date()), viewModel) }
+                }
+                */
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .align(Alignment.CenterHorizontally)
+                        .height(categoriesGridHeight),
+                    columns = GridCells.Fixed(3),
+                    userScrollEnabled = isCategoriesExpanded, // no scroll needed when collapsed to 9
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
                 }
 
                 Spacer(Modifier.height(4.dp))
-
-                // In this items grid, I want the card grid remember the value that user inputted even they changed
-                // the categories, and it's re render all the card
+                
                 // Items Grid
                 LazyVerticalGrid(
                     modifier = Modifier
                         .fillMaxWidth(.96f)
-                        .fillMaxHeight(.96f)
                         .heightIn(min = 120.dp)
                         .align(Alignment.CenterHorizontally),
                     columns = GridCells.Fixed(3),

@@ -1,15 +1,14 @@
 package com.pos.cashiersp.presentation.cashier.component
 
-import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import android.widget.Toast
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,30 +23,18 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import com.pos.cashiersp.R
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.presentation.cashier.CashierEvent
@@ -62,105 +49,79 @@ import com.pos.cashiersp.presentation.util.toRupiah
 
 @Composable
 fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
-    val cart: Map<Int, CartItem> = viewModel.cart.value
-    var price = cashierItem.storeStockPrice.toDouble()
+    val context = LocalContext.current
+    val price = cashierItem.storeStockPrice.toDouble()
+    val cart = viewModel.cart.value
+
     val currentCartItemStatus: CartItem? = remember(cart, cashierItem.itemId) {
         cart[cashierItem.itemId]
     }
     val addedToCart = currentCartItemStatus != null
-
-    val compactTextStyle = LocalTextStyle.current.merge(
-        TextStyle(
-            lineHeight = 14.sp,
-            platformStyle = PlatformTextStyle(includeFontPadding = false),
-            lineHeightStyle = LineHeightStyle(
-                alignment = LineHeightStyle.Alignment.Center,
-                trim = LineHeightStyle.Trim.None
-            )
-        )
-    )
 
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
             .border(0.5.dp, Gray100, RoundedCornerShape(16.dp)),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .padding(12.dp)
         ) {
-            // Coffee Image
+            Text(
+                text = cashierItem.itemName,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Secondary,
+                maxLines = 2,
+                lineHeight = 15.sp,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .clickable {
+                        Toast.makeText(context, cashierItem.itemName, Toast.LENGTH_SHORT).show()
+                    }
+            )
+
+            Spacer(Modifier.height(2.dp))
+
+            // Item ID
+            Text(
+                text = "ID • ${cashierItem.itemId}",
+                fontSize = 10.sp,
+                color = Gray500,
+                fontWeight = FontWeight.W400,
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            // Price
+            Text(
+                text = if (price > 0) price.toRupiah() else "Rp 0",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Primary
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Action row: either quantity stepper or "Add to cart".
+            // Fixed height here keeps the card the same size in both states.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
-                    .background(Gray100.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                    .height(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                /*
-                AsyncImage(
-                    modifier = Modifier.fillMaxSize(),
-                    model = "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=125&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-                    contentDescription = null,
-                    fallback = painterResource(id = R.drawable.noimage_compressed)
-                )
-                 */
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(R.drawable.noimage_compressed)
-                        .size(120, 120)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Product image",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(4.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-
-            // Content Section
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = cashierItem.itemName,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Secondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.height(20.dp),
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    listOf("ID", " • ", cashierItem.itemId.toString()).forEach { label ->
-                        Text(
-                            text = label,
-                            fontSize = 10.sp,
-                            color = Gray500,
-                            fontWeight = FontWeight.W400,
-                            style = compactTextStyle,
-                            modifier = Modifier.height(12.dp)
-                        )
-                    }
-                }
-
-                Text(
-                    text = if (price > 0) price.toRupiah() else "Rp 0",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Primary
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (addedToCart && currentCartItemStatus != null) {
+                if (addedToCart) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         CartButton(
                             onClick = { viewModel.onEvent(CashierEvent.OnDecreaseQuantity(cashierItem, 1)) },
                             enabled = currentCartItemStatus.quantity > 0,
@@ -181,23 +142,21 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
                             icon = Icons.Outlined.KeyboardArrowUp,
                             contentDescription = "Increase quantity"
                         )
-                    } else {
-                        TextButton(
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(0.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 10.dp),
-                            onClick = { viewModel.onEvent(CashierEvent.OnAddToCart(cashierItem)) }
-                        ) {
-                            Text(
-                                "Add to cart",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = White
-                            )
-                        }
+                    }
+                } else {
+                    Button(
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                        modifier = Modifier.fillMaxSize(),
+                        onClick = { viewModel.onEvent(CashierEvent.OnAddToCart(cashierItem)) }
+                    ) {
+                        Text(
+                            "Add to cart",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = White
+                        )
                     }
                 }
             }
@@ -205,18 +164,21 @@ fun ItemCard(cashierItem: CashierItem, viewModel: CashierViewModel) {
     }
 }
 
+/**
+ * Small quantity stepper button (+/-).
+ */
 @Composable
 private fun CartButton(
     onClick: () -> Unit,
     enabled: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     contentDescription: String
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier.size(18.dp),
+        modifier = Modifier.size(40.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Primary,
             disabledContentColor = Gray300,
@@ -228,7 +190,7 @@ private fun CartButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = Color.White,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(18.dp)
         )
     }
 }
