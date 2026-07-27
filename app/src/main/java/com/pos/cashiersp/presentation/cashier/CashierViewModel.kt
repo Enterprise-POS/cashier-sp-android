@@ -568,10 +568,10 @@ class CashierViewModel @Inject constructor(
 
     /* If the return is empty list then it suppose to be mean no cache*/
     private suspend fun getCache(tenantId: Int, storeId: Int, onError: (message: String) -> Unit): List<CashierItem> {
-        val metadataResource = databaseCacheMetadataUseCase.getMetadata().lastOrNull()
+        val metadataResource = databaseCacheMetadataUseCase.getMetadata(storeId, tenantId).lastOrNull()
         if (metadataResource?.data == null) return emptyList()
 
-        if (shouldRefetch()) {
+        if (shouldRefetch(storeId, tenantId)) {
             return emptyList()
         }
 
@@ -742,8 +742,8 @@ class CashierViewModel @Inject constructor(
         return map.toMap()
     }
 
-    private suspend fun shouldRefetch(): Boolean {
-        val flow = databaseCacheMetadataUseCase.getMetadata() // suspend fun, nullable entity
+    private suspend fun shouldRefetch(storeId: Int, tenantId: Int): Boolean {
+        val flow = databaseCacheMetadataUseCase.getMetadata(storeId, tenantId) // suspend fun, nullable entity
         val metadata = flow.lastOrNull()
 
         if (metadata?.data == null) return false

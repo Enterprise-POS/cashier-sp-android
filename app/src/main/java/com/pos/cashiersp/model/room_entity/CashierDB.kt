@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [StoreStockEntity::class, CashierItemEntity::class, DatabaseCacheMetadataEntity::class],
-    version = 3
+    version = 7
 )
 abstract class CashierDB : RoomDatabase() {
     abstract val storeStockDao: StoreStockDao

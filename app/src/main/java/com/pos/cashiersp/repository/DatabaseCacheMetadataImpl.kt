@@ -9,8 +9,8 @@ class DatabaseCacheMetadataImpl(private val dao: DatabaseCacheMetadataDao) : Dat
         return entity.lastUpdated
     }
 
-    override suspend fun getMetadata(): DatabaseCacheMetadataEntity? {
-        return dao.getMetadata()
+    override suspend fun getMetadata(storeId: Int, tenantId: Int): DatabaseCacheMetadataEntity? {
+        return dao.getMetadata(storeId, tenantId)
     }
 
     override suspend fun writeAndReturnMetadata(entity: DatabaseCacheMetadataEntity): DatabaseCacheMetadataEntity {

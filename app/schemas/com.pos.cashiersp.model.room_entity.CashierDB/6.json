@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
+    "version": 6,
     "identityHash": "da431365c1ab97318c71adcd0140ae8c",
     "entities": [
       {
         "tableName": "StoreStockEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `price` INTEGER NOT NULL, `stocks` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `lastUpdate` TEXT NOT NULL, `storeId` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL COLLATE NOCASE, `price` INTEGER NOT NULL, `stocks` INTEGER NOT NULL, `createdAt` TEXT NOT NULL, `lastUpdate` TEXT NOT NULL, `storeId` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",

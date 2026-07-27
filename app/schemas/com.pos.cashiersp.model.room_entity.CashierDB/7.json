@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "da431365c1ab97318c71adcd0140ae8c",
+    "version": 7,
+    "identityHash": "756d015db3b9994466631aaaff4a162e",
     "entities": [
       {
         "tableName": "StoreStockEntity",
@@ -66,8 +66,14 @@
       },
       {
         "tableName": "CashierItemEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`categoryId` INTEGER NOT NULL, `categoryName` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `stockType` TEXT NOT NULL, `stocks` INTEGER NOT NULL, `storeStockId` INTEGER NOT NULL, `storeStockPrice` INTEGER NOT NULL, `storeStockStocks` INTEGER NOT NULL, `basePrice` INTEGER NOT NULL, `storeId` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL, PRIMARY KEY(`storeStockId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `categoryId` INTEGER NOT NULL, `categoryName` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `stockType` TEXT NOT NULL, `stocks` INTEGER NOT NULL, `storeStockId` INTEGER NOT NULL, `storeStockPrice` INTEGER NOT NULL, `storeStockStocks` INTEGER NOT NULL, `basePrice` INTEGER NOT NULL, `storeId` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL)",
         "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
           {
             "fieldPath": "categoryId",
             "columnName": "categoryId",
@@ -148,9 +154,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": false,
+          "autoGenerate": true,
           "columnNames": [
-            "storeStockId"
+            "id"
           ]
         }
       },
@@ -205,7 +211,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'da431365c1ab97318c71adcd0140ae8c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '756d015db3b9994466631aaaff4a162e')"
     ]
   }
 }

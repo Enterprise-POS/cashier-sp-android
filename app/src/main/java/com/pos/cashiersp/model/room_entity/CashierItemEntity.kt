@@ -8,6 +8,7 @@ import com.pos.cashiersp.model.dto.StockType
 
 @Entity
 data class CashierItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val categoryId: Int,
     val categoryName: String,
     val isActive: Boolean,
@@ -15,7 +16,7 @@ data class CashierItemEntity(
     val itemName: String,
     val stockType: StockType,
     val stocks: Int,
-    @PrimaryKey val storeStockId: Int,
+    val storeStockId: Int,
     val storeStockPrice: Int,
     val storeStockStocks: Int,
     val basePrice: Int,

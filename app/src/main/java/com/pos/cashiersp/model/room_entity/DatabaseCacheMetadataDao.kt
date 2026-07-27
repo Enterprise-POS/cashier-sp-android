@@ -11,13 +11,12 @@ interface DatabaseCacheMetadataDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun writeMetadata(cashierItems: DatabaseCacheMetadataEntity): Long
 
-    // Always at top / id always 1
-    @Query("SELECT * FROM databasecachemetadataentity WHERE id = 1 LIMIT 1")
-    suspend fun getMetadata(): DatabaseCacheMetadataEntity?
+    @Query("SELECT * FROM databasecachemetadataentity WHERE storeId = :storeId AND tenantId = :tenantId LIMIT 1")
+    suspend fun getMetadata(storeId: Int, tenantId: Int): DatabaseCacheMetadataEntity?
 
     @Transaction
     suspend fun writeAndReturnMetadata(entity: DatabaseCacheMetadataEntity): DatabaseCacheMetadataEntity {
         writeMetadata(entity)
-        return getMetadata()!!
+        return getMetadata(entity.storeId, entity.tenantId)!!
     }
 }

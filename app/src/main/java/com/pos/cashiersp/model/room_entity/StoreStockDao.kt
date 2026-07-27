@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface StoreStockDao {
 
-    @Query("SELECT * FROM storestockentity WHERE storeId=:storeId")
+    @Query("SELECT * FROM storestockentity WHERE storeId=:storeId ORDER BY itemName ASC")
     fun getStoreStockByStoreId(storeId: Int): Flow<List<StoreStockEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

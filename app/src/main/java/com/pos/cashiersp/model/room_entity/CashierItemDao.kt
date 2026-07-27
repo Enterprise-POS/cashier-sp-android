@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 interface CashierItemDao {
 
 
-    @Query("SELECT * FROM cashieritementity WHERE storeId = :storeId AND tenantId = :tenantId")
+    @Query("SELECT * FROM cashieritementity WHERE storeId = :storeId AND tenantId = :tenantId ORDER BY itemName ASC")
     fun getCashierItems(tenantId: Int, storeId: Int): Flow<List<CashierItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

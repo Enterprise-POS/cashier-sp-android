@@ -10,10 +10,10 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class GetMetadata(private val repository: DatabaseCacheMetadataRepository) {
-    operator fun invoke(): Flow<Resource<DatabaseCacheMetadataEntity?>> = flow {
+    operator fun invoke(storeId: Int, tenantId: Int): Flow<Resource<DatabaseCacheMetadataEntity?>> = flow {
         emit(Resource.Loading())
         try {
-            val result: DatabaseCacheMetadataEntity? = repository.getMetadata()
+            val result: DatabaseCacheMetadataEntity? = repository.getMetadata(storeId, tenantId)
             emit(Resource.Success(result))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))
