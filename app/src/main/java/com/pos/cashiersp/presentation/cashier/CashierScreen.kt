@@ -1,5 +1,8 @@
 package com.pos.cashiersp.presentation.cashier
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,27 +14,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -39,26 +35,24 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CashierTopAppBar
 import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
@@ -70,7 +64,6 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +74,6 @@ fun CashierScreen(
 ) {
     // viewmodel
     val vmState by viewModel.state
-    val cart by viewModel.cart
     val categories by viewModel.categories
     val selectedCategoryId by viewModel.selectedCategory
     val cashierItems by viewModel.cashierItems
@@ -91,12 +83,21 @@ fun CashierScreen(
     val transactionCompleteDialogState by viewModel.transactionCompleteDialogState
     val completeTransactionParams by viewModel.completeTransactionReference
     val isPrinting by viewModel.isPrinting
+    val informationDialogStatus by viewModel.informationDialogStatus
+    val isCategoriesExpanded by viewModel.isCategoriesExpanded // Collapse whenever a category gets selected
 
     // scope
-    val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val searchTextFieldState = remember { TextFieldState() }
+
+    val collapsedRows = ((categories.size + 2) / 3).coerceIn(1, 3) // ceil(size/3), min 1, max 3
+    val categoriesGridHeight by animateDpAsState(
+        targetValue = if (isCategoriesExpanded) 400.dp else (40.dp * collapsedRows),
+        animationSpec = tween(durationMillis = 300),
+        label = "categoriesGridHeight"
+    )
+
 
     val onHandleBottomSheet = remember {
         { showBottomSheet = !showBottomSheet }
@@ -156,78 +157,8 @@ fun CashierScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-        topBar = {
-            TopAppBar(
-                actions = {
-                    OutlinedButton(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
-                        onClick = onHandleBottomSheet,
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
-                            .testTag(TestTags.CashierScreen.CHART_BUTTON),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ShoppingCart,
-                            contentDescription = "Shopping cart icon",
-                            tint = White
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("${cart.size} items", color = White)
-                    }
-                },
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // Button to open drawer (Hamburger Button)
-                        IconButton(
-                            modifier = Modifier
-                                .width(48.dp)
-                                // Because by default the action button has padding
-                                // We need to tweak a bit offset
-                                .offset(x = (-8).dp)
-                                .testTag(TestTags.CashierScreen.MENU_DRAWER_BUTTON),
-                            colors = IconButtonColors(
-                                containerColor = Secondary,
-                                contentColor = White,
-                                disabledContainerColor = Secondary,
-                                disabledContentColor = Secondary,
-                            ),
-                            onClick = {
-                                scope.launch { drawerState.apply { if (isClosed) open() else close() } }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = "Menu to open drawer (Hamburger Button)",
-                                tint = White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-
-                        // Title Text
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Cashier",
-                                color = Secondary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.testTag(TestTags.CashierScreen.CASHIER_TITLE)
-                            )
-                        }
-                    }
-                },
-            )
-        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = { CashierTopAppBar(onHandleBottomSheet, drawerState) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -279,7 +210,13 @@ fun CashierScreen(
                     Spacer(modifier = Modifier.width(18.dp))
                     Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
                     Spacer(modifier = Modifier.weight(1f))
-                    if (categories.size >= 12) {
+
+                    // 3 columns x 3 rows = 9 items visible when collapsed
+                    if (categories.size > 9) {
+                        val rotation by animateFloatAsState(
+                            targetValue = if (isCategoriesExpanded) 180f else 0f,
+                            label = "chevronRotation"
+                        )
                         TextButton(
                             modifier = Modifier.height(30.dp),
                             colors = ButtonColors(
@@ -288,14 +225,25 @@ fun CashierScreen(
                                 disabledContainerColor = Secondary,
                                 disabledContentColor = Secondary,
                             ),
-                            onClick = {},
+                            onClick = { viewModel.onEvent(CashierEvent.OnToggleCategoriesExpanded) },
                         ) {
-                            Text("View all", style = TextStyle(fontSize = 14.sp))
+                            Text(
+                                if (isCategoriesExpanded) "Show less" else "View all",
+                                style = TextStyle(fontSize = 14.sp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .graphicsLayer { rotationZ = rotation }
+                            )
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-
+                /*
                 // Categories grid
                 LazyVerticalGrid(
                     modifier = Modifier
@@ -306,18 +254,29 @@ fun CashierScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value) }
+                    // items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
+                    items(20, key = { it }) { CategoryCard(Category(it, "$it category name", it, Date()), viewModel) }
+                }
+                */
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxWidth(.96f)
+                        .align(Alignment.CenterHorizontally)
+                        .height(categoriesGridHeight),
+                    columns = GridCells.Fixed(3),
+                    userScrollEnabled = isCategoriesExpanded, // no scroll needed when collapsed to 9
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
                 }
 
                 Spacer(Modifier.height(4.dp))
-
-                // In this items grid, I want the card grid remember the value that user inputted even they changed
-                // the categories, and it's re render all the card
+                
                 // Items Grid
                 LazyVerticalGrid(
                     modifier = Modifier
                         .fillMaxWidth(.96f)
-                        .fillMaxHeight(.96f)
                         .heightIn(min = 120.dp)
                         .align(Alignment.CenterHorizontally),
                     columns = GridCells.Fixed(3),
@@ -368,6 +327,10 @@ fun CashierScreen(
                 onConfirmation = { viewModel.onEvent(CashierEvent.TryAgainRequestAllProducts) },
                 onDismissRequest = { viewModel.onEvent(CashierEvent.OnDismissTryAgainRequestAllProducts) },
             )
+        }
+
+        if (informationDialogStatus.showDialog) {
+            InformationDialog(false, viewModel)
         }
     }
 }

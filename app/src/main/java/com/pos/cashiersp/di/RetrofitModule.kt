@@ -17,6 +17,7 @@ import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
 import com.pos.cashiersp.use_case.FindTransactionsById
 import com.pos.cashiersp.use_case.GetAllStore
+import com.pos.cashiersp.use_case.GetCachedCashierItems
 import com.pos.cashiersp.use_case.GetTenantMembers
 import com.pos.cashiersp.use_case.GetTenantWithUser
 import com.pos.cashiersp.use_case.IsLoggedIn
@@ -129,6 +130,7 @@ object RetrofitModule {
         return StoreStockUseCase(
             getV2 = StoreStockGetV2(repository),
             loadCashierData = LoadCashierData(repository),
+            getCachedCashierItems = GetCachedCashierItems(repository)
         )
     }
 

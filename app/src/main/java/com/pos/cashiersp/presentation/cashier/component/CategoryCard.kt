@@ -1,7 +1,5 @@
 package com.pos.cashiersp.presentation.cashier.component
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -16,7 +14,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.pos.cashiersp.model.domain.Category
 import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
@@ -25,7 +22,7 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 
 @Composable
-fun CategoryCard(category: Category, viewModel: CashierViewModel = hiltViewModel()) {
+fun CategoryCard(category: Category, viewModel: CashierViewModel) {
     val selectedCategoryId = viewModel.selectedCategory.value
     val active = selectedCategoryId == category.id
     Card(

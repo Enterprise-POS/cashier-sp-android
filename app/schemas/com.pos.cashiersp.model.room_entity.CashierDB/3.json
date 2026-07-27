@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 1,
-    "identityHash": "beb43960fb551314441bdcc498fdce1c",
+    "version": 3,
+    "identityHash": "da431365c1ab97318c71adcd0140ae8c",
     "entities": [
       {
         "tableName": "StoreStockEntity",
@@ -66,7 +66,7 @@
       },
       {
         "tableName": "CashierItemEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`categoryId` INTEGER NOT NULL, `categoryName` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `stockType` TEXT NOT NULL, `stocks` INTEGER NOT NULL, `storeStockId` INTEGER NOT NULL, `storeStockPrice` INTEGER NOT NULL, `storeStockStocks` INTEGER NOT NULL, `storeId` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL, PRIMARY KEY(`storeStockId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`categoryId` INTEGER NOT NULL, `categoryName` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `stockType` TEXT NOT NULL, `stocks` INTEGER NOT NULL, `storeStockId` INTEGER NOT NULL, `storeStockPrice` INTEGER NOT NULL, `storeStockStocks` INTEGER NOT NULL, `basePrice` INTEGER NOT NULL, `storeId` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL, PRIMARY KEY(`storeStockId`))",
         "fields": [
           {
             "fieldPath": "categoryId",
@@ -129,6 +129,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "basePrice",
+            "columnName": "basePrice",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "storeId",
             "columnName": "storeId",
             "affinity": "INTEGER",
@@ -149,8 +155,8 @@
         }
       },
       {
-        "tableName": "DatabaseCacheMetadataEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `lastUpdated` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL, `storeId` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "tableName": "databasecachemetadataentity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lastUpdated` INTEGER NOT NULL, `tenantId` INTEGER NOT NULL, `storeId` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -178,16 +184,28 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": false,
+          "autoGenerate": true,
           "columnNames": [
             "id"
           ]
-        }
+        },
+        "indices": [
+          {
+            "name": "index_databasecachemetadataentity_storeId_tenantId",
+            "unique": true,
+            "columnNames": [
+              "storeId",
+              "tenantId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_databasecachemetadataentity_storeId_tenantId` ON `${TABLE_NAME}` (`storeId`, `tenantId`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'beb43960fb551314441bdcc498fdce1c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'da431365c1ab97318c71adcd0140ae8c')"
     ]
   }
 }

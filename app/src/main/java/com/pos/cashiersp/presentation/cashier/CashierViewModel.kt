@@ -2,6 +2,7 @@ package com.pos.cashiersp.presentation.cashier
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,9 +16,12 @@ import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.model.domain.StoreStock
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.model.dto.CreateTransactionParams
+import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.TransactionResponse
 import com.pos.cashiersp.model.dto.toOrderItemDomain
 import com.pos.cashiersp.model.dto.toReceiptLine
+import com.pos.cashiersp.model.room_entity.DatabaseCacheMetadataEntity
+import com.pos.cashiersp.model.room_entity.toCashierItem
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddQuantity
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddToCart
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnDecreaseQuantity
@@ -33,6 +37,7 @@ import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.presentation.util.parseDateString
 import com.pos.cashiersp.presentation.util.toRupiah
 import com.pos.cashiersp.use_case.DataStoreUseCase
+import com.pos.cashiersp.use_case.DatabaseCacheMetadataUseCase
 import com.pos.cashiersp.use_case.OrderItemUseCase
 import com.pos.cashiersp.use_case.StoreStockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,7 +46,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -59,6 +66,7 @@ class CashierViewModel @Inject constructor(
     private val orderItemUseCase: OrderItemUseCase,
     private val bluetoothController: BluetoothController,
     private val jwtStore: JwtStore,
+    private val databaseCacheMetadataUseCase: DatabaseCacheMetadataUseCase,
 ) : ViewModel() {
     // UI State
 
@@ -73,6 +81,9 @@ class CashierViewModel @Inject constructor(
 
     private val _generalAlertDialogState = mutableStateOf(GeneralAlertDialogStatus())
     val generalAlertDialogStatus: State<GeneralAlertDialogStatus> = _generalAlertDialogState
+
+    private val _informationDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
+    val informationDialogStatus: State<GeneralAlertDialogStatus> = _informationDialogStatus
 
     // Store / Tenant
 
@@ -130,14 +141,20 @@ class CashierViewModel @Inject constructor(
     private val _completeTransactionCartReference = mutableStateOf<List<ReceiptLineItem>>(emptyList())
 
     // Printing
-
     private val _isPrinting = mutableStateOf(false)
     val isPrinting: State<Boolean> = _isPrinting
 
     // Staff
-
     private val _staffName = mutableStateOf("")
     val staffName: State<String> = _staffName
+
+    // Cache
+    private val _lastUpdated = mutableLongStateOf(0)
+    val lastUpdated: State<Long> = _lastUpdated
+
+    // Categories UI
+    private val _isCategoriesExpanded = mutableStateOf(false)
+    val isCategoriesExpanded: State<Boolean> = _isCategoriesExpanded
 
     private val _staffId = mutableIntStateOf(0)
     val staffId: State<Int> = _staffId
@@ -162,6 +179,7 @@ class CashierViewModel @Inject constructor(
 
     fun onEvent(event: CashierEvent) {
         when (event) {
+            is CashierEvent.OnToggleCategoriesExpanded -> onToggleCategoriesExpanded()
             is OnSelectCategory -> onSelectCategory(event)
             is OnAddToCart -> onAddToCart(event)
             is OnAddQuantity -> onAddQuantity(event)
@@ -177,13 +195,35 @@ class CashierViewModel @Inject constructor(
             is CashierEvent.TryAgainRequestAllProducts -> onTryAgainRequestAllProducts()
             is CashierEvent.OnDismissTryAgainRequestAllProducts -> onDismissTryAgainDialog()
             is CashierEvent.OnPressPrintReceipt -> onPressPrintReceipt()
+            is CashierEvent.RefreshCashierItem -> onRefreshCashierItem()
+            is CashierEvent.OnToggleInfoBtn -> onToggleInfoBtn(event)
+            is CashierEvent.OnDeleteAllCartItem -> onDeleteAllCartItem()
         }
     }
 
     // Implementations
+    private fun onDeleteAllCartItem() {
+        _cart.value = mapOf()
+        onEvent(CashierEvent.OnToggleInfoBtn(false))
+    }
+
+    private fun onToggleInfoBtn(event: CashierEvent.OnToggleInfoBtn) {
+        val showDialog = _informationDialogStatus.value.showDialog
+        val shouldShowDialog = event.activate ?: !showDialog
+        if (shouldShowDialog) {
+            _informationDialogStatus.value = GeneralAlertDialogStatus.success("Dialog", "show information dialog")
+        } else {
+            _informationDialogStatus.value = GeneralAlertDialogStatus()
+        }
+    }
 
     private fun onSelectCategory(event: OnSelectCategory) {
         _selectedCategory.intValue = event.categoryId
+        _isCategoriesExpanded.value = false // auto-collapse on selection
+    }
+
+    private fun onToggleCategoriesExpanded() {
+        _isCategoriesExpanded.value = !_isCategoriesExpanded.value
     }
 
     private fun onAddToCart(event: OnAddToCart) {
@@ -297,7 +337,7 @@ class CashierViewModel @Inject constructor(
         for ((_, cartItem) in currentCart) {
 
             // Optional stock validation
-            if (cartItem.quantity > cartItem.storeStock.stocks) {
+            if (cartItem.storeStock.stockType == StockType.TRACKED && cartItem.quantity > cartItem.storeStock.stocks) {
                 isProcessingTransaction.set(false)
                 return showWarning(
                     "Insufficient stock for ${cartItem.item.itemName}"
@@ -523,8 +563,41 @@ class CashierViewModel @Inject constructor(
         }
     }
 
-    // Data Loading
+    private fun onRefreshCashierItem() {
+        val (tenantId, storeId) = Pair(_tenantId.intValue, _storeId.intValue)
 
+        // This function will save last metadata again
+        // Also manage UI loading via Resource
+        loadAllStoreStock(tenantId, storeId)
+    }
+
+    /* If the return is empty list then it suppose to be mean no cache*/
+    private suspend fun getCache(tenantId: Int, storeId: Int, onError: (message: String) -> Unit): List<CashierItem> {
+        val metadataResource = databaseCacheMetadataUseCase.getMetadata(storeId, tenantId).lastOrNull()
+        if (metadataResource?.data == null) return emptyList()
+
+        if (shouldRefetch(storeId, tenantId)) {
+            return emptyList()
+        }
+
+        val cacheResult = storeStockUseCase
+            .getCachedCashierItems(_tenantId.intValue, _storeId.intValue)
+            .filter { it !is Resource.Loading }
+            .lastOrNull()
+
+        return when (cacheResult) {
+            is Resource.Success -> cacheResult.data?.map { it.toCashierItem() } ?: emptyList()
+            is Resource.Error -> {
+                // On error show something
+                onError(cacheResult.message ?: "[Unknown error] while get cache data. Please contact developer")
+                emptyList()
+            }
+
+            else -> emptyList()
+        }
+    }
+
+    // Data Loading
     private fun loadStoreAndTenantData() {
         combine(
             dataStoreUseCase.getCurrentTenant(),
@@ -538,6 +611,26 @@ class CashierViewModel @Inject constructor(
                         _tenantId.intValue = tenantId
                         _storeId.intValue = storeId
                         _storeName.value = storeResource.data.name
+
+                        // Check for cache
+                        val cachedCashierItem: List<CashierItem> = getCache(tenantId, storeId, onError = { message ->
+                            // Explicitly say when some error occured when getCache then this error logic should run
+                            _state.value = StateStatus(error = message)
+                            _loadAllProductsDialogStatus.value = GeneralAlertDialogStatus.error(
+                                "Couldn't get store products",
+                                message
+                            )
+                        })
+
+                        // Load fetch data
+                        if (cachedCashierItem.isNotEmpty()) {
+                            _cashierItems.value = cachedCashierItem
+                            _categories.value = buildCategoryMap(cachedCashierItem, tenantId)
+                            _state.value = StateStatus()
+                            return@onEach
+                        }
+
+                        // No cache or stale data, then after fetch from database save it to cache
                         loadAllStoreStock(tenantId, storeId)
                     }
 
@@ -588,6 +681,9 @@ class CashierViewModel @Inject constructor(
                     _cashierItems.value = data
                     _categories.value = buildCategoryMap(data, tenantId)
                     _state.value = StateStatus()
+
+                    // Save metada to cache
+                    this.saveCacheMetadata(tenantId, storeId)
                 }
             }
         }.launchIn(viewModelScope)
@@ -600,6 +696,18 @@ class CashierViewModel @Inject constructor(
     }
 
     // Helpers
+    private fun saveCacheMetadata(tenantId: Int, storeId: Int) {
+        val lastUpdated = Date().time
+        _lastUpdated.longValue = lastUpdated
+        databaseCacheMetadataUseCase.writeAndReturnMetadata(
+            entity = DatabaseCacheMetadataEntity(
+                id = 1,
+                lastUpdated = lastUpdated,
+                tenantId = tenantId,
+                storeId = storeId
+            )
+        ).launchIn(viewModelScope)
+    }
 
     /**
      * Returns true and emits a snackbar if a transaction is currently being processed.
@@ -639,6 +747,20 @@ class CashierViewModel @Inject constructor(
         return map.toMap()
     }
 
+    private suspend fun shouldRefetch(storeId: Int, tenantId: Int): Boolean {
+        val flow = databaseCacheMetadataUseCase.getMetadata(storeId, tenantId) // suspend fun, nullable entity
+        val metadata = flow.lastOrNull()
+
+        if (metadata?.data == null) return false
+
+        val lastUpdated = metadata.data.lastUpdated
+        // Save to this viewmodel when is lastUpdated
+        _lastUpdated.value = lastUpdated
+
+        val elapsed = System.currentTimeMillis() - lastUpdated
+        return elapsed > CACHE_TTL_MILLIS
+    }
+
     // UI Events
 
     sealed class UIEvent {
@@ -651,5 +773,6 @@ class CashierViewModel @Inject constructor(
 
     companion object {
         private const val MAX_ITEM_QUANTITY = 999
+        private const val CACHE_TTL_MILLIS = 30 * 60 * 1000L // 30 minutes
     }
 }

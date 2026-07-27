@@ -12,4 +12,5 @@ object Screen {
     const val SELECT_STORE = "Choose store"
     const val BLUETOOTH_SETTINGS = "Bluetooth settings"
     const val INVOICE_DETAIL = "Invoice detail"
+    const val SPLASH = "Splash"
 }

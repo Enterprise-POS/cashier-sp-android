@@ -27,4 +27,12 @@ sealed class CashierEvent {
     object PlaceOrder : CashierEvent()
 
     object OnPressPrintReceipt : CashierEvent()
+
+    object RefreshCashierItem : CashierEvent()
+
+    data class OnToggleInfoBtn(val activate: Boolean?) : CashierEvent()
+
+    object OnDeleteAllCartItem : CashierEvent()
+    
+    object OnToggleCategoriesExpanded : CashierEvent()
 }
