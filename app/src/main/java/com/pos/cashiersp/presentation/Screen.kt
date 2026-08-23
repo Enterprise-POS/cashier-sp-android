@@ -13,4 +13,5 @@ object Screen {
     const val BLUETOOTH_SETTINGS = "Bluetooth settings"
     const val INVOICE_DETAIL = "Invoice detail"
     const val SPLASH = "Splash"
+    const val ITEM_SALES_LOG = "Item Sales Log"
 }
