@@ -13,5 +13,11 @@ fun Number.toRupiah(): String {
     // Hide trailing decimal zeros common in IDR (.00)
     currencyFormat.maximumFractionDigits = 0
 
+    //    return when {
+    //        amount >= 1_000_000 -> "Rp %.2fM".format(amount / 1_000_000.0)
+    //        amount >= 1_000 -> "Rp %.0fK".format(amount / 1_000.0)
+    //        else -> "Rp $amount"
+    //    }
+
     return currencyFormat.format(doubleValue)
 }

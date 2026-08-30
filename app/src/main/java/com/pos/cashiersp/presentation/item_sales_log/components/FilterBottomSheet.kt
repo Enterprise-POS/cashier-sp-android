@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,12 +41,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogViewModel
 import com.pos.cashiersp.presentation.item_sales_log.QuickRange
 import com.pos.cashiersp.presentation.item_sales_log.SortColumn
 import com.pos.cashiersp.presentation.ui.theme.Gray100
@@ -64,11 +64,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-/**
- * Sort + date range sheet. Builds the exact request shape:
- * { "filters": [{ "column": ..., "ascending": ... }], "date_filter": { "start_date": ..., "end_date": ... } }
- * UI-only — nothing here calls a network layer, it just reports the chosen values back up.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterBottomSheet(
@@ -77,13 +72,14 @@ fun FilterBottomSheet(
     initialStartDate: Long?,
     initialEndDate: Long?,
     onDismiss: () -> Unit,
-    onApply: (SortColumn, Boolean, Long?, Long?) -> Unit
+    viewModel: ItemSalesLogViewModel
 ) {
+    // "skipPartiallyExpanded" will make the bottom sheet expose all their contents instead just open a bit
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Draft state — only committed to the parent on "Apply", so backing out of the
     // sheet (dismiss/cancel) doesn't change what's currently applied.
-    var draftColumn by remember { mutableStateOf(initialColumn) }
+    val draftColumn = viewModel.draftColumn.value
     var draftAscending by remember { mutableStateOf(initialAscending) }
     var draftStartDate by remember { mutableStateOf(initialStartDate) }
     var draftEndDate by remember { mutableStateOf(initialEndDate) }
@@ -120,7 +116,7 @@ fun FilterBottomSheet(
                 SortColumn.entries.forEach { column ->
                     FilterChip(
                         selected = draftColumn == column,
-                        onClick = { draftColumn = column },
+                        onClick = { viewModel.onEvent(ItemSalesLogEvent.OnChangeDraftColumn(column)) },
                         label = { Text(column.displayName, fontSize = 13.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = White,
@@ -339,7 +335,14 @@ fun FilterBottomSheet(
                         .clip(RoundedCornerShape(10.dp))
                         .background(Primary)
                         .clickable {
-                            onApply(draftColumn, draftAscending, draftStartDate, draftEndDate)
+                            viewModel.onEvent(
+                                ItemSalesLogEvent.OnApplyFilter(
+                                    draftColumn,
+                                    draftAscending,
+                                    draftStartDate,
+                                    draftEndDate
+                                )
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {
