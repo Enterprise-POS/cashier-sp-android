@@ -33,7 +33,19 @@ class ItemSalesLogViewModel @Inject constructor() : ViewModel() {
 
     // FilterBottomSheet (A value here take initial value state from another state)
     private val _draftColumn = mutableStateOf(_sortColumn.value)
+    private val _draftAscending = mutableStateOf(_sortAscending.value)
+    private val _draftStartDate = mutableStateOf(_dateFilterStart.value)
+    private val _draftEndDate = mutableStateOf(_dateFilterEnd.value)
+
+    // Private quick range so when user actually hit "cancel" the previous state will available
+    private val _quickRange =
+        mutableStateOf(if (_draftStartDate.value != null || _draftEndDate.value != null) QuickRange.CUSTOM else null)
+    private val _draftQuickRange = mutableStateOf(_quickRange.value)
     val draftColumn: State<SortColumn> = _draftColumn
+    val draftAscending: State<Boolean> = _draftAscending
+    val draftStartDate: State<Long?> = _draftStartDate
+    val draftEndDate: State<Long?> = _draftEndDate
+    val draftQuickRange: State<QuickRange?> = _draftQuickRange
 
     fun onEvent(event: ItemSalesLogEvent) {
         when (event) {
@@ -42,6 +54,7 @@ class ItemSalesLogViewModel @Inject constructor() : ViewModel() {
                 _sortAscending.value = event.ascending
                 _dateFilterStart.value = event.start
                 _dateFilterEnd.value = event.end
+                _quickRange.value = event.quickRange
 
                 _showFilterSheet.value = false
             }
@@ -52,6 +65,25 @@ class ItemSalesLogViewModel @Inject constructor() : ViewModel() {
             is ItemSalesLogEvent.OnChangeSearchItemId -> _searchSortBarInp.value = event.inp
 
             is ItemSalesLogEvent.OnChangeDraftColumn -> _draftColumn.value = event.sortColumn
+            is ItemSalesLogEvent.OnSetDraftAscending -> _draftAscending.value = event.setTo
+            is ItemSalesLogEvent.OnSetDraftStartDate -> _draftStartDate.value = event.setStartDate
+            is ItemSalesLogEvent.OnSetDraftEndDate -> _draftEndDate.value = event.setEndDate
+            is ItemSalesLogEvent.OnSetDraftQuickRange -> _draftQuickRange.value = event.setQuickRange
+            ItemSalesLogEvent.OnClearDateRange -> {
+                _draftStartDate.value = null
+                _draftEndDate.value = null
+                _draftQuickRange.value = null
+            }
+
+            ItemSalesLogEvent.OnDismissFilterBottomSheet -> {
+                // Will reset the draftState into set state before
+                _draftColumn.value = _sortColumn.value
+                _draftAscending.value = _sortAscending.value
+                _draftStartDate.value = _dateFilterStart.value
+                _draftEndDate.value = _dateFilterEnd.value
+                _draftQuickRange.value = _quickRange.value
+                this.onEvent(ItemSalesLogEvent.OnSetFilterSheetState(falseBo))
+            }
         }
     }
 }

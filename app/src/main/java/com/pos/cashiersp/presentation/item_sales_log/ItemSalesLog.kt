@@ -348,7 +348,7 @@ fun ItemSalesLog(
             initialAscending = sortAscending,
             initialStartDate = dateFilterStart,
             initialEndDate = dateFilterEnd,
-            onDismiss = { viewModel.onEvent(ItemSalesLogEvent.OnSetFilterSheetState(false)) },
+            onDismiss = { viewModel.onEvent(ItemSalesLogEvent.OnDismissFilterBottomSheet) },
             viewModel = viewModel
         )
     }

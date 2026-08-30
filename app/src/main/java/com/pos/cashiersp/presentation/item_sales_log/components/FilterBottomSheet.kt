@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLog
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogViewModel
 import com.pos.cashiersp.presentation.item_sales_log.QuickRange
@@ -58,11 +59,15 @@ import com.pos.cashiersp.presentation.ui.theme.Primary200
 import com.pos.cashiersp.presentation.ui.theme.PrimaryHover
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.CalendarChipUtils
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+// Because of a long name make it short only apply for this file
+private val nowEpoch = CalendarChipUtils::nowEpoch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,15 +84,13 @@ fun FilterBottomSheet(
 
     // Draft state — only committed to the parent on "Apply", so backing out of the
     // sheet (dismiss/cancel) doesn't change what's currently applied.
-    val draftColumn = viewModel.draftColumn.value
-    var draftAscending by remember { mutableStateOf(initialAscending) }
-    var draftStartDate by remember { mutableStateOf(initialStartDate) }
-    var draftEndDate by remember { mutableStateOf(initialEndDate) }
+    val draftColumn: SortColumn = viewModel.draftColumn.value
+    val draftAscending: Boolean = viewModel.draftAscending.value
+    val draftStartDate: Long? = viewModel.draftStartDate.value
+    val draftEndDate: Long? = viewModel.draftEndDate.value
     // No way to know which shortcut produced the initial range (if any), so treat any
     // pre-existing range as "Custom" and leave nothing highlighted when there's no range.
-    var draftQuickRange by remember {
-        mutableStateOf(if (initialStartDate != null || initialEndDate != null) QuickRange.CUSTOM else null)
-    }
+    val draftQuickRange: QuickRange? = viewModel.draftQuickRange.value
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -144,7 +147,7 @@ fun FilterBottomSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !draftAscending,
-                    onClick = { draftAscending = false },
+                    onClick = { viewModel.onEvent(ItemSalesLogEvent.OnSetDraftAscending(setTo = false)) },
                     label = { Text("Descending", fontSize = 13.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = White,
@@ -161,7 +164,7 @@ fun FilterBottomSheet(
                 )
                 FilterChip(
                     selected = draftAscending,
-                    onClick = { draftAscending = true },
+                    onClick = { viewModel.onEvent(ItemSalesLogEvent.OnSetDraftAscending(setTo = true)) },
                     label = { Text("Ascending", fontSize = 13.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = White,
@@ -195,11 +198,7 @@ fun FilterBottomSheet(
                     Text(
                         text = "Clear",
                         style = TextStyle(fontSize = 12.sp, color = Primary, fontWeight = FontWeight.Medium),
-                        modifier = Modifier.clickable {
-                            draftStartDate = null
-                            draftEndDate = null
-                            draftQuickRange = null
-                        }
+                        modifier = Modifier.clickable { viewModel.onEvent(ItemSalesLogEvent.OnClearDateRange) }
                     )
                 }
             }
@@ -224,23 +223,31 @@ fun FilterBottomSheet(
                         onClick = {
                             when (option) {
                                 QuickRange.TODAY -> {
-                                    draftStartDate = startOfDayEpoch(nowEpoch())
-                                    draftEndDate = endOfDayEpoch(nowEpoch())
+                                    viewModel.onEvent(
+                                        ItemSalesLogEvent.OnSetDraftStartDate(
+                                            CalendarChipUtils.startOfDayEpoch(nowEpoch())
+                                        )
+                                    )
+                                    viewModel.onEvent(
+                                        ItemSalesLogEvent.OnSetDraftEndDate(
+                                            CalendarChipUtils.endOfDayEpoch(nowEpoch())
+                                        )
+                                    )
                                 }
 
                                 QuickRange.LAST_HOUR -> {
-                                    draftEndDate = nowEpoch()
-                                    draftStartDate = nowEpoch() - 60 * 60
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftStartDate(nowEpoch() - 60 * 60))
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftEndDate(nowEpoch()))
                                 }
 
                                 QuickRange.LAST_6_HOURS -> {
-                                    draftEndDate = nowEpoch()
-                                    draftStartDate = nowEpoch() - 6 * 60 * 60
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftStartDate(nowEpoch() - 6 * 60 * 60))
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftEndDate(nowEpoch()))
                                 }
 
                                 QuickRange.LAST_12_HOURS -> {
-                                    draftEndDate = nowEpoch()
-                                    draftStartDate = nowEpoch() - 12 * 60 * 60
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftStartDate(nowEpoch() - 12 * 60 * 60))
+                                    viewModel.onEvent(ItemSalesLogEvent.OnSetDraftEndDate(nowEpoch()))
                                 }
 
                                 QuickRange.CUSTOM -> {
@@ -248,7 +255,7 @@ fun FilterBottomSheet(
                                     // so the user can fine-tune them below.
                                 }
                             }
-                            draftQuickRange = option
+                            viewModel.onEvent(ItemSalesLogEvent.OnSetDraftQuickRange(option))
                         }
                     )
                 }
@@ -275,8 +282,8 @@ fun FilterBottomSheet(
                     label = "Start date",
                     epochSeconds = draftStartDate,
                     onDateSelected = { newDate ->
-                        draftStartDate = setDatePart(draftStartDate, newDate)
-                        draftQuickRange = QuickRange.CUSTOM
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftStartDate(setDatePart(draftStartDate, newDate)))
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftQuickRange(QuickRange.CUSTOM))
                     }
                 )
                 TimeField(
@@ -284,8 +291,16 @@ fun FilterBottomSheet(
                     label = "Start time",
                     epochSeconds = draftStartDate,
                     onTimeSelected = { hour, minute ->
-                        draftStartDate = setTimePart(draftStartDate, hour, minute)
-                        draftQuickRange = QuickRange.CUSTOM
+                        viewModel.onEvent(
+                            ItemSalesLogEvent.OnSetDraftStartDate(
+                                setTimePart(
+                                    draftStartDate,
+                                    hour,
+                                    minute
+                                )
+                            )
+                        )
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftQuickRange(QuickRange.CUSTOM))
                     }
                 )
             }
@@ -301,8 +316,8 @@ fun FilterBottomSheet(
                     label = "End date",
                     epochSeconds = draftEndDate,
                     onDateSelected = { newDate ->
-                        draftEndDate = setDatePart(draftEndDate, newDate)
-                        draftQuickRange = QuickRange.CUSTOM
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftEndDate(setDatePart(draftEndDate, newDate)))
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftQuickRange(QuickRange.CUSTOM))
                     }
                 )
                 TimeField(
@@ -310,8 +325,8 @@ fun FilterBottomSheet(
                     label = "End time",
                     epochSeconds = draftEndDate,
                     onTimeSelected = { hour, minute ->
-                        draftEndDate = setTimePart(draftEndDate, hour, minute)
-                        draftQuickRange = QuickRange.CUSTOM
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftEndDate(setTimePart(draftEndDate, hour, minute)))
+                        viewModel.onEvent(ItemSalesLogEvent.OnSetDraftQuickRange(QuickRange.CUSTOM))
                     }
                 )
             }
@@ -340,7 +355,8 @@ fun FilterBottomSheet(
                                     draftColumn,
                                     draftAscending,
                                     draftStartDate,
-                                    draftEndDate
+                                    draftEndDate,
+                                    draftQuickRange,
                                 )
                             )
                         },
@@ -493,8 +509,6 @@ private fun AppTimePickerDialog(
     }
 }
 
-private fun nowEpoch(): Long = System.currentTimeMillis() / 1000
-
 /**
  * Replaces only the hour/minute of [current], keeping the existing date.
  * Defaults to today if there's no existing value.
@@ -599,25 +613,4 @@ private fun QuickRangeChip(
             maxLines = 1
         )
     }
-}
-
-
-private fun startOfDayEpoch(epochSeconds: Long): Long {
-    val cal = Calendar.getInstance()
-    cal.timeInMillis = epochSeconds * 1000
-    cal.set(Calendar.HOUR_OF_DAY, 0)
-    cal.set(Calendar.MINUTE, 0)
-    cal.set(Calendar.SECOND, 0)
-    cal.set(Calendar.MILLISECOND, 0)
-    return cal.timeInMillis / 1000
-}
-
-private fun endOfDayEpoch(epochSeconds: Long): Long {
-    val cal = Calendar.getInstance()
-    cal.timeInMillis = epochSeconds * 1000
-    cal.set(Calendar.HOUR_OF_DAY, 23)
-    cal.set(Calendar.MINUTE, 59)
-    cal.set(Calendar.SECOND, 59)
-    cal.set(Calendar.MILLISECOND, 0)
-    return cal.timeInMillis / 1000
 }

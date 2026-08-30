@@ -1,7 +1,13 @@
 package com.pos.cashiersp.presentation.item_sales_log
 
 sealed class ItemSalesLogEvent {
-    data class OnApplyFilter(val column: SortColumn, val ascending: Boolean, val start: Long?, val end: Long?) :
+    data class OnApplyFilter(
+        val column: SortColumn,
+        val ascending: Boolean,
+        val start: Long?,
+        val end: Long?,
+        val quickRange: QuickRange?
+    ) :
         ItemSalesLogEvent()
 
     data class OnSetFilterSheetState(val show: Boolean) : ItemSalesLogEvent()
@@ -11,4 +17,11 @@ sealed class ItemSalesLogEvent {
 
     // FilterBottomSheet
     data class OnChangeDraftColumn(val sortColumn: SortColumn) : ItemSalesLogEvent()
+    data class OnSetDraftAscending(val setTo: Boolean) : ItemSalesLogEvent()
+    data class OnSetDraftStartDate(val setStartDate: Long?) : ItemSalesLogEvent()
+    data class OnSetDraftEndDate(val setEndDate: Long?) : ItemSalesLogEvent()
+    data class OnSetDraftQuickRange(val setQuickRange: QuickRange?) : ItemSalesLogEvent()
+    object OnClearDateRange : ItemSalesLogEvent()
+
+    object OnDismissFilterBottomSheet : ItemSalesLogEvent()
 }
