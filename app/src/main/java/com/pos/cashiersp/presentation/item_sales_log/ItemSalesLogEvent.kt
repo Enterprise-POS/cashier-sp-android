@@ -13,7 +13,7 @@ sealed class ItemSalesLogEvent {
     data class OnSetFilterSheetState(val show: Boolean) : ItemSalesLogEvent()
     data class OnSetScopeSelector(val scope: SalesLogScope) : ItemSalesLogEvent()
 
-    data class OnChangeSearchItemId(val inp: String) : ItemSalesLogEvent()
+    data class OnChangeSearchItemId(val inputId: String) : ItemSalesLogEvent()
 
     // FilterBottomSheet
     data class OnChangeDraftColumn(val sortColumn: SortColumn) : ItemSalesLogEvent()

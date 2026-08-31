@@ -49,7 +49,7 @@ fun SplashScreen(
         viewModel.splashUIEvent.collectLatest { event ->
             when (event) {
                 SplashViewModel.SplashUIEvent.NavigateToCashier -> {
-                    navController.navigate(Screen.CASHIER) {
+                    navController.navigate(Screen.ITEM_SALES_LOG) {
                         popUpTo(Screen.SPLASH) { inclusive = true }
                     }
                 }

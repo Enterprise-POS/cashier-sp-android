@@ -86,7 +86,7 @@ class Transactions(private val repository: OrderItemRepository) {
             }
 
             // 200 ok
-            var transactionResponse: TransactionResponse = successResponse.data
+            val transactionResponse: TransactionResponse = successResponse.data
             emit(Resource.Success<TransactionResponse>(transactionResponse))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))

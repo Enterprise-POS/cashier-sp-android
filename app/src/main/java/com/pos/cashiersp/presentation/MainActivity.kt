@@ -67,8 +67,7 @@ class MainActivity : ComponentActivity() {
                     CashierDrawer(navController) { drawerState: DrawerState ->
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.ITEM_SALES_LOG
-                            //startDestination = Screen.SPLASH
+                            startDestination = Screen.SPLASH
                         ) {
                             composable(route = Screen.SPLASH) {
                                 SplashScreen(navController)

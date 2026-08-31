@@ -3,10 +3,12 @@ package com.pos.cashiersp.model.dto
 
 import com.google.gson.annotations.SerializedName
 import com.pos.cashiersp.controller.ReceiptLineItem
+import com.pos.cashiersp.presentation.util.parseDateString
 import kotlinx.serialization.Serializable
+import java.util.Calendar
 
 @Serializable
-data class PurchasedItem(
+data class PurchasedItemDto(
     @SerializedName("discount_amount")
     val discountAmount: Int,
     @SerializedName("id")
@@ -25,21 +27,28 @@ data class PurchasedItem(
     @SerializedName("quantity")
     val quantity: Int,
     @SerializedName("total_amount")
-    val totalAmount: Int
+    val totalAmount: Int,
+    @SerializedName("order_item_created_at")
+    val createdAt: String
 )
 
-fun PurchasedItem.toDomain() = com.pos.cashiersp.model.domain.PurchasedItem(
-    id = this.id,
-    totalAmount = this.totalAmount,
-    discountAmount = this.discountAmount,
-    itemId = this.itemId,
-    storePriceSnapshot = this.storePriceSnapshot,
-    quantity = this.quantity,
-    itemNameSnapshot = this.itemNameSnapshot,
-    orderItemId = this.orderItemId,
-)
+fun PurchasedItemDto.toDomain(): com.pos.cashiersp.model.domain.PurchasedItem {
+    val calendar = parseDateString(this.createdAt)
 
-fun PurchasedItem.toReceiptLine(): ReceiptLineItem {
+    return com.pos.cashiersp.model.domain.PurchasedItem(
+        id = this.id,
+        totalAmount = this.totalAmount,
+        discountAmount = this.discountAmount,
+        itemId = this.itemId,
+        storePriceSnapshot = this.storePriceSnapshot,
+        quantity = this.quantity,
+        itemNameSnapshot = this.itemNameSnapshot,
+        orderItemId = this.orderItemId,
+        createdAt = calendar
+    )
+}
+
+fun PurchasedItemDto.toReceiptLine(): ReceiptLineItem {
     return ReceiptLineItem(
         name = this.itemNameSnapshot,
         qty = this.quantity,

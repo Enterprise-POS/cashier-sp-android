@@ -9,7 +9,7 @@ data class FindTransactionsByIdDto(
     @SerializedName("order_item")
     val orderItem: OrderItem,
     @SerializedName("purchased_item_list")
-    val purchasedItemList: List<PurchasedItem>,
+    val purchasedItemList: List<PurchasedItemDto>,
     @SerializedName("requested_order_item_id")
     val requestedOrderItemId: Int
 )

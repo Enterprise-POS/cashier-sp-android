@@ -72,10 +72,6 @@ private val nowEpoch = CalendarChipUtils::nowEpoch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterBottomSheet(
-    initialColumn: SortColumn,
-    initialAscending: Boolean,
-    initialStartDate: Long?,
-    initialEndDate: Long?,
     onDismiss: () -> Unit,
     viewModel: ItemSalesLogViewModel
 ) {

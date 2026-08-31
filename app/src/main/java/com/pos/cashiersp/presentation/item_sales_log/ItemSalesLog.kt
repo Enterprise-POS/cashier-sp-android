@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.model.domain.PurchasedItem
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.item_sales_log.components.FilterBottomSheet
 import com.pos.cashiersp.presentation.item_sales_log.components.OrderSearchAndSortBar
@@ -77,6 +79,8 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.Success
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.dateFormatter
+import com.pos.cashiersp.presentation.util.toRupiah
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -105,8 +109,13 @@ enum class SalesLogScope {
  * (see [SortFilterUi.column]).
  */
 enum class SortColumn(val apiName: String, val displayName: String) {
-    DATE("date", "Date"),
+    @SerializedName("created_at")
+    DATE("created_at", "Date"),
+
+    @SerializedName("total_amount")
     TOTAL_AMOUNT("total_amount", "Total Amount"),
+
+    @SerializedName("quantity")
     QUANTITY("quantity", "Quantity")
 }
 
@@ -144,59 +153,6 @@ enum class QuickRange(val label: String) {
     CUSTOM("Custom")
 }
 
-private val sampleTransactions = listOf(
-    TransactionRecordUi(
-        "#2896",
-        "Mojito Classic",
-        "Rp 88,000",
-        1,
-        "14 Jan 2026, 11:18",
-        "Rp 88,000",
-        88_000,
-        1768389480
-    ),
-    TransactionRecordUi(
-        "#2841",
-        "Mojito Classic",
-        "Rp 176,000",
-        2,
-        "13 Jan 2026, 09:45",
-        "Rp 88,000",
-        176_000,
-        1768297500
-    ),
-    TransactionRecordUi(
-        "#2810",
-        "Mojito Classic",
-        "Rp 264,000",
-        3,
-        "12 Jan 2026, 14:22",
-        "Rp 90,000",
-        264_000,
-        1768227720
-    ),
-    TransactionRecordUi(
-        "#2779",
-        "Espresso Shot",
-        "Rp 45,000",
-        1,
-        "11 Jan 2026, 18:05",
-        "Rp 45,000",
-        45_000,
-        1768154700
-    ),
-    TransactionRecordUi(
-        "#2751",
-        "Espresso Shot",
-        "Rp 180,000",
-        4,
-        "10 Jan 2026, 10:30",
-        "Rp 45,000",
-        180_000,
-        1768041000
-    ),
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemSalesLog(
@@ -217,16 +173,23 @@ fun ItemSalesLog(
     val dateFilterEnd = viewModel.dateFilterEnd.value
     val showFilterSheet = viewModel.showFilterSheet.value
 
-    val scopedTransactions = remember(selectedScope) {
-        when (selectedScope) {
-            SalesLogScope.SINGLE_ITEM -> sampleTransactions.filter { it.itemName == focusedItemName }
-            SalesLogScope.ALL_ITEMS -> sampleTransactions
-            null -> emptyList()
-        }
+    // The logs
+    val allItemLogs = viewModel.allItemLogs.value
+    val searchItemLogs = viewModel.searchItemLogs.value
+
+    val scopedTransactions = when (selectedScope) {
+        SalesLogScope.SINGLE_ITEM -> searchItemLogs
+        SalesLogScope.ALL_ITEMS -> allItemLogs
+        null -> emptyList()
     }
+
+    // Pagination
+    val currentPage = viewModel.currentPage.value
+    val totalPages = viewModel.totalPages.value
 
     // Applies the current filters/sort locally so the UI reflects them —
     // the same "filters" + "date_filter" shape is what you'd send to the API instead.
+    /*
     val displayedTransactions =
         remember(scopedTransactions, sortColumn, sortAscending, dateFilterStart, dateFilterEnd) {
             val dateFiltered: List<TransactionRecordUi> = scopedTransactions.filter { t ->
@@ -241,6 +204,7 @@ fun ItemSalesLog(
             val sorted = dateFiltered.sortedWith(comparator)
             if (sortAscending) sorted else sorted.asReversed()
         }
+    */
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -330,24 +294,20 @@ fun ItemSalesLog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(displayedTransactions, key = { it.orderId }) { transaction ->
-                        TransactionRecordCard(transaction)
+                    items(scopedTransactions) { purchasedItem ->
+                        TransactionRecordCard(purchasedItem)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                PaginationRow(currentPage = 1, totalPages = 5)
+                PaginationRow(currentPage, totalPages, onPageChange = { println(it) })
             }
         }
     }
 
     if (showFilterSheet) {
         FilterBottomSheet(
-            initialColumn = sortColumn,
-            initialAscending = sortAscending,
-            initialStartDate = dateFilterStart,
-            initialEndDate = dateFilterEnd,
             onDismiss = { viewModel.onEvent(ItemSalesLogEvent.OnDismissFilterBottomSheet) },
             viewModel = viewModel
         )
@@ -431,7 +391,7 @@ private fun EmptyScopePrompt() {
 }
 
 @Composable
-private fun TransactionRecordCard(transaction: TransactionRecordUi) {
+private fun TransactionRecordCard(purchasedItem: PurchasedItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -444,11 +404,11 @@ private fun TransactionRecordCard(transaction: TransactionRecordUi) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Order ${transaction.orderId}",
+                    text = "Order ${purchasedItem.itemId}",
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Secondary)
                 )
                 Text(
-                    text = transaction.price,
+                    text = purchasedItem.totalAmount.toRupiah(),
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Success)
                 )
             }
@@ -461,10 +421,10 @@ private fun TransactionRecordCard(transaction: TransactionRecordUi) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = transaction.itemName,
+                    text = purchasedItem.itemNameSnapshot,
                     style = TextStyle(fontSize = 13.sp, color = Gray400)
                 )
-                QuantityBadge(quantity = transaction.quantity)
+                QuantityBadge(quantity = purchasedItem.quantity)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -475,11 +435,11 @@ private fun TransactionRecordCard(transaction: TransactionRecordUi) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = transaction.date,
+                    text = dateFormatter(purchasedItem.createdAt, "dd MMM yyyy - HH:mm"),
                     style = TextStyle(fontSize = 12.sp, color = Gray400)
                 )
                 Text(
-                    text = "Store price: ${transaction.storePrice}",
+                    text = "Store price: ${purchasedItem.storePriceSnapshot.toRupiah()}",
                     style = TextStyle(fontSize = 12.sp, color = Secondary)
                 )
             }
@@ -504,38 +464,84 @@ private fun QuantityBadge(quantity: Int) {
 }
 
 @Composable
-private fun PaginationRow(currentPage: Int, totalPages: Int) {
+private fun PaginationRow(
+    currentPage: Int,
+    totalPages: Int,
+    onPageChange: (Int) -> Unit
+) {
+    if (totalPages <= 0) return // nothing to paginate
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PageArrowButton(label = "<")
+        PageArrowButton(
+            label = "<",
+            enabled = currentPage > 1,
+            onClick = { onPageChange(currentPage - 1) }
+        )
         Spacer(modifier = Modifier.width(6.dp))
 
-        PageNumberButton(number = 1, isActive = currentPage == 1)
-        Spacer(modifier = Modifier.width(6.dp))
-        PageNumberButton(number = 2, isActive = currentPage == 2)
-        Spacer(modifier = Modifier.width(6.dp))
-        PageNumberButton(number = 3, isActive = currentPage == 3)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(text = "...", modifier = Modifier.padding(horizontal = 4.dp), color = Gray400)
-        Spacer(modifier = Modifier.width(6.dp))
-        PageNumberButton(number = totalPages, isActive = currentPage == totalPages)
+        for (page in visiblePages(currentPage, totalPages)) {
+            if (page == ELLIPSIS) {
+                Text(
+                    text = "...",
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    color = Gray400
+                )
+            } else {
+                PageNumberButton(
+                    number = page,
+                    isActive = currentPage == page,
+                    onClick = { onPageChange(page) }
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+        }
 
-        Spacer(modifier = Modifier.width(6.dp))
-        PageArrowButton(label = ">")
+        PageArrowButton(
+            label = ">",
+            enabled = currentPage < totalPages,
+            onClick = { onPageChange(currentPage + 1) }
+        )
     }
 }
 
+private const val ELLIPSIS = -1
+
+/**
+ * Builds the list of page numbers/ellipsis markers to show, always keeping
+ * first page, last page, and a window around currentPage — e.g. for
+ * currentPage=5, totalPages=10 -> [1, ..., 4, 5, 6, ..., 10]
+ */
+private fun visiblePages(currentPage: Int, totalPages: Int): List<Int> {
+    if (totalPages <= 5) {
+        return (1..totalPages).toList()
+    }
+
+    val pages = mutableListOf(1)
+
+    val windowStart = (currentPage - 1).coerceAtLeast(2)
+    val windowEnd = (currentPage + 1).coerceAtMost(totalPages - 1)
+
+    if (windowStart > 2) pages.add(ELLIPSIS)
+    pages.addAll(windowStart..windowEnd)
+    if (windowEnd < totalPages - 1) pages.add(ELLIPSIS)
+
+    pages.add(totalPages)
+    return pages
+}
+
 @Composable
-private fun PageNumberButton(number: Int, isActive: Boolean) {
+private fun PageNumberButton(number: Int, isActive: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(32.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(if (isActive) Primary else White)
-            .border(1.dp, if (isActive) Primary else Gray100, RoundedCornerShape(8.dp)),
+            .border(1.dp, if (isActive) Primary else Gray100, RoundedCornerShape(8.dp))
+            .clickable(enabled = !isActive, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -550,15 +556,22 @@ private fun PageNumberButton(number: Int, isActive: Boolean) {
 }
 
 @Composable
-private fun PageArrowButton(label: String) {
+private fun PageArrowButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(32.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(White)
-            .border(1.dp, Gray100, RoundedCornerShape(8.dp)),
+            .border(1.dp, Gray100, RoundedCornerShape(8.dp))
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = label, style = TextStyle(fontSize = 13.sp, color = Secondary))
+        Text(
+            text = label,
+            style = TextStyle(
+                fontSize = 13.sp,
+                color = if (enabled) Secondary else Gray400
+            )
+        )
     }
 }

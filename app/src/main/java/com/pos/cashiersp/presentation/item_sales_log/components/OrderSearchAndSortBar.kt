@@ -38,8 +38,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
@@ -65,18 +63,6 @@ private fun sortButtonLabel(
     }
 }
 
-val orders = listOf(
-    OrderSuggestion("1227", "Apple Candy", 90),
-    OrderSuggestion("5279", "Demo Migrate 1", 0),
-    OrderSuggestion("1417", "Iceland Ice Cream", 20_000),
-    OrderSuggestion("8811", "Mojitos", 88),
-    OrderSuggestion("3675", "Muffins", 250),
-    OrderSuggestion("1226", "Pineapple Pie XO", 120),
-    OrderSuggestion("1228", "Pizza's Tar", 0),
-    OrderSuggestion("5922", "Re Ice Cream", 1_500),
-    OrderSuggestion("4364", "Test Item 2", 0)
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderSearchAndSortBar(
@@ -86,7 +72,11 @@ fun OrderSearchAndSortBar(
     selectedScope: SalesLogScope?,
     viewModel: ItemSalesLogViewModel = hiltViewModel()
 ) {
-    var searchItemId = viewModel.searchSortBarInp.value
+    // This state will tell which if the IU should render or loading state
+    val viewModelState = viewModel.viewModelState.value
+
+    val searchItemId = viewModel.searchSortBarInp.value
+    val orders = viewModel.cashierItems.value
     var expanded by remember { mutableStateOf(false) }
 
     // Tracks the measured width of the text field so the dropdown
@@ -99,11 +89,13 @@ fun OrderSearchAndSortBar(
 
     val suggestions = remember(searchItemId) {
         if (searchItemId.isBlank()) {
+            // If nothing typed by user then return all possibilities / suggestion
             orders
         } else {
             orders.filter { order ->
-                order.id.contains(searchItemId, ignoreCase = true) ||
-                        order.name.contains(searchItemId, ignoreCase = true)
+                // Allow user to search via ID or just type item name
+                order.itemId.toString().contains(searchItemId, ignoreCase = true) ||
+                        order.itemName.contains(searchItemId, ignoreCase = true)
             }
         }
     }
@@ -133,9 +125,7 @@ fun OrderSearchAndSortBar(
                     .onGloballyPositioned { coordinates ->
                         fieldWidth = with(density) { coordinates.size.width.toDp() }
                     }
-                    .clip(
-                        RoundedCornerShape(12.dp)
-                    )
+                    .clip(shape = RoundedCornerShape(12.dp))
                     .background(White)
                     .border(
                         width = 1.dp,
@@ -166,7 +156,7 @@ fun OrderSearchAndSortBar(
                         expanded = true
                     },
                     // Always editable — no readOnly toggling
-                    readOnly = false,
+                    readOnly = selectedScope == SalesLogScope.ALL_ITEMS,
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -178,9 +168,27 @@ fun OrderSearchAndSortBar(
                         .focusRequester(focusRequester),
                     decorationBox = { innerTextField ->
 
-                        if (searchItemId.isEmpty()) {
+                        if (!viewModelState.isLoading) {
+                            if (searchItemId.isEmpty() && selectedScope == SalesLogScope.SINGLE_ITEM) {
+                                Text(
+                                    text = "Tap to search order ID...",
+                                    style = TextStyle(
+                                        fontSize = 14.sp,
+                                        color = Gray400
+                                    )
+                                )
+                            } else if (selectedScope == SalesLogScope.ALL_ITEMS) {
+                                Text(
+                                    text = "Input disabled",
+                                    style = TextStyle(
+                                        fontSize = 14.sp,
+                                        color = Gray400
+                                    )
+                                )
+                            }
+                        } else {
                             Text(
-                                text = "Search order ID...",
+                                text = "Data loading...",
                                 style = TextStyle(
                                     fontSize = 14.sp,
                                     color = Gray400
@@ -216,13 +224,13 @@ fun OrderSearchAndSortBar(
                             Column {
 
                                 Text(
-                                    text = order.name,
+                                    text = order.itemName,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
 
                                 Text(
-                                    text = "ID · ${order.id}",
+                                    text = "ID · ${order.itemId}",
                                     fontSize = 12.sp,
                                     color = Gray400
                                 )
@@ -230,7 +238,7 @@ fun OrderSearchAndSortBar(
                         },
 
                         onClick = {
-                            searchItemId = order.id
+                            viewModel.onEvent(ItemSalesLogEvent.OnChangeSearchItemId(order.itemId.toString()))
                             expanded = false
                         }
                     )
@@ -289,9 +297,3 @@ fun OrderSearchAndSortBar(
         }
     }
 }
-
-data class OrderSuggestion(
-    val id: String,
-    val name: String,
-    val price: Int
-)
