@@ -217,12 +217,20 @@ private fun DialogButtons(
                 }
             } else {
                 // Show both buttons if there's a confirmation action
-                TextButton(onClick = onDismissRequest) {
-                    Text(if (cancelText.isNotEmpty()) cancelText else "Cancel", color = Gray600)
+                if (cancelText.isNotEmpty()) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text(cancelText, color = Gray600)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    /*
+                    This will show the button only one rather than 2
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Cancel", color = Gray600)
+                    }*/
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onConfirmation) {
-                    Text(if (confirmText.isNotEmpty()) confirmText else "Confirm", color = Primary)
+                    Text(confirmText.ifEmpty { "Confirm" }, color = Primary)
                 }
             }
         }

@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
@@ -38,19 +40,20 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogViewModel
+import com.pos.cashiersp.presentation.item_sales_log.QuickRange
 import com.pos.cashiersp.presentation.item_sales_log.SalesLogScope
 import com.pos.cashiersp.presentation.item_sales_log.SortColumn
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary300
-import com.pos.cashiersp.presentation.ui.theme.Purple300
 import com.pos.cashiersp.presentation.ui.theme.White
 
 private fun sortButtonLabel(
@@ -68,13 +71,23 @@ private fun sortButtonLabel(
 @Composable
 fun OrderSearchAndSortBar(
     onSortClick: () -> Unit,
-    sortColumn: SortColumn,
-    sortAscending: Boolean,
-    selectedScope: SalesLogScope?,
     viewModel: ItemSalesLogViewModel = hiltViewModel()
 ) {
     // This state will tell which if the IU should render or loading state
     val viewModelState = viewModel.viewModelState.value
+
+    // Default to null so we can force the user to pick a scope on first open.
+    val selectedScope = viewModel.selectedScope.value
+
+    // Applied sort + date filter state (this is what gets sent to the backend later) ---
+    val sortColumn = viewModel.sortColumn.value
+    val sortAscending = viewModel.sortAscending.value
+
+    val draftColumn: SortColumn = viewModel.draftColumn.value
+    val draftAscending: Boolean = viewModel.draftAscending.value
+    val draftStartDate: Long? = viewModel.draftStartDate.value
+    val draftEndDate: Long? = viewModel.draftEndDate.value
+    val draftQuickRange: QuickRange? = viewModel.draftQuickRange.value
 
     val searchItemId = viewModel.searchSortBarInp.value
     val orders = viewModel.cashierItems.value
@@ -150,26 +163,59 @@ fun OrderSearchAndSortBar(
 
                 BasicTextField(
                     value = if (selectedScope == SalesLogScope.ALL_ITEMS) "" else searchItemId,
-                    enabled = selectedScope == SalesLogScope.SINGLE_ITEM,
+                    enabled = selectedScope == SalesLogScope.SINGLE_ITEM && !viewModelState.isLoading,
                     onValueChange = {
                         viewModel.onEvent(ItemSalesLogEvent.OnChangeSearchItemId(it))
                         // Typing should keep/reopen the dropdown, never lock it.
                         expanded = true
                     },
                     // Always editable — no readOnly toggling
-                    readOnly = selectedScope == SalesLogScope.ALL_ITEMS,
+                    readOnly = selectedScope == SalesLogScope.ALL_ITEMS || viewModelState.isLoading,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            // Auto close the keyboard
+                            viewModel.onEvent(
+                                ItemSalesLogEvent.OnApplyFilter(
+                                    draftColumn,
+                                    draftAscending,
+                                    draftStartDate,
+                                    draftEndDate,
+                                    draftQuickRange,
+                                )
+                            )
+                        }
+                    ),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
-                        color = if (selectedScope == SalesLogScope.SINGLE_ITEM) Color.Black else Color.Gray
+                        color = when {
+                            viewModelState.isLoading -> Gray400
+                            selectedScope == SalesLogScope.SINGLE_ITEM -> Color.Black
+                            else -> Color.Gray
+                        }
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor()
                         .focusRequester(focusRequester),
                     decorationBox = { innerTextField ->
-
-                        if (!viewModelState.isLoading) {
+                        if (viewModelState.isLoading) {
+                            Text(
+                                text = if (searchItemId.isNotEmpty() && selectedScope == SalesLogScope.SINGLE_ITEM) {
+                                    "Requesting for ID: $searchItemId"
+                                } else {
+                                    "Loading..."
+                                },
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    color = Gray400
+                                )
+                            )
+                            // innerTextField()
+                        } else {
                             if (searchItemId.isEmpty() && selectedScope == SalesLogScope.SINGLE_ITEM) {
                                 Text(
                                     text = "Tap to search order ID...",
@@ -187,17 +233,9 @@ fun OrderSearchAndSortBar(
                                     )
                                 )
                             }
-                        } else {
-                            Text(
-                                text = "Data loading...",
-                                style = TextStyle(
-                                    fontSize = 14.sp,
-                                    color = Gray400
-                                )
-                            )
-                        }
 
-                        innerTextField()
+                            innerTextField()
+                        }
                     }
                 )
             }
@@ -215,7 +253,7 @@ fun OrderSearchAndSortBar(
                 modifier = Modifier
                     .background(White)
                     .width(fieldWidth)
-                    .heightIn(max = 500.dp)
+                    .heightIn(max = 300.dp)
             ) {
 
                 suggestions.forEach { order ->

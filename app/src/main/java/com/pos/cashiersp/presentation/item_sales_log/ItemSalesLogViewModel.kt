@@ -13,7 +13,20 @@ import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.model.dto.toDomain
 import com.pos.cashiersp.model.room_entity.toCashierItem
-import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.*
+import com.pos.cashiersp.presentation.cashier.CashierViewModel.UIEvent
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnApplyFilter
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnChangeDraftColumn
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnChangePage
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnChangeSearchItemId
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnClearDateRange
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnDismissFilterBottomSheet
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetDraftAscending
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetDraftEndDate
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetDraftQuickRange
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetDraftStartDate
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetFilterSheetState
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetScopeSelector
 import com.pos.cashiersp.presentation.util.CalendarChipUtils
 import com.pos.cashiersp.presentation.util.Filter
 import com.pos.cashiersp.presentation.util.PurchasedItemListLogsRequestBody
@@ -23,6 +36,8 @@ import com.pos.cashiersp.use_case.DatabaseCacheMetadataUseCase
 import com.pos.cashiersp.use_case.StoreStockUseCase
 import com.pos.cashiersp.use_case.purchased_item_list_use_case.PurchasedItemListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.lastOrNull
@@ -43,6 +58,8 @@ class ItemSalesLogViewModel @Inject constructor(
     private val _storeName = mutableStateOf("")
     private val _viewModelState = mutableStateOf(StateStatus())
     val viewModelState: State<StateStatus> = _viewModelState
+    private val _informationDialogStatus = mutableStateOf(GeneralAlertDialogStatus())
+    val informationDialogStatus: State<GeneralAlertDialogStatus> = _informationDialogStatus
 
     // * OrderSearchAndSortBar
     private val _sortColumn = mutableStateOf(SortColumn.DATE)
@@ -90,7 +107,7 @@ class ItemSalesLogViewModel @Inject constructor(
     private val _totalAllItemLogs = mutableIntStateOf(0)
 
     //val totalAllItemLogs: State<Int> = _totalAllItemLogs
-    private val _totalAllItemPages = mutableIntStateOf(0)
+    private val _totalAllItemPages = mutableIntStateOf(-1) // -1 Will maintain if the scope ever opened or not
     val totalAllItemPages: State<Int> = _totalAllItemPages
 
     // Search items
@@ -109,6 +126,10 @@ class ItemSalesLogViewModel @Inject constructor(
     val currentSearchItemPage: State<Int> = _currentSearchItemPage
     private val _limit = mutableIntStateOf(30)
 
+    // UI Event
+    private val _uiEvent = MutableSharedFlow<UIEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
+
     init {
         loadStoreAndTenantData()
     }
@@ -117,9 +138,15 @@ class ItemSalesLogViewModel @Inject constructor(
         when (event) {
             is OnApplyFilter -> {
                 if (_viewModelState.value.isLoading) {
+                    _showFilterSheet.value = false
+                    showError("Filter error", "Please wait. Another request still ongoing.")
                     return
                 }
-                if (_searchSortBarInp.value.isBlank()) return
+                if (_selectedScope.value == SalesLogScope.SINGLE_ITEM && (_searchSortBarInp.value.isBlank())) {
+                    _showFilterSheet.value = false
+                    showError("Filter error", "Please fill the input before applying filter")
+                    return
+                }
 
                 _viewModelState.value = StateStatus(isLoading = true)
 
@@ -166,9 +193,9 @@ class ItemSalesLogViewModel @Inject constructor(
                             )
                         }
                         if (selectedSuggestionItem == null) {
-                            _viewModelState.value = StateStatus(
-                                isLoading = false,
-                                error = "Not available item for searching. Please try again from suggestion or type item id"
+                            showError(
+                                "Filter error",
+                                "Not available item for searching. Please try again from suggestion or type item id"
                             )
                             return
                         }
@@ -190,7 +217,10 @@ class ItemSalesLogViewModel @Inject constructor(
                 purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
                     when (resource) {
                         is Resource.Error -> {
-                            _viewModelState.value = StateStatus(error = resource.message)
+                            showError(
+                                "Filter error",
+                                resource.message ?: "Unknown error occurred while applying filter"
+                            )
                             println(resource.message)
                         }
 
@@ -221,7 +251,8 @@ class ItemSalesLogViewModel @Inject constructor(
             is OnSetFilterSheetState -> _showFilterSheet.value = event.show
             is OnSetScopeSelector -> {
                 // This is quick show item when user visit the page to see all logs
-                if (event.scope == SalesLogScope.ALL_ITEMS && _selectedScope.value == null) {
+                if (event.scope == SalesLogScope.ALL_ITEMS && (_selectedScope.value == null || _totalAllItemPages.intValue == -1)) {
+                    _totalAllItemPages.intValue = 0 // Indicate user ever open the page
                     val storeId = _storeId.intValue
                     val ascending = _sortAscending.value
                     val sortByColumn = _sortColumn.value
@@ -245,7 +276,7 @@ class ItemSalesLogViewModel @Inject constructor(
                     purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
                         when (resource) {
                             is Resource.Error -> {
-                                _viewModelState.value = StateStatus(error = resource.message)
+                                showError("Failed to load items", resource.message ?: "Unknown error occurred")
                                 println(resource.message)
                             }
 
@@ -347,11 +378,11 @@ class ItemSalesLogViewModel @Inject constructor(
                 purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
                     when (resource) {
                         is Resource.Error -> {
-                            _viewModelState.value = StateStatus(error = resource.message)
+                            showError("Failed to change page", resource.message ?: "Unknown error occurred")
                             println(resource.message)
                         }
 
-                        is Resource.Loading -> { /* Do nothing */
+                        is Resource.Loading -> {
                             _viewModelState.value = StateStatus(isLoading = true)
                         }
 
@@ -375,7 +406,16 @@ class ItemSalesLogViewModel @Inject constructor(
                     }
                 }.launchIn(viewModelScope)
             }
+
+            ItemSalesLogEvent.OnDismissInformationDialog -> {
+                _informationDialogStatus.value = GeneralAlertDialogStatus()
+            }
         }
+    }
+
+    private fun showError(title: String, message: String) {
+        _viewModelState.value = StateStatus() // clear loading; error no longer travels via this state
+        _informationDialogStatus.value = GeneralAlertDialogStatus.error(title, message)
     }
 
     private fun loadStoreAndTenantData() {
@@ -394,8 +434,7 @@ class ItemSalesLogViewModel @Inject constructor(
 
                         // Check for cache
                         val cachedCashierItem = getCache(tenantId, storeId, onError = { message ->
-                            // Explicitly say when some error occurred when getCache then this error logic should run
-                            _viewModelState.value = StateStatus(error = message)
+                            showError("Failed to load cache", message)
                         })
 
                         if (cachedCashierItem.isNotEmpty()) {
@@ -441,5 +480,12 @@ class ItemSalesLogViewModel @Inject constructor(
 
             else -> emptyList()
         }
+    }
+
+    // UI Events
+    sealed class UIEvent {
+        object CloseCashierPartialSheet : UIEvent()
+        data class ShowErrorSnackbar(val message: String) : UIEvent()
+        data class ErrorAndMustNavigateToSelectTenantScreen(val message: String) : UIEvent()
     }
 }

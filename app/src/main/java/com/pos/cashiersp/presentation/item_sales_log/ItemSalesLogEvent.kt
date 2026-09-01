@@ -29,4 +29,6 @@ sealed class ItemSalesLogEvent {
 
     // Pagination
     data class OnChangePage(val goToPage: Int) : ItemSalesLogEvent()
+
+    object OnDismissInformationDialog : ItemSalesLogEvent()
 }

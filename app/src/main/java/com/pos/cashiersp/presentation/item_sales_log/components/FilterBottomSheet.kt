@@ -78,6 +78,9 @@ fun FilterBottomSheet(
     // "skipPartiallyExpanded" will make the bottom sheet expose all their contents instead just open a bit
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Maintain state
+    val viewModelState = viewModel.viewModelState.value
+
     // Draft state — only committed to the parent on "Apply", so backing out of the
     // sheet (dismiss/cancel) doesn't change what's currently applied.
     val draftColumn: SortColumn = viewModel.draftColumn.value
@@ -359,7 +362,7 @@ fun FilterBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Apply",
+                        text = if (viewModelState.isLoading) "Please wait" else "Apply",
                         style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = White)
                     )
                 }

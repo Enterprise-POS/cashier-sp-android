@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerState
@@ -38,6 +39,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +51,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +70,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.gson.annotations.SerializedName
 import com.pos.cashiersp.model.domain.PurchasedItem
+import com.pos.cashiersp.presentation.Screen
+import com.pos.cashiersp.presentation.cashier.CashierViewModel
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
+import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.item_sales_log.components.FilterBottomSheet
 import com.pos.cashiersp.presentation.item_sales_log.components.OrderSearchAndSortBar
@@ -81,6 +89,7 @@ import com.pos.cashiersp.presentation.ui.theme.Success
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.dateFormatter
 import com.pos.cashiersp.presentation.util.toRupiah
+import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -125,25 +134,6 @@ data class SortFilterUi(
     val ascending: Boolean
 )
 
-/** The request's "date_filter" object: { "start_date": ..., "end_date": ... } */
-data class DateFilterUi(
-    val startDate: Long?,
-    val endDate: Long?
-)
-
-/**
- * Mirrors the exact request shape:
- * {
- *   "filters": [ { "column": ..., "ascending": ... } ],
- *   "date_filter": { "start_date": ..., "end_date": ... }
- * }
- * UI-only for now — build this and hand it to your API layer when it's ready.
- */
-data class SalesLogFilterRequest(
-    val filters: List<SortFilterUi>,
-    val dateFilter: DateFilterUi?
-)
-
 /** Which quick-select shortcut (if any) is currently active in the date range picker. */
 enum class QuickRange(val label: String) {
     TODAY("Today"),
@@ -160,17 +150,19 @@ fun ItemSalesLog(
     drawerState: DrawerState,
     // The item the user came from (e.g. tapped "Mojito Classic" in a product list).
     // Used when scope == SINGLE_ITEM.
-    focusedItemName: String = "Mojito Classic",
     viewModel: ItemSalesLogViewModel = hiltViewModel()
 ) {
+    // Maintain state if user currently requesting something
+    val viewModelState = viewModel.viewModelState.value
+
     // Default to null so we can force the user to pick a scope on first open.
     val selectedScope = viewModel.selectedScope.value
 
-    // --- Applied sort + date filter state (this is what gets sent to the backend later) ---
+    // Applied sort + date filter state (this is what gets sent to the backend later) ---
     val sortColumn = viewModel.sortColumn.value
     val sortAscending = viewModel.sortAscending.value
-    val dateFilterStart = viewModel.dateFilterStart.value
-    val dateFilterEnd = viewModel.dateFilterEnd.value
+    // val dateFilterStart = viewModel.dateFilterStart.value
+    // val dateFilterEnd = viewModel.dateFilterEnd.value
     val showFilterSheet = viewModel.showFilterSheet.value
 
     // The logs
@@ -189,6 +181,28 @@ fun ItemSalesLog(
         null -> Triple(emptyList(), 0, 0)
     }
 
+    val informationDialogStatus: GeneralAlertDialogStatus = viewModel.informationDialogStatus.value
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is ItemSalesLogViewModel.UIEvent.ErrorAndMustNavigateToSelectTenantScreen -> navController.navigate(
+                    Screen.SELECT_TENANT
+                ) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+
+                is ItemSalesLogViewModel.UIEvent.CloseCashierPartialSheet -> {
+
+                }
+
+                is ItemSalesLogViewModel.UIEvent.ShowErrorSnackbar -> {
+
+                }
+            }
+        }
+    }
 
     // Applies the current filters/sort locally so the UI reflects them —
     // the same "filters" + "date_filter" shape is what you'd send to the API instead.
@@ -258,7 +272,6 @@ fun ItemSalesLog(
             ) {
                 ScopeSelector(
                     selectedScope = selectedScope,
-                    focusedItemName = focusedItemName,
                     onSelect = { viewModel.onEvent(ItemSalesLogEvent.OnSetScopeSelector(it)) }
                 )
             }
@@ -286,19 +299,36 @@ fun ItemSalesLog(
 
                 OrderSearchAndSortBar(
                     onSortClick = { viewModel.onEvent(ItemSalesLogEvent.OnSetFilterSheetState(true)) },
-                    sortColumn,
-                    sortAscending,
-                    selectedScope
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(scopedTransactions) { purchasedItem ->
-                        TransactionRecordCard(purchasedItem)
+                    if (viewModelState.isLoading) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator(color = Primary)
+                            Text(
+                                text = "Please wait...",
+                                style = TextStyle(fontSize = 13.sp, color = Gray400)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(scopedTransactions) { purchasedItem ->
+                                TransactionRecordCard(purchasedItem)
+                            }
+                        }
                     }
                 }
 
@@ -307,7 +337,8 @@ fun ItemSalesLog(
                 PaginationRow(
                     currentPage,
                     totalPages,
-                    onPageChange = { viewModel.onEvent(ItemSalesLogEvent.OnChangePage(it)) })
+                    onPageChange = { if (!viewModelState.isLoading) viewModel.onEvent(ItemSalesLogEvent.OnChangePage(it)) }
+                )
             }
         }
     }
@@ -318,6 +349,15 @@ fun ItemSalesLog(
             viewModel = viewModel
         )
     }
+
+    if (informationDialogStatus.showDialog) {
+        GeneralAlertDialog(
+            informationDialogStatus,
+            "Close",
+            "",
+            { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) },
+            { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) })
+    }
 }
 
 /**
@@ -327,7 +367,6 @@ fun ItemSalesLog(
 @Composable
 private fun ScopeSelector(
     selectedScope: SalesLogScope?,
-    focusedItemName: String,
     onSelect: (SalesLogScope) -> Unit
 ) {
     Row(
