@@ -13,6 +13,7 @@ import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.model.dto.toDomain
 import com.pos.cashiersp.model.room_entity.toCashierItem
+import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.*
 import com.pos.cashiersp.presentation.util.CalendarChipUtils
 import com.pos.cashiersp.presentation.util.Filter
 import com.pos.cashiersp.presentation.util.PurchasedItemListLogsRequestBody
@@ -87,19 +88,25 @@ class ItemSalesLogViewModel @Inject constructor(
     val allItemLogs: State<List<PurchasedItem>> = _allItemsLog
 
     private val _totalAllItemLogs = mutableIntStateOf(0)
-    val totalAllItemLogs: State<Int> = _totalAllItemLogs
+
+    //val totalAllItemLogs: State<Int> = _totalAllItemLogs
+    private val _totalAllItemPages = mutableIntStateOf(0)
+    val totalAllItemPages: State<Int> = _totalAllItemPages
 
     // Search items
     private val _searchItemLog = mutableStateOf<List<PurchasedItem>>(listOf())
     val searchItemLogs: State<List<PurchasedItem>> = _searchItemLog
     private val _totalSearchItemLogs = mutableIntStateOf(0)
-    val totalSearchItemLogs: State<Int> = _totalSearchItemLogs
+
+    //val totalSearchItemLogs: State<Int> = _totalSearchItemLogs
+    private val _totalSearchItemPages = mutableIntStateOf(0)
+    val totalSearchItemPages: State<Int> = _totalSearchItemPages
 
     // Pagination
-    private val _currentPage = mutableIntStateOf(1)
-    val currentPage: State<Int> = _currentPage
-    private val _totalPages = mutableIntStateOf(0)
-    val totalPages: State<Int> = _totalPages
+    private val _currentAllItemPage = mutableIntStateOf(1)
+    val currentAllItemPage: State<Int> = _currentAllItemPage
+    private val _currentSearchItemPage = mutableIntStateOf(1)
+    val currentSearchItemPage: State<Int> = _currentSearchItemPage
     private val _limit = mutableIntStateOf(30)
 
     init {
@@ -108,13 +115,11 @@ class ItemSalesLogViewModel @Inject constructor(
 
     fun onEvent(event: ItemSalesLogEvent) {
         when (event) {
-            is ItemSalesLogEvent.OnApplyFilter -> {
+            is OnApplyFilter -> {
                 if (_viewModelState.value.isLoading) {
                     return
                 }
-                if (!_searchSortBarInp.value.isDigitsOnly()) {
-                    return
-                }
+                if (_searchSortBarInp.value.isBlank()) return
 
                 _viewModelState.value = StateStatus(isLoading = true)
 
@@ -149,7 +154,26 @@ class ItemSalesLogViewModel @Inject constructor(
                         dateFilter = dateFilter
                     )
                 } else {
-                    val itemId = _searchSortBarInp.value.toInt()
+                    val searchSortBarInp = _searchSortBarInp.value
+                    var itemId: Int
+                    if (searchSortBarInp.isDigitsOnly()) {
+                        itemId = _searchSortBarInp.value.toInt()
+                    } else {
+                        val selectedSuggestionItem = cashierItems.value.firstOrNull { item ->
+                            item.itemName.contains(
+                                searchSortBarInp,
+                                ignoreCase = true
+                            )
+                        }
+                        if (selectedSuggestionItem == null) {
+                            _viewModelState.value = StateStatus(
+                                isLoading = false,
+                                error = "Not available item for searching. Please try again from suggestion or type item id"
+                            )
+                            return
+                        }
+                        itemId = selectedSuggestionItem.itemId
+                    }
                     body = PurchasedItemListLogsRequestBody(
                         itemIds = listOf(itemId),
                         storeId = storeId,
@@ -179,42 +203,177 @@ class ItemSalesLogViewModel @Inject constructor(
                             if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
                                 _allItemsLog.value = data.logs.map { it.toDomain() }
                                 _totalAllItemLogs.intValue = data.totalCount
+                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+                                _currentAllItemPage.intValue = 1
                             } else {
                                 _searchItemLog.value = data.logs.map { it.toDomain() }
                                 _totalSearchItemLogs.intValue = data.totalCount
+                                _totalSearchItemPages.intValue =
+                                    ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+                                _currentSearchItemPage.intValue = 1
                             }
-                            _currentPage.intValue = 1
-                            _totalPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
                             _viewModelState.value = StateStatus()
                         }
                     }
                 }.launchIn(viewModelScope)
             }
 
-            is ItemSalesLogEvent.OnSetFilterSheetState -> _showFilterSheet.value = event.show
-            is ItemSalesLogEvent.OnSetScopeSelector -> _selectedScope.value = event.scope
+            is OnSetFilterSheetState -> _showFilterSheet.value = event.show
+            is OnSetScopeSelector -> {
+                // This is quick show item when user visit the page to see all logs
+                if (event.scope == SalesLogScope.ALL_ITEMS && _selectedScope.value == null) {
+                    val storeId = _storeId.intValue
+                    val ascending = _sortAscending.value
+                    val sortByColumn = _sortColumn.value
+                    val startDate = _dateFilterStart.value?.toInt() ?: 0
+                    val endDate = _dateFilterEnd.value?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
 
-            is ItemSalesLogEvent.OnChangeSearchItemId -> _searchSortBarInp.value = event.inputId
+                    // DateFilter column property is empty string because column property is deprecated
+                    val dateFilter = DateFilter(column = "", startDate = startDate, endDate = endDate)
+                    val body = PurchasedItemListLogsRequestBody(
+                        itemIds = listOf(),
+                        storeId = storeId,
+                        limit = 30,
+                        page = 1,
+                        filters = listOf(
+                            // sort by, asc / desc
+                            Filter(sortByColumn, ascending),
+                        ),
+                        dateFilter = dateFilter
+                    )
 
-            is ItemSalesLogEvent.OnChangeDraftColumn -> _draftColumn.value = event.sortColumn
-            is ItemSalesLogEvent.OnSetDraftAscending -> _draftAscending.value = event.setTo
-            is ItemSalesLogEvent.OnSetDraftStartDate -> _draftStartDate.value = event.setStartDate
-            is ItemSalesLogEvent.OnSetDraftEndDate -> _draftEndDate.value = event.setEndDate
-            is ItemSalesLogEvent.OnSetDraftQuickRange -> _draftQuickRange.value = event.setQuickRange
-            ItemSalesLogEvent.OnClearDateRange -> {
+                    purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
+                        when (resource) {
+                            is Resource.Error -> {
+                                _viewModelState.value = StateStatus(error = resource.message)
+                                println(resource.message)
+                            }
+
+                            is Resource.Loading -> {
+                                _viewModelState.value = StateStatus(isLoading = true)
+                            }
+
+                            is Resource.Success -> {
+                                val data: PurchasedItemListLogsResponse = resource.data!!
+
+                                _allItemsLog.value = data.logs.map { it.toDomain() }
+                                _totalAllItemLogs.intValue = data.totalCount
+                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+                                _currentAllItemPage.intValue = 1
+
+                                _viewModelState.value = StateStatus()
+                            }
+                        }
+                    }.launchIn(viewModelScope)
+                }
+
+                _selectedScope.value = event.scope
+            }
+
+            is OnChangeSearchItemId -> _searchSortBarInp.value = event.inputId
+
+            is OnChangeDraftColumn -> _draftColumn.value = event.sortColumn
+            is OnSetDraftAscending -> _draftAscending.value = event.setTo
+            is OnSetDraftStartDate -> _draftStartDate.value = event.setStartDate
+            is OnSetDraftEndDate -> _draftEndDate.value = event.setEndDate
+            is OnSetDraftQuickRange -> _draftQuickRange.value = event.setQuickRange
+            OnClearDateRange -> {
                 _draftStartDate.value = null
                 _draftEndDate.value = null
                 _draftQuickRange.value = null
             }
 
-            ItemSalesLogEvent.OnDismissFilterBottomSheet -> {
+            OnDismissFilterBottomSheet -> {
                 // Will reset the draftState into set state before
                 _draftColumn.value = _sortColumn.value
                 _draftAscending.value = _sortAscending.value
                 _draftStartDate.value = _dateFilterStart.value
                 _draftEndDate.value = _dateFilterEnd.value
                 _draftQuickRange.value = _quickRange.value
-                this.onEvent(ItemSalesLogEvent.OnSetFilterSheetState(false))
+                this.onEvent(OnSetFilterSheetState(false))
+            }
+
+            is OnChangePage -> {
+                val goToPage = event.goToPage
+                if (goToPage <= 0) return
+
+                val storeId = _storeId.intValue
+                val ascending = _sortAscending.value
+                val sortByColumn = _sortColumn.value
+                val startDate = _dateFilterStart.value?.toInt() ?: 0
+                val endDate = _dateFilterEnd.value?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
+
+                // DateFilter column property is empty string because column property is deprecated
+                val dateFilter = DateFilter(column = "", startDate = startDate, endDate = endDate)
+
+                var body: PurchasedItemListLogsRequestBody
+                if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
+                    if (goToPage > _totalAllItemPages.intValue) {
+                        return
+                    }
+                    // This will take page change immediate without waiting the item to load
+                    _currentAllItemPage.intValue = goToPage
+
+                    body = PurchasedItemListLogsRequestBody(
+                        itemIds = listOf(),
+                        storeId = storeId,
+                        limit = 30,
+                        page = goToPage,
+                        filters = listOf(
+                            // sort by, asc / desc
+                            Filter(column = sortByColumn, ascending = ascending),
+                        ),
+                        dateFilter = dateFilter
+                    )
+                } else {
+                    if (goToPage > _totalSearchItemPages.intValue) {
+                        return
+                    }
+                    _currentSearchItemPage.intValue = goToPage
+
+                    val itemId = _searchSortBarInp.value.toInt()
+                    body = PurchasedItemListLogsRequestBody(
+                        itemIds = listOf(itemId),
+                        storeId = storeId,
+                        limit = 30,
+                        page = goToPage,
+                        filters = listOf(
+                            // sort by, asc / desc
+                            Filter(column = sortByColumn, ascending = ascending),
+                        ),
+                        dateFilter = dateFilter
+                    )
+                }
+                purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
+                    when (resource) {
+                        is Resource.Error -> {
+                            _viewModelState.value = StateStatus(error = resource.message)
+                            println(resource.message)
+                        }
+
+                        is Resource.Loading -> { /* Do nothing */
+                            _viewModelState.value = StateStatus(isLoading = true)
+                        }
+
+                        is Resource.Success -> {
+                            val data: PurchasedItemListLogsResponse = resource.data!!
+
+                            if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
+                                _allItemsLog.value = data.logs.map { it.toDomain() }
+                                _totalAllItemLogs.intValue = data.totalCount
+                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+                                // _currentAllItemPage.intValue = 1
+                            } else {
+                                _searchItemLog.value = data.logs.map { it.toDomain() }
+                                _totalSearchItemLogs.intValue = data.totalCount
+                                _totalSearchItemPages.intValue =
+                                    ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+                                // _currentSearchItemPage.intValue = 1
+                            }
+                            _viewModelState.value = StateStatus()
+                        }
+                    }
+                }.launchIn(viewModelScope)
             }
         }
     }

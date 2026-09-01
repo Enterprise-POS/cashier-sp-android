@@ -1,5 +1,7 @@
 package com.pos.cashiersp.presentation.item_sales_log
 
+import com.pos.cashiersp.model.dto.CashierItem
+
 sealed class ItemSalesLogEvent {
     data class OnApplyFilter(
         val column: SortColumn,
@@ -24,4 +26,7 @@ sealed class ItemSalesLogEvent {
     object OnClearDateRange : ItemSalesLogEvent()
 
     object OnDismissFilterBottomSheet : ItemSalesLogEvent()
+
+    // Pagination
+    data class OnChangePage(val goToPage: Int) : ItemSalesLogEvent()
 }

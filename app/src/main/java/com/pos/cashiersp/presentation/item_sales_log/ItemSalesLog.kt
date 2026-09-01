@@ -177,15 +177,18 @@ fun ItemSalesLog(
     val allItemLogs = viewModel.allItemLogs.value
     val searchItemLogs = viewModel.searchItemLogs.value
 
-    val scopedTransactions = when (selectedScope) {
-        SalesLogScope.SINGLE_ITEM -> searchItemLogs
-        SalesLogScope.ALL_ITEMS -> allItemLogs
-        null -> emptyList()
+    // Pagination
+    val currentAllItemPage = viewModel.currentAllItemPage.value
+    val totalAllItemPages = viewModel.totalAllItemPages.value
+    val currentSearchItemPage = viewModel.currentSearchItemPage.value
+    val totalSearchItemPages = viewModel.totalSearchItemPages.value
+
+    val (scopedTransactions, currentPage, totalPages) = when (selectedScope) {
+        SalesLogScope.SINGLE_ITEM -> Triple(searchItemLogs, currentSearchItemPage, totalSearchItemPages)
+        SalesLogScope.ALL_ITEMS -> Triple(allItemLogs, currentAllItemPage, totalAllItemPages)
+        null -> Triple(emptyList(), 0, 0)
     }
 
-    // Pagination
-    val currentPage = viewModel.currentPage.value
-    val totalPages = viewModel.totalPages.value
 
     // Applies the current filters/sort locally so the UI reflects them —
     // the same "filters" + "date_filter" shape is what you'd send to the API instead.
@@ -301,7 +304,10 @@ fun ItemSalesLog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                PaginationRow(currentPage, totalPages, onPageChange = { println(it) })
+                PaginationRow(
+                    currentPage,
+                    totalPages,
+                    onPageChange = { viewModel.onEvent(ItemSalesLogEvent.OnChangePage(it)) })
             }
         }
     }

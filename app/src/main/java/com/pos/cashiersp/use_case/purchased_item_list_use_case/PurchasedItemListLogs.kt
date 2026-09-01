@@ -4,7 +4,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
-import com.pos.cashiersp.model.dto.PurchasedItemDto
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.presentation.util.PurchasedItemListLogsRequestBody
 import com.pos.cashiersp.repository.PurchasedItemListRepository
@@ -50,6 +49,7 @@ class PurchasedItemListLogs(private val repository: PurchasedItemListRepository)
                     emit(Resource.Error("[FATAL ERROR] Empty JSON body"))
                     return@flow
                 }
+
 
                 // 200 ok
                 val data: PurchasedItemListLogsResponse = successResponse.data

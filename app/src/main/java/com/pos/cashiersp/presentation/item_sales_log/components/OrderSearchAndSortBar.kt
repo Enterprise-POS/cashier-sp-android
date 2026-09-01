@@ -49,6 +49,7 @@ import com.pos.cashiersp.presentation.item_sales_log.SortColumn
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Primary
+import com.pos.cashiersp.presentation.ui.theme.Primary300
 import com.pos.cashiersp.presentation.ui.theme.Purple300
 import com.pos.cashiersp.presentation.ui.theme.White
 
@@ -260,7 +261,7 @@ fun OrderSearchAndSortBar(
                 .background(White)
                 .border(
                     width = 1.dp,
-                    color = Purple300,
+                    color = Primary300,
                     shape = RoundedCornerShape(12.dp)
                 )
                 .clickable(
