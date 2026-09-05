@@ -1,6 +1,7 @@
 package com.pos.cashiersp.presentation.item_sales_log
 
 import com.pos.cashiersp.model.dto.CashierItem
+import com.pos.cashiersp.presentation.util.SortColumn
 
 sealed class ItemSalesLogEvent {
     data class OnApplyFilter(
@@ -31,4 +32,7 @@ sealed class ItemSalesLogEvent {
     data class OnChangePage(val goToPage: Int) : ItemSalesLogEvent()
 
     object OnDismissInformationDialog : ItemSalesLogEvent()
+
+    // See order detail
+    data class OnClickSeeOrderItemDetail(val orderItemId: Int) : ItemSalesLogEvent()
 }

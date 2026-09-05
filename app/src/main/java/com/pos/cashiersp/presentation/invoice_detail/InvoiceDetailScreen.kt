@@ -238,7 +238,7 @@ fun InvoiceDetailScreen(
 
         if (generalAlertDialogStatus.showDialog)
             GeneralAlertDialog(
-                generalAlertDialogStatus = generalAlertDialogStatus,
+                generalAlertDialogStatus,
                 onDismissRequest = { viewModel.onEvent(InvoiceDetailEvent.OnClickDismissGeneralDialogStatusBtn) },
             )
     }

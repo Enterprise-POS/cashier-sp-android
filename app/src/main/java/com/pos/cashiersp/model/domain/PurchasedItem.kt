@@ -12,5 +12,6 @@ data class PurchasedItem(
     val storePriceSnapshot: Int,
     val quantity: Int,
     val totalAmount: Int,
-    val createdAt: Calendar
+
+    val createdAt: Calendar?
 )

@@ -46,10 +46,12 @@ fun SplashScreen(
     )
 
     LaunchedEffect(key1 = true) {
+        visible = true
+
         viewModel.splashUIEvent.collectLatest { event ->
             when (event) {
                 SplashViewModel.SplashUIEvent.NavigateToCashier -> {
-                    navController.navigate(Screen.ITEM_SALES_LOG) {
+                    navController.navigate(Screen.CASHIER) {
                         popUpTo(Screen.SPLASH) { inclusive = true }
                     }
                 }
@@ -70,7 +72,6 @@ fun SplashScreen(
                 }
             }
         }
-
     }
 
     Surface(

@@ -1,5 +1,7 @@
 package com.pos.cashiersp.presentation.item_sales_log.components
 
+import com.pos.cashiersp.presentation.util.SortColumn
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,11 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLog
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogViewModel
 import com.pos.cashiersp.presentation.item_sales_log.QuickRange
-import com.pos.cashiersp.presentation.item_sales_log.SortColumn
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray600

@@ -272,7 +272,7 @@ fun CashierScreen(
                 }
 
                 Spacer(Modifier.height(4.dp))
-                
+
                 // Items Grid
                 LazyVerticalGrid(
                     modifier = Modifier
@@ -297,7 +297,7 @@ fun CashierScreen(
 
         if (generalAlertDialogStatus.showDialog) {
             GeneralAlertDialog(
-                generalAlertDialogStatus = generalAlertDialogStatus,
+                generalAlertDialogStatus,
                 onConfirmation = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
                 onDismissRequest = { viewModel.onEvent(CashierEvent.OnConfirmGeneralAlertDialog) },
             )
@@ -321,7 +321,7 @@ fun CashierScreen(
 
         if (loadAllProductsDialogStatus.showDialog) {
             GeneralAlertDialog(
-                generalAlertDialogStatus = loadAllProductsDialogStatus,
+                loadAllProductsDialogStatus,
                 confirmText = "Try Again",
                 cancelText = "Dismiss",
                 onConfirmation = { viewModel.onEvent(CashierEvent.TryAgainRequestAllProducts) },

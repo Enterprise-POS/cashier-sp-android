@@ -74,7 +74,11 @@ fun TransactionHistoryScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
             when (event) {
-                is TransactionHistoryViewModel.UIEvent.GotoInvoiceDetailScreen -> navController.navigate(Screen.INVOICE_DETAIL + "/${event.orderItemId}")
+                is TransactionHistoryViewModel.UIEvent.GotoInvoiceDetailScreen -> navController.navigate(
+                    Screen.createInvoiceDetailURL(
+                        event.orderItemId
+                    )
+                )
             }
         }
     }

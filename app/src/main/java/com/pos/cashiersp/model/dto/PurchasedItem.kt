@@ -28,13 +28,13 @@ data class PurchasedItemDto(
     val quantity: Int,
     @SerializedName("total_amount")
     val totalAmount: Int,
+
+    // Sometimes when we find order item we don't need data created_at at purchased_item_list
     @SerializedName("order_item_created_at")
-    val createdAt: String
+    val createdAt: String?
 )
 
 fun PurchasedItemDto.toDomain(): com.pos.cashiersp.model.domain.PurchasedItem {
-    val calendar = parseDateString(this.createdAt)
-
     return com.pos.cashiersp.model.domain.PurchasedItem(
         id = this.id,
         totalAmount = this.totalAmount,
@@ -44,7 +44,7 @@ fun PurchasedItemDto.toDomain(): com.pos.cashiersp.model.domain.PurchasedItem {
         quantity = this.quantity,
         itemNameSnapshot = this.itemNameSnapshot,
         orderItemId = this.orderItemId,
-        createdAt = calendar
+        createdAt = this.createdAt?.let { parseDateString(this.createdAt) }
     )
 }
 

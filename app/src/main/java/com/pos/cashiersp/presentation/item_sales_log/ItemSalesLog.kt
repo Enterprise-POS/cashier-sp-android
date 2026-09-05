@@ -1,131 +1,61 @@
 package com.pos.cashiersp.presentation.item_sales_log
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.gson.annotations.SerializedName
-import com.pos.cashiersp.model.domain.PurchasedItem
 import com.pos.cashiersp.presentation.Screen
-import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.item_sales_log.components.FilterBottomSheet
 import com.pos.cashiersp.presentation.item_sales_log.components.OrderSearchAndSortBar
-import com.pos.cashiersp.presentation.ui.theme.Gray100
+import com.pos.cashiersp.presentation.item_sales_log.components.PaginationRow
+import com.pos.cashiersp.presentation.item_sales_log.components.ScopeSelector
+import com.pos.cashiersp.presentation.item_sales_log.components.TransactionRecordCard
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Primary
-import com.pos.cashiersp.presentation.ui.theme.Primary200
-import com.pos.cashiersp.presentation.ui.theme.PrimaryHover
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
-import com.pos.cashiersp.presentation.ui.theme.Success
-import com.pos.cashiersp.presentation.ui.theme.White
-import com.pos.cashiersp.presentation.util.dateFormatter
-import com.pos.cashiersp.presentation.util.toRupiah
 import kotlinx.coroutines.flow.collectLatest
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
-
-data class TransactionRecordUi(
-    val orderId: String,
-    val itemName: String,
-    val price: String,
-    val quantity: Int,
-    val date: String,
-    val storePrice: String,
-    val revenue: Long, // raw numeric value, used to compute stats/sorting correctly
-    val epochSeconds: Long // placeholder demo timestamps — swap for real backend values
-)
 
 /** Which scope of logs the user wants to see. */
 enum class SalesLogScope {
     ALL_ITEMS,
     SINGLE_ITEM
-}
-
-/**
- * Sortable columns, matching the "column" values the backend request expects
- * (see [SortFilterUi.column]).
- */
-enum class SortColumn(val apiName: String, val displayName: String) {
-    @SerializedName("created_at")
-    DATE("created_at", "Date"),
-
-    @SerializedName("total_amount")
-    TOTAL_AMOUNT("total_amount", "Total Amount"),
-
-    @SerializedName("quantity")
-    QUANTITY("quantity", "Quantity")
 }
 
 /** One entry of the request's "filters" array: { "column": ..., "ascending": ... } */
@@ -158,11 +88,7 @@ fun ItemSalesLog(
     // Default to null so we can force the user to pick a scope on first open.
     val selectedScope = viewModel.selectedScope.value
 
-    // Applied sort + date filter state (this is what gets sent to the backend later) ---
-    val sortColumn = viewModel.sortColumn.value
-    val sortAscending = viewModel.sortAscending.value
-    // val dateFilterStart = viewModel.dateFilterStart.value
-    // val dateFilterEnd = viewModel.dateFilterEnd.value
+    // FilterBottomSheet
     val showFilterSheet = viewModel.showFilterSheet.value
 
     // The logs
@@ -193,12 +119,9 @@ fun ItemSalesLog(
                     launchSingleTop = true
                 }
 
-                is ItemSalesLogViewModel.UIEvent.CloseCashierPartialSheet -> {
-
-                }
-
-                is ItemSalesLogViewModel.UIEvent.ShowErrorSnackbar -> {
-
+                is ItemSalesLogViewModel.UIEvent.GotoInvoiceDetailScreen -> {
+                    println(Screen.createInvoiceDetailURL(event.orderItemId))
+                    navController.navigate(Screen.createInvoiceDetailURL(event.orderItemId))
                 }
             }
         }
@@ -320,13 +243,30 @@ fun ItemSalesLog(
                                 style = TextStyle(fontSize = 13.sp, color = Gray400)
                             )
                         }
+                    } else if (scopedTransactions.isEmpty()) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "No data...\nTry different filter if data not exist",
+                                style = TextStyle(fontSize = 13.sp, color = Gray400, textAlign = TextAlign.Center)
+                            )
+                        }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(scopedTransactions) { purchasedItem ->
-                                TransactionRecordCard(purchasedItem)
+                                TransactionRecordCard(
+                                    purchasedItem,
+                                    onClickSeeDetail = {
+                                        viewModel.onEvent(
+                                            ItemSalesLogEvent.OnClickSeeOrderItemDetail(it)
+                                        )
+                                    }
+                                )
                             }
                         }
                     }
@@ -353,70 +293,10 @@ fun ItemSalesLog(
     if (informationDialogStatus.showDialog) {
         GeneralAlertDialog(
             informationDialogStatus,
-            "Close",
-            "",
-            { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) },
-            { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) })
-    }
-}
-
-/**
- * The two entry buttons: "All Items" vs "This Item".
- * Shown as a segmented control; before a choice is made neither side is highlighted.
- */
-@Composable
-private fun ScopeSelector(
-    selectedScope: SalesLogScope?,
-    onSelect: (SalesLogScope) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(46.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(White)
-            .border(1.dp, Gray100, RoundedCornerShape(12.dp))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        ScopeButton(
-            modifier = Modifier.weight(1f),
-            label = "Search Item",
-            isSelected = selectedScope == SalesLogScope.SINGLE_ITEM,
-            onClick = { onSelect(SalesLogScope.SINGLE_ITEM) }
-        )
-        ScopeButton(
-            modifier = Modifier.weight(1f),
-            label = "All Items",
-            isSelected = selectedScope == SalesLogScope.ALL_ITEMS,
-            onClick = { onSelect(SalesLogScope.ALL_ITEMS) }
-        )
-    }
-}
-
-@Composable
-private fun ScopeButton(
-    modifier: Modifier = Modifier,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (isSelected) Primary else Color.Transparent)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = TextStyle(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) White else Secondary
-            )
-        )
+            confirmText = "Close",
+            cancelText = "", // Empty string will make the cancel button disappear
+            onDismissRequest = { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) },
+            onConfirmation = { viewModel.onEvent(ItemSalesLogEvent.OnDismissInformationDialog) })
     }
 }
 
@@ -435,188 +315,3 @@ private fun EmptyScopePrompt() {
     }
 }
 
-@Composable
-private fun TransactionRecordCard(purchasedItem: PurchasedItem) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Order ${purchasedItem.itemId}",
-                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Secondary)
-                )
-                Text(
-                    text = purchasedItem.totalAmount.toRupiah(),
-                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Success)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = purchasedItem.itemNameSnapshot,
-                    style = TextStyle(fontSize = 13.sp, color = Gray400)
-                )
-                QuantityBadge(quantity = purchasedItem.quantity)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = dateFormatter(purchasedItem.createdAt, "dd MMM yyyy - HH:mm"),
-                    style = TextStyle(fontSize = 12.sp, color = Gray400)
-                )
-                Text(
-                    text = "Store price: ${purchasedItem.storePriceSnapshot.toRupiah()}",
-                    style = TextStyle(fontSize = 12.sp, color = Secondary)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuantityBadge(quantity: Int) {
-    val unitLabel = if (quantity == 1) "unit" else "units"
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Primary200)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = "x $quantity $unitLabel",
-            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = PrimaryHover)
-        )
-    }
-}
-
-@Composable
-private fun PaginationRow(
-    currentPage: Int,
-    totalPages: Int,
-    onPageChange: (Int) -> Unit
-) {
-    if (totalPages <= 0) return // nothing to paginate
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PageArrowButton(
-            label = "<",
-            enabled = currentPage > 1,
-            onClick = { onPageChange(currentPage - 1) }
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-
-        for (page in visiblePages(currentPage, totalPages)) {
-            if (page == ELLIPSIS) {
-                Text(
-                    text = "...",
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    color = Gray400
-                )
-            } else {
-                PageNumberButton(
-                    number = page,
-                    isActive = currentPage == page,
-                    onClick = { onPageChange(page) }
-                )
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-        }
-
-        PageArrowButton(
-            label = ">",
-            enabled = currentPage < totalPages,
-            onClick = { onPageChange(currentPage + 1) }
-        )
-    }
-}
-
-private const val ELLIPSIS = -1
-
-/**
- * Builds the list of page numbers/ellipsis markers to show, always keeping
- * first page, last page, and a window around currentPage — e.g. for
- * currentPage=5, totalPages=10 -> [1, ..., 4, 5, 6, ..., 10]
- */
-private fun visiblePages(currentPage: Int, totalPages: Int): List<Int> {
-    if (totalPages <= 5) {
-        return (1..totalPages).toList()
-    }
-
-    val pages = mutableListOf(1)
-
-    val windowStart = (currentPage - 1).coerceAtLeast(2)
-    val windowEnd = (currentPage + 1).coerceAtMost(totalPages - 1)
-
-    if (windowStart > 2) pages.add(ELLIPSIS)
-    pages.addAll(windowStart..windowEnd)
-    if (windowEnd < totalPages - 1) pages.add(ELLIPSIS)
-
-    pages.add(totalPages)
-    return pages
-}
-
-@Composable
-private fun PageNumberButton(number: Int, isActive: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isActive) Primary else White)
-            .border(1.dp, if (isActive) Primary else Gray100, RoundedCornerShape(8.dp))
-            .clickable(enabled = !isActive, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$number",
-            style = TextStyle(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isActive) White else Secondary
-            )
-        )
-    }
-}
-
-@Composable
-private fun PageArrowButton(label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(White)
-            .border(1.dp, Gray100, RoundedCornerShape(8.dp))
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = TextStyle(
-                fontSize = 13.sp,
-                color = if (enabled) Secondary else Gray400
-            )
-        )
-    }
-}

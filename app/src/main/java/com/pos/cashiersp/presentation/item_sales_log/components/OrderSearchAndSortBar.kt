@@ -49,12 +49,12 @@ import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogViewModel
 import com.pos.cashiersp.presentation.item_sales_log.QuickRange
 import com.pos.cashiersp.presentation.item_sales_log.SalesLogScope
-import com.pos.cashiersp.presentation.item_sales_log.SortColumn
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary300
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.SortColumn
 
 private fun sortButtonLabel(
     column: SortColumn,

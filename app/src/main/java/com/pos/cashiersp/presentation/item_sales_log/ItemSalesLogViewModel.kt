@@ -13,7 +13,6 @@ import com.pos.cashiersp.model.dto.DateFilter
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.model.dto.toDomain
 import com.pos.cashiersp.model.room_entity.toCashierItem
-import com.pos.cashiersp.presentation.cashier.CashierViewModel.UIEvent
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnApplyFilter
 import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnChangeDraftColumn
@@ -30,6 +29,7 @@ import com.pos.cashiersp.presentation.item_sales_log.ItemSalesLogEvent.OnSetScop
 import com.pos.cashiersp.presentation.util.CalendarChipUtils
 import com.pos.cashiersp.presentation.util.Filter
 import com.pos.cashiersp.presentation.util.PurchasedItemListLogsRequestBody
+import com.pos.cashiersp.presentation.util.SortColumn
 import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.use_case.DataStoreUseCase
 import com.pos.cashiersp.use_case.DatabaseCacheMetadataUseCase
@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.ceil
 
@@ -79,6 +80,9 @@ class ItemSalesLogViewModel @Inject constructor(
     // OrderSearchAndSortBar
     private val _searchSortBarInp = mutableStateOf("")
     val searchSortBarInp: State<String> = _searchSortBarInp
+
+    // Input for user, will only apply at search item scope
+    private val _resolvedItemId = mutableStateOf<Int?>(null)
 
     // FilterBottomSheet (A value here take initial value state from another state)
     private val _draftColumn = mutableStateOf(_sortColumn.value)
@@ -142,10 +146,21 @@ class ItemSalesLogViewModel @Inject constructor(
                     showError("Filter error", "Please wait. Another request still ongoing.")
                     return
                 }
-                if (_selectedScope.value == SalesLogScope.SINGLE_ITEM && (_searchSortBarInp.value.isBlank())) {
+                if (_selectedScope.value == SalesLogScope.SINGLE_ITEM && _searchSortBarInp.value.isBlank()) {
                     _showFilterSheet.value = false
                     showError("Filter error", "Please fill the input before applying filter")
                     return
+                }
+
+                val scope = _selectedScope.value ?: return
+
+                // Resolve item id up front (single-item scope only) so we can
+                // bail out cleanly before mutating any applied-filter state.
+                var itemId: Int? = null
+                if (scope == SalesLogScope.SINGLE_ITEM) {
+                    itemId = resolveItemId(_searchSortBarInp.value)
+                    if (itemId == null) return // resolveItemId already showed the error
+                    _resolvedItemId.value = itemId
                 }
 
                 _viewModelState.value = StateStatus(isLoading = true)
@@ -158,94 +173,22 @@ class ItemSalesLogViewModel @Inject constructor(
 
                 _showFilterSheet.value = false
 
-                val storeId = _storeId.intValue
-                val ascending = event.ascending
-                val sortByColumn = event.column
-                val startDate = event.start?.toInt() ?: 0
-                val endDate = event.end?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
+                val dateFilter = buildDateFilter(event.start, event.end)
+                val body = buildRequestBody(
+                    scope = scope,
+                    itemId = itemId,
+                    page = 1,
+                    sortColumn = event.column,
+                    ascending = event.ascending,
+                    dateFilter = dateFilter
+                )
 
-                // DateFilter column property is empty string because column property is deprecated
-                val dateFilter = DateFilter(column = "", startDate = startDate, endDate = endDate)
-
-                var body: PurchasedItemListLogsRequestBody
-                if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
-                    body = PurchasedItemListLogsRequestBody(
-                        itemIds = listOf(),
-                        storeId = storeId,
-                        limit = 30,
-                        page = 1,
-                        filters = listOf(
-                            // sort by, asc / desc
-                            Filter(column = sortByColumn, ascending = ascending),
-                        ),
-                        dateFilter = dateFilter
-                    )
-                } else {
-                    val searchSortBarInp = _searchSortBarInp.value
-                    var itemId: Int
-                    if (searchSortBarInp.isDigitsOnly()) {
-                        itemId = _searchSortBarInp.value.toInt()
-                    } else {
-                        val selectedSuggestionItem = cashierItems.value.firstOrNull { item ->
-                            item.itemName.contains(
-                                searchSortBarInp,
-                                ignoreCase = true
-                            )
-                        }
-                        if (selectedSuggestionItem == null) {
-                            showError(
-                                "Filter error",
-                                "Not available item for searching. Please try again from suggestion or type item id"
-                            )
-                            return
-                        }
-                        itemId = selectedSuggestionItem.itemId
-                    }
-                    body = PurchasedItemListLogsRequestBody(
-                        itemIds = listOf(itemId),
-                        storeId = storeId,
-                        limit = 30,
-                        page = 1,
-                        filters = listOf(
-                            // sort by, asc / desc
-                            Filter(column = sortByColumn, ascending = ascending),
-                        ),
-                        dateFilter = dateFilter
-                    )
-                }
-
-                purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
-                    when (resource) {
-                        is Resource.Error -> {
-                            showError(
-                                "Filter error",
-                                resource.message ?: "Unknown error occurred while applying filter"
-                            )
-                            println(resource.message)
-                        }
-
-                        is Resource.Loading -> { /* Do nothing */
-                        }
-
-                        is Resource.Success -> {
-                            val data: PurchasedItemListLogsResponse = resource.data!!
-
-                            if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
-                                _allItemsLog.value = data.logs.map { it.toDomain() }
-                                _totalAllItemLogs.intValue = data.totalCount
-                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
-                                _currentAllItemPage.intValue = 1
-                            } else {
-                                _searchItemLog.value = data.logs.map { it.toDomain() }
-                                _totalSearchItemLogs.intValue = data.totalCount
-                                _totalSearchItemPages.intValue =
-                                    ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
-                                _currentSearchItemPage.intValue = 1
-                            }
-                            _viewModelState.value = StateStatus()
-                        }
-                    }
-                }.launchIn(viewModelScope)
+                fetchPurchasedItemLogs(
+                    body = body,
+                    scope = scope,
+                    resetPage = true,
+                    errorTitle = "Filter error"
+                )
             }
 
             is OnSetFilterSheetState -> _showFilterSheet.value = event.show
@@ -253,55 +196,34 @@ class ItemSalesLogViewModel @Inject constructor(
                 // This is quick show item when user visit the page to see all logs
                 if (event.scope == SalesLogScope.ALL_ITEMS && (_selectedScope.value == null || _totalAllItemPages.intValue == -1)) {
                     _totalAllItemPages.intValue = 0 // Indicate user ever open the page
-                    val storeId = _storeId.intValue
-                    val ascending = _sortAscending.value
-                    val sortByColumn = _sortColumn.value
-                    val startDate = _dateFilterStart.value?.toInt() ?: 0
-                    val endDate = _dateFilterEnd.value?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
 
-                    // DateFilter column property is empty string because column property is deprecated
-                    val dateFilter = DateFilter(column = "", startDate = startDate, endDate = endDate)
-                    val body = PurchasedItemListLogsRequestBody(
-                        itemIds = listOf(),
-                        storeId = storeId,
-                        limit = 30,
+                    val dateFilter = buildDateFilter(_dateFilterStart.value, _dateFilterEnd.value)
+                    val body = buildRequestBody(
+                        scope = SalesLogScope.ALL_ITEMS,
+                        itemId = null,
                         page = 1,
-                        filters = listOf(
-                            // sort by, asc / desc
-                            Filter(sortByColumn, ascending),
-                        ),
+                        sortColumn = _sortColumn.value,
+                        ascending = _sortAscending.value,
                         dateFilter = dateFilter
                     )
 
-                    purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
-                        when (resource) {
-                            is Resource.Error -> {
-                                showError("Failed to load items", resource.message ?: "Unknown error occurred")
-                                println(resource.message)
-                            }
-
-                            is Resource.Loading -> {
-                                _viewModelState.value = StateStatus(isLoading = true)
-                            }
-
-                            is Resource.Success -> {
-                                val data: PurchasedItemListLogsResponse = resource.data!!
-
-                                _allItemsLog.value = data.logs.map { it.toDomain() }
-                                _totalAllItemLogs.intValue = data.totalCount
-                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
-                                _currentAllItemPage.intValue = 1
-
-                                _viewModelState.value = StateStatus()
-                            }
-                        }
-                    }.launchIn(viewModelScope)
+                    fetchPurchasedItemLogs(
+                        body = body,
+                        scope = SalesLogScope.ALL_ITEMS,
+                        resetPage = true,
+                        errorTitle = "Failed to load items"
+                    )
                 }
 
                 _selectedScope.value = event.scope
             }
 
-            is OnChangeSearchItemId -> _searchSortBarInp.value = event.inputId
+            is OnChangeSearchItemId -> {
+                _searchSortBarInp.value = event.inputId
+                // Editing the search text invalidates the last resolved id —
+                // user must re-apply the filter before paging with new text.
+                _resolvedItemId.value = null
+            }
 
             is OnChangeDraftColumn -> _draftColumn.value = event.sortColumn
             is OnSetDraftAscending -> _draftAscending.value = event.setTo
@@ -328,89 +250,151 @@ class ItemSalesLogViewModel @Inject constructor(
                 val goToPage = event.goToPage
                 if (goToPage <= 0) return
 
-                val storeId = _storeId.intValue
-                val ascending = _sortAscending.value
-                val sortByColumn = _sortColumn.value
-                val startDate = _dateFilterStart.value?.toInt() ?: 0
-                val endDate = _dateFilterEnd.value?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
-
-                // DateFilter column property is empty string because column property is deprecated
-                val dateFilter = DateFilter(column = "", startDate = startDate, endDate = endDate)
-
-                var body: PurchasedItemListLogsRequestBody
-                if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
-                    if (goToPage > _totalAllItemPages.intValue) {
-                        return
-                    }
-                    // This will take page change immediate without waiting the item to load
-                    _currentAllItemPage.intValue = goToPage
-
-                    body = PurchasedItemListLogsRequestBody(
-                        itemIds = listOf(),
-                        storeId = storeId,
-                        limit = 30,
-                        page = goToPage,
-                        filters = listOf(
-                            // sort by, asc / desc
-                            Filter(column = sortByColumn, ascending = ascending),
-                        ),
-                        dateFilter = dateFilter
-                    )
-                } else {
-                    if (goToPage > _totalSearchItemPages.intValue) {
-                        return
-                    }
-                    _currentSearchItemPage.intValue = goToPage
-
-                    val itemId = _searchSortBarInp.value.toInt()
-                    body = PurchasedItemListLogsRequestBody(
-                        itemIds = listOf(itemId),
-                        storeId = storeId,
-                        limit = 30,
-                        page = goToPage,
-                        filters = listOf(
-                            // sort by, asc / desc
-                            Filter(column = sortByColumn, ascending = ascending),
-                        ),
-                        dateFilter = dateFilter
-                    )
+                if (_viewModelState.value.isLoading) {
+                    showError("Page error", "Please wait. Another request still ongoing.")
+                    return
                 }
-                purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
-                    when (resource) {
-                        is Resource.Error -> {
-                            showError("Failed to change page", resource.message ?: "Unknown error occurred")
-                            println(resource.message)
-                        }
 
-                        is Resource.Loading -> {
-                            _viewModelState.value = StateStatus(isLoading = true)
-                        }
+                val scope = _selectedScope.value ?: return
 
-                        is Resource.Success -> {
-                            val data: PurchasedItemListLogsResponse = resource.data!!
-
-                            if (_selectedScope.value == SalesLogScope.ALL_ITEMS) {
-                                _allItemsLog.value = data.logs.map { it.toDomain() }
-                                _totalAllItemLogs.intValue = data.totalCount
-                                _totalAllItemPages.intValue = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
-                                // _currentAllItemPage.intValue = 1
-                            } else {
-                                _searchItemLog.value = data.logs.map { it.toDomain() }
-                                _totalSearchItemLogs.intValue = data.totalCount
-                                _totalSearchItemPages.intValue =
-                                    ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
-                                // _currentSearchItemPage.intValue = 1
-                            }
-                            _viewModelState.value = StateStatus()
-                        }
+                var itemId: Int? = null
+                if (scope == SalesLogScope.SINGLE_ITEM) {
+                    itemId = _resolvedItemId.value
+                    if (itemId == null) {
+                        showError("Page error", "Please apply a filter with a valid item before changing page")
+                        return
                     }
-                }.launchIn(viewModelScope)
+                    if (goToPage > _totalSearchItemPages.intValue) return
+                    _currentSearchItemPage.intValue = goToPage
+                } else {
+                    if (goToPage > _totalAllItemPages.intValue) return
+                    _currentAllItemPage.intValue = goToPage
+                }
+
+                val dateFilter = buildDateFilter(_dateFilterStart.value, _dateFilterEnd.value)
+                val body = buildRequestBody(
+                    scope = scope,
+                    itemId = itemId,
+                    page = goToPage,
+                    sortColumn = _sortColumn.value,
+                    ascending = _sortAscending.value,
+                    dateFilter = dateFilter
+                )
+
+                fetchPurchasedItemLogs(
+                    body = body,
+                    scope = scope,
+                    resetPage = false,
+                    errorTitle = "Failed to change page"
+                )
             }
 
             ItemSalesLogEvent.OnDismissInformationDialog -> {
                 _informationDialogStatus.value = GeneralAlertDialogStatus()
             }
+
+            is ItemSalesLogEvent.OnClickSeeOrderItemDetail -> {
+                val id = event.orderItemId
+                viewModelScope.launch {
+                    _uiEvent.emit(UIEvent.GotoInvoiceDetailScreen(id))
+                }
+            }
         }
+    }
+
+    /**
+     * Resolves a numeric item id, either directly (if [rawInput] is digits-only)
+     * or by matching [rawInput] against a cached item's name (case-insensitive
+     * substring match). Shows an error dialog and returns null on failure.
+     */
+    private fun resolveItemId(rawInput: String): Int? {
+        if (rawInput.isDigitsOnly()) {
+            return rawInput.toInt()
+        }
+        val match = _cashierItems.value.firstOrNull { item ->
+            item.itemName.contains(rawInput, ignoreCase = true)
+        }
+        if (match == null) {
+            showError(
+                "Filter error",
+                "Not available item for searching. Please try again from suggestion or type item id"
+            )
+            return null
+        }
+        return match.itemId
+    }
+
+    // DateFilter column property is empty string because column property is deprecated
+    private fun buildDateFilter(start: Long?, end: Long?): DateFilter {
+        val startDate = start?.toInt() ?: 0
+        val endDate = end?.toInt() ?: CalendarChipUtils.nowEpoch().toInt()
+        return DateFilter(column = "", startDate = startDate, endDate = endDate)
+    }
+
+    private fun buildRequestBody(
+        scope: SalesLogScope,
+        itemId: Int?,
+        page: Int,
+        sortColumn: SortColumn,
+        ascending: Boolean,
+        dateFilter: DateFilter
+    ): PurchasedItemListLogsRequestBody {
+        val itemIds = if (scope == SalesLogScope.SINGLE_ITEM && itemId != null) listOf(itemId) else listOf()
+        return PurchasedItemListLogsRequestBody(
+            itemIds = itemIds,
+            storeId = _storeId.intValue,
+            limit = _limit.intValue,
+            page = page,
+            filters = listOf(
+                // sort by, asc / desc
+                Filter(column = sortColumn, ascending = ascending),
+            ),
+            dateFilter = dateFilter
+        )
+    }
+
+    /**
+     * Shared fetch + state-update logic used by OnApplyFilter, the initial
+     * ALL_ITEMS load in OnSetScopeSelector, and OnChangePage — keeps loading/
+     * error/success handling identical across all three call sites.
+     */
+    private fun fetchPurchasedItemLogs(
+        body: PurchasedItemListLogsRequestBody,
+        scope: SalesLogScope,
+        resetPage: Boolean,
+        errorTitle: String
+    ) {
+        purchasedItemListUseCase.purchasedItemListLogs(body, _tenantId.intValue).onEach { resource ->
+            when (resource) {
+                is Resource.Error -> {
+                    println(resource.message)
+                    showError(errorTitle, resource.message ?: "Unknown error occurred")
+                }
+
+                is Resource.Loading -> {
+                    _viewModelState.value = StateStatus(isLoading = true)
+                }
+
+                is Resource.Success -> {
+                    val data: PurchasedItemListLogsResponse = resource.data!!
+                    val logs = data.logs.map { it.toDomain() }
+                    val pages = ceil(data.totalCount.toDouble() / _limit.intValue).toInt()
+
+                    if (scope == SalesLogScope.ALL_ITEMS) {
+                        _allItemsLog.value = logs
+                        _totalAllItemLogs.intValue = data.totalCount
+                        _totalAllItemPages.intValue = pages
+                        if (resetPage) _currentAllItemPage.intValue = 1
+                    } else {
+                        _searchItemLog.value = logs
+                        _totalSearchItemLogs.intValue = data.totalCount
+                        _totalSearchItemPages.intValue = pages
+                        if (resetPage) _currentSearchItemPage.intValue = 1
+                    }
+                    _viewModelState.value = StateStatus()
+                }
+            }
+        }.launchIn(viewModelScope)
     }
 
     private fun showError(title: String, message: String) {
@@ -446,11 +430,10 @@ class ItemSalesLogViewModel @Inject constructor(
 
                     tenantResource is Resource.Error || storeResource is Resource.Error -> {
                         println("Error happened at load tenant and store resource")
-                        //                        _uiEvent.emit(
-//                            UIEvent.ErrorAndMustNavigateToSelectTenantScreen(
-//                                "Fatal Error while getting cashier data."
-//                            )
-//                        )
+                        _informationDialogStatus.value = GeneralAlertDialogStatus.error(
+                            "Application error",
+                            "Could not load tenant information. This may happen because user not logged in. Try logout and sign in again.\nDetail: ${tenantResource.message}"
+                        )
                     }
 
                     else -> { /* Loading — do nothing */
@@ -484,8 +467,7 @@ class ItemSalesLogViewModel @Inject constructor(
 
     // UI Events
     sealed class UIEvent {
-        object CloseCashierPartialSheet : UIEvent()
-        data class ShowErrorSnackbar(val message: String) : UIEvent()
         data class ErrorAndMustNavigateToSelectTenantScreen(val message: String) : UIEvent()
+        data class GotoInvoiceDetailScreen(val orderItemId: Int) : UIEvent()
     }
 }

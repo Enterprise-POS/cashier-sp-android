@@ -14,4 +14,8 @@ object Screen {
     const val INVOICE_DETAIL = "Invoice detail"
     const val SPLASH = "Splash"
     const val ITEM_SALES_LOG = "Item Sales Log"
+
+    // Helper route
+    // A route that required id to navigate.
+    fun createInvoiceDetailURL(id: Int): String = INVOICE_DETAIL + "/${id}"
 }

@@ -91,15 +91,22 @@ data class GeneralAlertDialogStatus(
     }
 }
 
+private data class DialogConfig(
+    val icon: ImageVector,
+    val iconTint: Color,
+    val iconBackground: Color,
+    val showIcon: Boolean
+)
+
 @Composable
 fun GeneralAlertDialog(
-    generalAlertDialogStatus: GeneralAlertDialogStatus,
+    self: GeneralAlertDialogStatus,
     confirmText: String = "",
     cancelText: String = "",
     onDismissRequest: () -> Unit = {},
     onConfirmation: (() -> Unit)? = null,
 ) {
-    val dialogConfig = when (generalAlertDialogStatus.type) {
+    val dialogConfig = when (self.type) {
         GeneralAlertDialogStatus.DialogType.SUCCESS -> DialogConfig(
             icon = Icons.Default.CheckCircle,
             iconTint = Success,
@@ -123,7 +130,7 @@ fun GeneralAlertDialog(
     }
 
     AlertDialog(
-        onDismissRequest = if (generalAlertDialogStatus.isLoading) {
+        onDismissRequest = if (self.isLoading) {
             {} // Prevent dismissing while loading
         } else {
             onDismissRequest
@@ -131,12 +138,12 @@ fun GeneralAlertDialog(
         icon = {
             DialogIcon(
                 config = dialogConfig,
-                isLoading = generalAlertDialogStatus.isLoading
+                isLoading = self.isLoading
             )
         },
         title = {
             Text(
-                text = generalAlertDialogStatus.title,
+                text = self.title,
                 color = Secondary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -146,7 +153,7 @@ fun GeneralAlertDialog(
         },
         text = {
             Text(
-                text = generalAlertDialogStatus.message,
+                text = self.message,
                 color = Gray600,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
@@ -158,7 +165,7 @@ fun GeneralAlertDialog(
         shape = RoundedCornerShape(16.dp),
         confirmButton = {
             DialogButtons(
-                isLoading = generalAlertDialogStatus.isLoading,
+                isLoading = self.isLoading,
                 onConfirmation = onConfirmation,
                 onDismissRequest = onDismissRequest,
                 cancelText = cancelText,
@@ -236,10 +243,3 @@ private fun DialogButtons(
         }
     }
 }
-
-private data class DialogConfig(
-    val icon: ImageVector,
-    val iconTint: Color,
-    val iconBackground: Color,
-    val showIcon: Boolean
-)
