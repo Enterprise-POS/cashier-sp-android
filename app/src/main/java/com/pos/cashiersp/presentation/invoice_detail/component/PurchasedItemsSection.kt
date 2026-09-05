@@ -51,7 +51,7 @@ fun PurchasedItemsSection(
     modifier: Modifier = Modifier,
     viewModel: InvoiceDetailViewModel = hiltViewModel()
 ) {
-    var items = viewModel.purchasedItemList.value
+    val items = viewModel.purchasedItemList.value
 
     // Adaptive threshold: fewer visible items on small screens so Payment
     // Summary is always reachable without excessive scrolling.

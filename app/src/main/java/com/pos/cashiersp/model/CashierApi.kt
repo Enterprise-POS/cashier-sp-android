@@ -12,8 +12,10 @@ import com.pos.cashiersp.model.dto.SignUpResponseDto
 import com.pos.cashiersp.model.dto.StoreStockGetV2Dto
 import com.pos.cashiersp.model.dto.TenantGetMembersDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.presentation.util.LoginRequestBody
 import com.pos.cashiersp.presentation.util.NewTenantRequestBody
+import com.pos.cashiersp.presentation.util.PurchasedItemListLogsRequestBody
 import com.pos.cashiersp.presentation.util.SearchTransactionsRequestBody
 import com.pos.cashiersp.presentation.util.SignUpWithEmailAndPasswordRequestBody
 import okhttp3.ResponseBody
@@ -90,4 +92,10 @@ interface CashierApi {
         @Path("tenantId") tenantId: Int,
         @Query("order_item_id") id: Int
     ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>>
+
+    @POST("purchased_item_list/logs/{tenantId}")
+    suspend fun purchasedItemListLogs(
+        @Body purchasedItemListLogsRequestBody: PurchasedItemListLogsRequestBody,
+        @Path("tenantId") tenantId: Int,
+    ): Response<HTTPStatus.SuccessResponse<PurchasedItemListLogsResponse>>
 }

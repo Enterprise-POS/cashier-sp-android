@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.Summarize
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -56,7 +57,8 @@ private val pagesUtils = mapOf(
     Screen.CASHIER to Pair("Cashier Screen Navigation", Icons.Outlined.ShoppingCart),
     Screen.STOCK_MANAGEMENT to Pair("Stock Management Screen Navigation", Icons.Outlined.List),
     Screen.TRANSACTION_HISTORY to Pair("Transaction History Screen Navigation", Icons.Outlined.Archive),
-    Screen.BLUETOOTH_SETTINGS to Pair("Bluetooth Settings Navigation", Icons.Default.Bluetooth)
+    Screen.ITEM_SALES_LOG to Pair("Item Sales Log / Purchased Item List Navigation", Icons.Outlined.Summarize),
+    Screen.BLUETOOTH_SETTINGS to Pair("Bluetooth Settings Navigation", Icons.Default.Bluetooth),
 )
 
 private val othersUtils = mapOf(

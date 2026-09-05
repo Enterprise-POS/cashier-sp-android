@@ -1,5 +1,7 @@
 package com.pos.cashiersp.model.domain
 
+import java.util.Calendar
+
 data class PurchasedItem(
     val discountAmount: Int,
     val id: Int,
@@ -9,5 +11,7 @@ data class PurchasedItem(
 
     val storePriceSnapshot: Int,
     val quantity: Int,
-    val totalAmount: Int
+    val totalAmount: Int,
+
+    val createdAt: Calendar?
 )

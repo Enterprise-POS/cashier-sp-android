@@ -1,6 +1,30 @@
 package com.pos.cashiersp.presentation.util
 
 import com.google.gson.annotations.SerializedName
+import com.pos.cashiersp.model.dto.DateFilter
+import com.pos.cashiersp.presentation.item_sales_log.SortFilterUi
+
+/**
+ * Sortable columns, matching the "column" values the backend request expects
+ * (see [SortFilterUi.column]).
+ */
+enum class SortColumn(val apiName: String, val displayName: String) {
+    @SerializedName("created_at")
+    DATE("created_at", "Date"),
+
+    @SerializedName("total_amount")
+    TOTAL_AMOUNT("total_amount", "Total Amount"),
+
+    @SerializedName("quantity")
+    QUANTITY("quantity", "Quantity")
+}
+
+data class Filter(
+    @SerializedName("column")
+    val column: SortColumn,
+    @SerializedName("ascending")
+    val ascending: Boolean = true
+)
 
 data class LoginRequestBody(
     val email: String,
@@ -18,4 +42,19 @@ data class NewTenantRequestBody(
 
     @SerializedName("owner_user_id")
     val ownerUserId: Int
+)
+
+data class PurchasedItemListLogsRequestBody(
+    @SerializedName("item_ids")
+    val itemIds: List<Int>,
+    @SerializedName("store_id")
+    val storeId: Int,
+    @SerializedName("limit")
+    val limit: Int,
+    @SerializedName("page")
+    val page: Int,
+    @SerializedName("filters")
+    val filters: List<Filter>?,
+    @SerializedName("date_filter")
+    val dateFilter: DateFilter?,
 )

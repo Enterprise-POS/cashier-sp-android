@@ -46,6 +46,8 @@ fun SplashScreen(
     )
 
     LaunchedEffect(key1 = true) {
+        visible = true
+
         viewModel.splashUIEvent.collectLatest { event ->
             when (event) {
                 SplashViewModel.SplashUIEvent.NavigateToCashier -> {
@@ -70,7 +72,6 @@ fun SplashScreen(
                 }
             }
         }
-
     }
 
     Surface(

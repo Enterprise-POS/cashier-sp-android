@@ -7,6 +7,8 @@ import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.MyCookieImpl
 import com.pos.cashiersp.repository.OrderItemRepository
 import com.pos.cashiersp.repository.OrderItemRepositoryImpl
+import com.pos.cashiersp.repository.PurchasedItemListRepository
+import com.pos.cashiersp.repository.PurchasedItemListRepositoryImpl
 import com.pos.cashiersp.repository.StoreRepository
 import com.pos.cashiersp.repository.StoreRepositoryImpl
 import com.pos.cashiersp.repository.StoreStockRepository
@@ -26,6 +28,8 @@ import com.pos.cashiersp.use_case.LoginRequest
 import com.pos.cashiersp.use_case.Logout
 import com.pos.cashiersp.use_case.NewTenant
 import com.pos.cashiersp.use_case.OrderItemUseCase
+import com.pos.cashiersp.use_case.purchased_item_list_use_case.PurchasedItemListLogs
+import com.pos.cashiersp.use_case.purchased_item_list_use_case.PurchasedItemListUseCase
 import com.pos.cashiersp.use_case.SearchTransactions
 import com.pos.cashiersp.use_case.SignUpWithEmailAndPasswordRequest
 import com.pos.cashiersp.use_case.StoreStockGetV2
@@ -147,6 +151,20 @@ object RetrofitModule {
             transaction = Transactions(repository),
             searchTransactions = SearchTransactions(repository),
             findTransactionsById = FindTransactionsById(repository)
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun providePurchasedItemListRepository(api: CashierApi): PurchasedItemListRepository {
+        return PurchasedItemListRepositoryImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun providePurchasedItemListUseCase(repository: PurchasedItemListRepository): PurchasedItemListUseCase {
+        return PurchasedItemListUseCase(
+            purchasedItemListLogs = PurchasedItemListLogs(repository)
         )
     }
 }

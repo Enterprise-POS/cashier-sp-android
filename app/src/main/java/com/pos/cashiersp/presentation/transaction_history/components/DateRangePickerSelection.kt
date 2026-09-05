@@ -473,7 +473,7 @@ fun DateRangePickerSection(
     val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
     if (generalAlertDialogStatus.showDialog) {
         GeneralAlertDialog(
-            generalAlertDialogStatus = generalAlertDialogStatus,
+            generalAlertDialogStatus,
             onConfirmation = { viewModel.onEvent(TransactionHistoryEvent.OnCloseGeneralDialog) },
             onDismissRequest = { viewModel.onEvent(TransactionHistoryEvent.OnCloseGeneralDialog) },
         )

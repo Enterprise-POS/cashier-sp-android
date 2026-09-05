@@ -269,7 +269,7 @@ private fun IsolatedGeneralAlert(viewModel: StockManagementViewModel = hiltViewM
     val generalAlertDialogStatus = viewModel.generalAlertDialogStatus.value
     if (generalAlertDialogStatus.showDialog) {
         GeneralAlertDialog(
-            generalAlertDialogStatus = generalAlertDialogStatus,
+            generalAlertDialogStatus,
             onDismissRequest = { viewModel.onEvent(StockManagementEvent.OnCloseGeneralDialog) },
         )
     }
