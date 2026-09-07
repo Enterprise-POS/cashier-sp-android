@@ -31,7 +31,9 @@ data class CreateTransactionParams(
     val storeId: Int,
 
     @SerializedName("payment_type")
-    val paymentMethod: PaymentMethod
+    val paymentMethod: PaymentMethod,
+    @SerializedName("transaction_id")
+    val transactionId: String = ""
 )
 
 // Because CreateTransactionParams is for requesting. createdAt,transactionId must be assigned manually
@@ -52,5 +54,6 @@ fun CreateTransactionParams.toOrderItemDomain(
         purchasedPrice = this.purchasedPrice,
         paymentMethod = this.paymentMethod,
         storeName = storeName,
+        transactionId = this.transactionId,
     )
 }

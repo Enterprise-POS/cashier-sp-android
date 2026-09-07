@@ -28,6 +28,8 @@ data class OrderItem(
     val totalQuantity: Int,
     @SerializedName("payment_type")
     val paymentMethod: PaymentMethod,
+    @SerializedName("transaction_id")
+    val transactionId: String = "",
 
     // Store
     @SerializedName("store_name")
@@ -52,6 +54,7 @@ fun OrderItem.toDomain(): com.pos.cashiersp.model.domain.OrderItem {
         purchasedPrice = this.purchasedPrice,
         createdAt = calendar,
         paymentMethod = this.paymentMethod,
+        transactionId = this.transactionId,
 
         // Store. May not available
         storeName = this.storeName ?: "",

@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import com.pos.cashiersp.model.domain.Item as domainItem
@@ -128,6 +129,13 @@ class CashierViewModel @Inject constructor(
     private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
     val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
 
+    private val _midtransPaymentDialogState = mutableStateOf(false)
+    val midtransPaymentDialogState: State<Boolean> = _midtransPaymentDialogState
+    private val _midtransPaymentURL = mutableStateOf("")
+    val midtransPaymentURL: State<String> = _midtransPaymentURL
+    private val _midtransPaymentToken = mutableStateOf("")
+    val midtransPaymentToken: State<String> = _midtransPaymentToken
+
     // Transaction
 
     private val _transactionCompleteDialogState = mutableStateOf(false)
@@ -135,6 +143,8 @@ class CashierViewModel @Inject constructor(
 
     private val _completeTransactionReference = mutableStateOf<TransactionResponse?>(null)
     val completeTransactionReference: State<TransactionResponse?> = _completeTransactionReference
+
+    private val _transactionId = mutableStateOf("")
 
     // Saved locally to avoid re-fetching when printing
     private val _completeOrderItemReference = mutableStateOf<OrderItem?>(null)
@@ -198,6 +208,7 @@ class CashierViewModel @Inject constructor(
             is CashierEvent.RefreshCashierItem -> onRefreshCashierItem()
             is CashierEvent.OnToggleInfoBtn -> onToggleInfoBtn(event)
             is CashierEvent.OnDeleteAllCartItem -> onDeleteAllCartItem()
+            is CashierEvent.OnDismissPaymentGatewayDialog -> onDismissPaymentGatewayDialog()
         }
     }
 
@@ -305,7 +316,8 @@ class CashierViewModel @Inject constructor(
 
         when (selectedPaymentMethod) {
             PaymentMethod.CASH -> _selectedPaymentMethod.value = PaymentMethod.CASH
-            PaymentMethod.CARD, PaymentMethod.EWALLET, PaymentMethod.QRIS -> { /* Do nothing for now */
+            PaymentMethod.QRIS -> _selectedPaymentMethod.value = PaymentMethod.QRIS
+            PaymentMethod.CARD, PaymentMethod.EWALLET -> { /* Do nothing for now */
             }
 
             PaymentMethod.OTHER -> _selectedPaymentMethod.value = PaymentMethod.OTHER
@@ -418,8 +430,30 @@ class CashierViewModel @Inject constructor(
                 executeTransaction(params, items)
             }
 
-            PaymentMethod.OTHER -> {
+            PaymentMethod.QRIS -> {
+                val randomUUID = "MID-QRIS-${UUID.randomUUID()}"
+                _transactionId.value = randomUUID
+                val params = CreateTransactionParams(
+                    items = items,
+                    purchasedPrice = totalAmount.toInt(),
+                    totalQuantity = totalQuantity,
+                    totalAmount = totalAmount.toInt(),
+                    discountAmount = discountAmount.toInt(),
+                    subTotal = subTotal.toInt(),
+                    tenantId = _tenantId.intValue,
+                    storeId = _storeId.intValue,
+                    userId = _staffId.intValue,
+                    paymentMethod = paymentMethod,
+                    transactionId = randomUUID
+                )
 
+                _transactionState.value =
+                    StateStatus(isLoading = true)
+
+                executeTransaction(params, items)
+            }
+
+            PaymentMethod.OTHER -> {
                 val params = CreateTransactionParams(
                     items = items,
                     purchasedPrice = totalAmount.toInt(),
@@ -478,6 +512,16 @@ class CashierViewModel @Inject constructor(
                         params.toOrderItemDomain(data.createdOrderItemId, calendar, storeName = storeName)
                     } else {
                         null // Printing will show an error if this is null
+                    }
+
+                    when (params.paymentMethod) {
+                        PaymentMethod.QRIS -> {
+                            _midtransPaymentDialogState.value = true
+                            _midtransPaymentURL.value = data.paymentURL
+                            _midtransPaymentToken.value = data.paymentToken
+                        }
+
+                        else -> {}
                     }
 
                     _completeTransactionReference.value = data
@@ -569,6 +613,10 @@ class CashierViewModel @Inject constructor(
         // This function will save last metadata again
         // Also manage UI loading via Resource
         loadAllStoreStock(tenantId, storeId)
+    }
+
+    private fun onDismissPaymentGatewayDialog() {
+        
     }
 
     /* If the return is empty list then it suppose to be mean no cache*/

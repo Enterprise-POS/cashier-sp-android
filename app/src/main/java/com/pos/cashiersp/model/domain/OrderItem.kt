@@ -15,6 +15,7 @@ data class OrderItem(
     val totalAmount: Int,
     val totalQuantity: Int,
     val paymentMethod: PaymentMethod,
+    val transactionId: String,
 
     // Store
     val storeName: String = "",

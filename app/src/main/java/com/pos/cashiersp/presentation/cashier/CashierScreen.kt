@@ -56,6 +56,7 @@ import com.pos.cashiersp.presentation.cashier.component.CashierTopAppBar
 import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
+import com.pos.cashiersp.presentation.cashier.component.MidtransPaymentDialog
 import com.pos.cashiersp.presentation.cashier.component.TransactionCompleteDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.ui.theme.Gray300
@@ -85,6 +86,8 @@ fun CashierScreen(
     val isPrinting by viewModel.isPrinting
     val informationDialogStatus by viewModel.informationDialogStatus
     val isCategoriesExpanded by viewModel.isCategoriesExpanded // Collapse whenever a category gets selected
+    val midtransDialogState = viewModel.midtransPaymentDialogState.value
+    val paymentURL = viewModel.midtransPaymentURL.value
 
     // scope
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -303,7 +306,9 @@ fun CashierScreen(
             )
         }
 
-        if (transactionCompleteDialogState) {
+        if (midtransDialogState) {
+            MidtransPaymentDialog(paymentURL, onDismiss = {})
+        } else if (transactionCompleteDialogState) {
             TransactionCompleteDialog(
                 completeTransactionParams = completeTransactionParams,
                 isPrinting = isPrinting,

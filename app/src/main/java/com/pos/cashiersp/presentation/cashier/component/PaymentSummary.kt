@@ -386,9 +386,8 @@ fun PaymentSummary(
             }
 
             PaymentMethod.CARD -> TODO()
-            PaymentMethod.QRIS -> TODO()
             PaymentMethod.EWALLET -> TODO()
-            PaymentMethod.OTHER -> {
+            PaymentMethod.QRIS, PaymentMethod.OTHER -> {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
