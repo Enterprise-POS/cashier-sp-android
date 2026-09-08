@@ -17,6 +17,8 @@ import com.pos.cashiersp.repository.TenantRepository
 import com.pos.cashiersp.repository.TenantRepositoryImpl
 import com.pos.cashiersp.repository.UserRepository
 import com.pos.cashiersp.repository.UserRepositoryImpl
+import com.pos.cashiersp.use_case.CancelTransaction
+import com.pos.cashiersp.use_case.CheckPaymentStatus
 import com.pos.cashiersp.use_case.FindTransactionsById
 import com.pos.cashiersp.use_case.GetAllStore
 import com.pos.cashiersp.use_case.GetCachedCashierItems
@@ -150,7 +152,9 @@ object RetrofitModule {
         return OrderItemUseCase(
             transaction = Transactions(repository),
             searchTransactions = SearchTransactions(repository),
-            findTransactionsById = FindTransactionsById(repository)
+            findTransactionsById = FindTransactionsById(repository),
+            checkPaymentStatus = CheckPaymentStatus(repository),
+            cancelTransaction = CancelTransaction(repository)
         )
     }
 

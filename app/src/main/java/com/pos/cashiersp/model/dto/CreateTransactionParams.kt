@@ -4,6 +4,7 @@ package com.pos.cashiersp.model.dto
 import com.google.gson.annotations.SerializedName
 import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.presentation.util.PaymentMethod
+import com.pos.cashiersp.presentation.util.PaymentStatus
 import kotlinx.serialization.Serializable
 import java.util.Calendar
 
@@ -55,5 +56,11 @@ fun CreateTransactionParams.toOrderItemDomain(
         paymentMethod = this.paymentMethod,
         storeName = storeName,
         transactionId = this.transactionId,
+
+        // Because this data class is use for printing value, we don't really care the payment status
+        // Or just reference the value after transaction began
+        paymentStatus = PaymentStatus.PENDING,
+        paymentURL = "",
+        paymentToken = "",
     )
 }

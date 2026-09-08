@@ -307,7 +307,9 @@ fun CashierScreen(
         }
 
         if (midtransDialogState) {
-            MidtransPaymentDialog(paymentURL, onDismiss = {})
+            MidtransPaymentDialog(
+                paymentURL,
+                onDismiss = { viewModel.onEvent(CashierEvent.OnDismissPaymentGatewayDialog); showBottomSheet = false })
         } else if (transactionCompleteDialogState) {
             TransactionCompleteDialog(
                 completeTransactionParams = completeTransactionParams,
