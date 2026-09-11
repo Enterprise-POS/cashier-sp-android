@@ -138,7 +138,7 @@ class CashierViewModel @Inject constructor(
     private val _midtransPaymentURL = mutableStateOf("")
     val midtransPaymentURL: State<String> = _midtransPaymentURL
     private val _midtransPaymentToken = mutableStateOf("")
-    val midtransPaymentToken: State<String> = _midtransPaymentToken
+    // val midtransPaymentToken: State<String> = _midtransPaymentToken
 
     // Payment status polling
     private val _paymentCheckStatus = mutableStateOf(StateStatus())
@@ -530,9 +530,10 @@ class CashierViewModel @Inject constructor(
 
                     when (params.paymentMethod) {
                         PaymentMethod.QRIS -> {
+                            // If paymentURL, paymentToken not available then check BE
                             _midtransPaymentDialogState.value = true
-                            _midtransPaymentURL.value = data.paymentURL
-                            _midtransPaymentToken.value = data.paymentToken
+                            _midtransPaymentURL.value = data.paymentURL!!
+                            _midtransPaymentToken.value = data.paymentToken!!
                             checkPaymentStatusPeriodically(
                                 params.transactionId ?: _transactionId.value,
                                 params.tenantId
@@ -656,6 +657,7 @@ class CashierViewModel @Inject constructor(
         orderItemUseCase.cancelTransaction(createdOrderItemId, transactionId, tenantId).onEach { resource ->
             when (resource) {
                 is Resource.Error -> {
+                    println("Failed to cancel the transaction. Payment may not finished. Please check transaction history for confirmation. Detail: ${resource.message}")
                     _paymentCheckStatus.value =
                         StateStatus(error = "Failed to cancel the transaction. Payment may not finished. Please check transaction history for confirmation")
                     _generalAlertDialogState.value =

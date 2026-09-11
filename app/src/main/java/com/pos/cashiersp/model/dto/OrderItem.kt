@@ -34,9 +34,9 @@ data class OrderItem(
     @SerializedName("payment_status")
     val paymentStatus: PaymentStatus,
     @SerializedName("payment_url")
-    val paymentURL: String,
+    val paymentURL: String?,
     @SerializedName("payment_token")
-    val paymentToken: String,
+    val paymentToken: String?,
 
     // Store
     @SerializedName("store_name")

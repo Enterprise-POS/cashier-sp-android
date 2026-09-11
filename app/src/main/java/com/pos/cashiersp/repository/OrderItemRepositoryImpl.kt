@@ -6,6 +6,7 @@ import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.request_body.CancelTransactionBody
 import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.presentation.util.SearchTransactionsRequestBody
 import retrofit2.Response
@@ -44,6 +45,6 @@ class OrderItemRepositoryImpl(private val api: CashierApi) : OrderItemRepository
         orderItemId: Int,
         transactionId: String
     ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>> {
-        return api.cancelTransaction(tenantId, orderItemId, transactionId)
+        return api.cancelTransaction(tenantId, CancelTransactionBody(orderItemId, transactionId))
     }
 }

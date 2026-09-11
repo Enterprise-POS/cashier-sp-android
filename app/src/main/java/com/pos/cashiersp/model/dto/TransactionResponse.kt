@@ -3,6 +3,7 @@ package com.pos.cashiersp.model.dto
 
 import com.google.gson.annotations.SerializedName
 import com.pos.cashiersp.presentation.util.PaymentMethod
+import com.pos.cashiersp.presentation.util.PaymentStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,8 +18,10 @@ data class TransactionResponse(
     val purchasedPrice: Int,
     @SerializedName("payment_type")
     val paymentType: PaymentMethod,
+    @SerializedName("payment_status")
+    val paymentStatus: PaymentStatus,
     @SerializedName("payment_token")
-    val paymentToken: String,
+    val paymentToken: String?,
     @SerializedName("payment_url")
-    val paymentURL: String
+    val paymentURL: String?
 )

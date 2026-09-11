@@ -12,6 +12,7 @@ import com.pos.cashiersp.model.dto.SignUpResponseDto
 import com.pos.cashiersp.model.dto.StoreStockGetV2Dto
 import com.pos.cashiersp.model.dto.TenantGetMembersDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.request_body.CancelTransactionBody
 import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.presentation.util.LoginRequestBody
@@ -105,8 +106,7 @@ interface CashierApi {
     @PATCH("order_items/transactions/{tenantId}")
     suspend fun cancelTransaction(
         @Path("tenantId") tenantId: Int,
-        @Query("order_item_id") orderItemId: Int,
-        @Query("transaction_id") transactionId: String,
+        @Body cancelTransactionBody: CancelTransactionBody,
     ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>>
 
     @POST("purchased_item_list/logs/{tenantId}")

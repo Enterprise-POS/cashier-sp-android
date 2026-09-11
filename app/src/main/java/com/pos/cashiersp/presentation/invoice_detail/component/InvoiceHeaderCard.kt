@@ -32,12 +32,13 @@ import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary200
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.PaymentStatus
 import com.pos.cashiersp.presentation.util.dateFormatter
 import com.pos.cashiersp.presentation.util.toRupiah
 
 @Composable
 fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
-    var orderItem = viewModel.orderItem.value!!
+    val orderItem = viewModel.orderItem.value!!
     val date = dateFormatter(orderItem.createdAt, "dd MMM yyyy")
     val time = dateFormatter(orderItem.createdAt, "HH:mm")
 
@@ -86,7 +87,7 @@ fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Paid",
+                            text = if (orderItem.paymentStatus == PaymentStatus.SUCCESS) "Paid" else orderItem.paymentStatus.uiLabel,
                             fontSize = 11.sp,
                             color = White,
                             fontWeight = FontWeight.W500

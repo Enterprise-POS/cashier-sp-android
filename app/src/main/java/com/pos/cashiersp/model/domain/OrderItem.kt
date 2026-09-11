@@ -18,8 +18,8 @@ data class OrderItem(
     val paymentMethod: PaymentMethod,
     val transactionId: String,
     val paymentStatus: PaymentStatus,
-    val paymentURL: String,
-    val paymentToken: String,
+    val paymentURL: String?,
+    val paymentToken: String?,
 
     // Store
     val storeName: String = "",
