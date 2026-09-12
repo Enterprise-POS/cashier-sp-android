@@ -68,6 +68,7 @@ class InvoiceDetailViewModel @Inject constructor(
     private val _midtransPaymentToken = mutableStateOf("")
 
     private val _paymentStatusState = mutableStateOf(StateStatus())
+    val paymentStatusState: State<StateStatus> = _paymentStatusState
 
     // Dedicated dialog state for payment-gateway related flows (checking transaction status, midtrans, etc.)
     private val _paymentGatewayState = mutableStateOf(GeneralAlertDialogStatus())
@@ -201,9 +202,9 @@ class InvoiceDetailViewModel @Inject constructor(
                 }
                 if (oItem.paymentMethod == PaymentMethod.CASH || oItem.paymentMethod == PaymentMethod.OTHER) {
                     _paymentStatusState.value = StateStatus()
-                    _paymentGatewayState.value = GeneralAlertDialogStatus.error(
-                        "Warning",
-                        "Payment type Cash is already validated"
+                    _paymentGatewayState.value = GeneralAlertDialogStatus.success(
+                        "Payment successful",
+                        "Payment already validated and completed"
                     )
                     return
                 }
@@ -219,6 +220,7 @@ class InvoiceDetailViewModel @Inject constructor(
                                     "Payment could not confirmed",
                                     "Something gone wrong while checking payment status. ${resource.message}"
                                 )
+                                _paymentStatusState.value = StateStatus()
                             }
 
                             is Resource.Loading -> {
@@ -232,6 +234,7 @@ class InvoiceDetailViewModel @Inject constructor(
                                         "Failed to Check Payment Status",
                                         "Application crash. Could not get payment status from this transaction"
                                     )
+                                    _paymentStatusState.value = StateStatus()
                                     return@onEach
                                 }
                                 when (val latestPaymentStatus = resource.data.paymentStatus) {
@@ -295,6 +298,7 @@ class InvoiceDetailViewModel @Inject constructor(
                         "Unsupported Payment Method",
                         "Current payment method not supported / under development "
                     )
+                    _paymentStatusState.value = StateStatus()
                 }
             }
 

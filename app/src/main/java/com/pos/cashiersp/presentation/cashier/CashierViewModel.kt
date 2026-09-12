@@ -226,6 +226,7 @@ class CashierViewModel @Inject constructor(
 
     // Implementations
     private fun onDeleteAllCartItem() {
+        _transactionId.value = ""
         _cart.value = mapOf()
         onEvent(CashierEvent.OnToggleInfoBtn(false))
     }

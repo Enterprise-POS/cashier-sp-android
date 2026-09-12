@@ -27,18 +27,20 @@ import com.pos.cashiersp.presentation.ui.theme.White
 @Composable
 fun CheckTransactionStatusButton(
     viewModel: InvoiceDetailViewModel = hiltViewModel(),
-    enabled: Boolean = true,
 ) {
+    val paymentStatusState = viewModel.paymentStatusState.value
+    val enableButton = !paymentStatusState.isLoading
+
     OutlinedButton(
         onClick = { viewModel.onEvent(InvoiceDetailEvent.OnClickCheckTransaction) },
-        enabled = enabled,
+        enabled = enableButton,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = White,
             contentColor = Primary,
         ),
         border = BorderStroke(
             width = 1.5.dp,
-            color = if (enabled) Primary else Primary.copy(alpha = 0.4f),
+            color = if (enableButton) Primary else Primary.copy(alpha = 0.4f),
         ),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
@@ -52,7 +54,7 @@ fun CheckTransactionStatusButton(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "Check transaction",
+            text = if (paymentStatusState.isLoading) "Checking status..." else "Check transaction",
             fontSize = 15.sp,
             fontWeight = FontWeight.W600,
         )
