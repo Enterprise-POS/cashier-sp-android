@@ -12,6 +12,8 @@ import com.pos.cashiersp.model.dto.SignUpResponseDto
 import com.pos.cashiersp.model.dto.StoreStockGetV2Dto
 import com.pos.cashiersp.model.dto.TenantGetMembersDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.request_body.CancelTransactionBody
+import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.model.dto.response_body.PurchasedItemListLogsResponse
 import com.pos.cashiersp.presentation.util.LoginRequestBody
 import com.pos.cashiersp.presentation.util.NewTenantRequestBody
@@ -22,6 +24,7 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -92,6 +95,19 @@ interface CashierApi {
         @Path("tenantId") tenantId: Int,
         @Query("order_item_id") id: Int
     ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>>
+
+    @GET("order_items/transactions/{tenantId}")
+    suspend fun checkTransactionStatus(
+        @Path("tenantId") tenantId: Int,
+        @Query("order_item_id") orderItemId: Int,
+        @Query("transaction_id") transactionId: String,
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>>
+
+    @PATCH("order_items/transactions/{tenantId}")
+    suspend fun cancelTransaction(
+        @Path("tenantId") tenantId: Int,
+        @Body cancelTransactionBody: CancelTransactionBody,
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>>
 
     @POST("purchased_item_list/logs/{tenantId}")
     suspend fun purchasedItemListLogs(

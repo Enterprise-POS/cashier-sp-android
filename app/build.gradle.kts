@@ -154,6 +154,9 @@ dependencies {
     // Source: https://mvnrepository.com/artifact/androidx.compose.material/material-icons-extended
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
+    // Webview
+    implementation("androidx.webkit:webkit:1.14.0")
+
     // Test Implementation
     testImplementation("androidx.test:core:1.7.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")

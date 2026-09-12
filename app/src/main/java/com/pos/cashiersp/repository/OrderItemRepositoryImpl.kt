@@ -6,6 +6,8 @@ import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.request_body.CancelTransactionBody
+import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.presentation.util.SearchTransactionsRequestBody
 import retrofit2.Response
 
@@ -28,5 +30,21 @@ class OrderItemRepositoryImpl(private val api: CashierApi) : OrderItemRepository
         tenantId: Int
     ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>> {
         return api.findTransactionsById(tenantId, id)
+    }
+
+    override suspend fun checkTransactionStatus(
+        tenantId: Int,
+        orderItemId: Int,
+        transactionId: String,
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>> {
+        return api.checkTransactionStatus(tenantId, orderItemId, transactionId)
+    }
+
+    override suspend fun cancelTransaction(
+        tenantId: Int,
+        orderItemId: Int,
+        transactionId: String
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>> {
+        return api.cancelTransaction(tenantId, CancelTransactionBody(orderItemId, transactionId))
     }
 }

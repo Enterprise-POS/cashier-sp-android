@@ -4,19 +4,27 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
-import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
+import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.repository.OrderItemRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
-class FindTransactionsById(private val repository: OrderItemRepository) {
-    operator fun invoke(id: Int, tenantId: Int): Flow<Resource<FindTransactionsByIdDto>> =
+class CancelTransaction(private val repository: OrderItemRepository) {
+    operator fun invoke(orderItemId: Int, transactionId: String, tenantId: Int): Flow<Resource<PaymentStatusResponse>> =
         flow {
             try {
-                emit(Resource.Loading<FindTransactionsByIdDto>())
-                val response = repository.findTransactionsById(id, tenantId)
+                emit(Resource.Loading())
+                if (orderItemId <= 0 && transactionId.isEmpty()) {
+                    emit(Resource.Error("Please fill order item id or transaction id"))
+                    return@flow
+                }
+
+                val response: Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>> =
+                    repository.cancelTransaction(tenantId, orderItemId, transactionId)
+
                 if (!response.isSuccessful) {
                     when (response.code()) {
                         400, 401, 403 -> {
@@ -36,16 +44,15 @@ class FindTransactionsById(private val repository: OrderItemRepository) {
                     }
                 }
 
-                val successResponse = response.body()
-
+                val successResponse: HTTPStatus.SuccessResponse<PaymentStatusResponse>? = response.body()
                 if (successResponse == null) {
                     emit(Resource.Error("[FATAL ERROR] Empty JSON body"))
                     return@flow
                 }
 
                 // 200
-                val data: FindTransactionsByIdDto = successResponse.data
-                emit(Resource.Success<FindTransactionsByIdDto>(data))
+                val data: PaymentStatusResponse = successResponse.data
+                emit(Resource.Success(data))
             } catch (e: HttpException) {
                 emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))
             } catch (e: IOException) {

@@ -73,7 +73,7 @@ fun PaymentSummarySection(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                     color = Secondary,
                     fontWeight = FontWeight.W500,
                 )
-                Text(text = "Cash", fontSize = 13.sp, color = Gray400)
+                Text(text = orderItem.paymentMethod.uiLabel, fontSize = 13.sp, color = Gray400)
             }
 
             HorizontalDivider(color = Gray100.copy(alpha = .6f), thickness = .8.dp)

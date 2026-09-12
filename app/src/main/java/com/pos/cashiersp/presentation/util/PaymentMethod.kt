@@ -2,14 +2,14 @@ package com.pos.cashiersp.presentation.util
 
 import com.google.gson.annotations.SerializedName
 
-enum class PaymentMethod {
-    CASH,
+enum class PaymentMethod(val uiLabel: String) {
+    CASH("Cash"),
 
-    EWALLET,
+    EWALLET("EWallet"),
 
-    CARD,
+    CARD("Card"),
 
-    QRIS,
+    QRIS("QRIS"),
 
-    OTHER,
+    OTHER("Other"),
 }

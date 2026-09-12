@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.presentation.invoice_detail.InvoiceDetailViewModel
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Primary

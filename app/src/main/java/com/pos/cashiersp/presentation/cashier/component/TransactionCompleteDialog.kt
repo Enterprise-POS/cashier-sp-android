@@ -74,7 +74,7 @@ fun TransactionCompleteDialog(
         )
     )
 
-    println("DEBUG HERE: ${completeTransactionParams}")
+    //println("DEBUG HERE: ${completeTransactionParams}")
     if (completeTransactionParams != null) {
         val transactionId = completeTransactionParams.createdOrderItemId
         val totalAmount = completeTransactionParams.totalAmount

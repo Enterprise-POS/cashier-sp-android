@@ -33,6 +33,7 @@ import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
+import com.pos.cashiersp.presentation.util.PaymentStatus
 import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.presentation.util.parseDateString
 import com.pos.cashiersp.presentation.util.toRupiah
@@ -43,6 +44,7 @@ import com.pos.cashiersp.use_case.StoreStockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
@@ -51,11 +53,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import com.pos.cashiersp.model.domain.Item as domainItem
 import com.pos.cashiersp.model.dto.Item as dtoItem
 
@@ -128,6 +133,17 @@ class CashierViewModel @Inject constructor(
     private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
     val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
 
+    private val _midtransPaymentDialogState = mutableStateOf(false)
+    val midtransPaymentDialogState: State<Boolean> = _midtransPaymentDialogState
+    private val _midtransPaymentURL = mutableStateOf("")
+    val midtransPaymentURL: State<String> = _midtransPaymentURL
+    private val _midtransPaymentToken = mutableStateOf("")
+    // val midtransPaymentToken: State<String> = _midtransPaymentToken
+
+    // Payment status polling
+    private val _paymentCheckStatus = mutableStateOf(StateStatus())
+    val paymentCheckStatus: State<StateStatus> = _paymentCheckStatus
+
     // Transaction
 
     private val _transactionCompleteDialogState = mutableStateOf(false)
@@ -135,6 +151,8 @@ class CashierViewModel @Inject constructor(
 
     private val _completeTransactionReference = mutableStateOf<TransactionResponse?>(null)
     val completeTransactionReference: State<TransactionResponse?> = _completeTransactionReference
+
+    private val _transactionId = mutableStateOf("")
 
     // Saved locally to avoid re-fetching when printing
     private val _completeOrderItemReference = mutableStateOf<OrderItem?>(null)
@@ -164,6 +182,10 @@ class CashierViewModel @Inject constructor(
     // AtomicBoolean prevents race conditions from rapid tapping
     private val isProcessingTransaction = AtomicBoolean(false)
     private var transactionJob: Job? = null
+
+    // Tracks the active payment-status polling loop so it can be cancelled
+    // (dialog dismissed, new transaction started, or ViewModel cleared)
+    private var paymentCheckJob: Job? = null
 
     private val _uiEvent = MutableSharedFlow<UIEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
@@ -198,11 +220,13 @@ class CashierViewModel @Inject constructor(
             is CashierEvent.RefreshCashierItem -> onRefreshCashierItem()
             is CashierEvent.OnToggleInfoBtn -> onToggleInfoBtn(event)
             is CashierEvent.OnDeleteAllCartItem -> onDeleteAllCartItem()
+            is CashierEvent.OnDismissPaymentGatewayDialog -> onDismissPaymentGatewayDialog()
         }
     }
 
     // Implementations
     private fun onDeleteAllCartItem() {
+        _transactionId.value = ""
         _cart.value = mapOf()
         onEvent(CashierEvent.OnToggleInfoBtn(false))
     }
@@ -305,7 +329,8 @@ class CashierViewModel @Inject constructor(
 
         when (selectedPaymentMethod) {
             PaymentMethod.CASH -> _selectedPaymentMethod.value = PaymentMethod.CASH
-            PaymentMethod.CARD, PaymentMethod.EWALLET, PaymentMethod.QRIS -> { /* Do nothing for now */
+            PaymentMethod.QRIS -> _selectedPaymentMethod.value = PaymentMethod.QRIS
+            PaymentMethod.CARD, PaymentMethod.EWALLET -> { /* Do nothing for now */
             }
 
             PaymentMethod.OTHER -> _selectedPaymentMethod.value = PaymentMethod.OTHER
@@ -418,8 +443,30 @@ class CashierViewModel @Inject constructor(
                 executeTransaction(params, items)
             }
 
-            PaymentMethod.OTHER -> {
+            PaymentMethod.QRIS -> {
+                val randomUUID = "MID-QRIS-${UUID.randomUUID()}"
+                _transactionId.value = randomUUID
+                val params = CreateTransactionParams(
+                    items = items,
+                    purchasedPrice = totalAmount.toInt(),
+                    totalQuantity = totalQuantity,
+                    totalAmount = totalAmount.toInt(),
+                    discountAmount = discountAmount.toInt(),
+                    subTotal = subTotal.toInt(),
+                    tenantId = _tenantId.intValue,
+                    storeId = _storeId.intValue,
+                    userId = _staffId.intValue,
+                    paymentMethod = paymentMethod,
+                    transactionId = randomUUID
+                )
 
+                _transactionState.value =
+                    StateStatus(isLoading = true)
+
+                executeTransaction(params, items)
+            }
+
+            PaymentMethod.OTHER -> {
                 val params = CreateTransactionParams(
                     items = items,
                     purchasedPrice = totalAmount.toInt(),
@@ -466,7 +513,7 @@ class CashierViewModel @Inject constructor(
                     isProcessingTransaction.set(false)
                     _transactionState.value = StateStatus()
 
-                    val data = resource.data ?: run {
+                    val data: TransactionResponse = resource.data ?: run {
                         showFatalError("Transaction succeeded but returned no data")
                         return@onEach
                     }
@@ -474,10 +521,27 @@ class CashierViewModel @Inject constructor(
                     // Parse date and build order item reference for printing
                     val storeName = _storeName.value.ifEmpty { "-E" }
                     val calendar = parseDateString(data.createdAt)
+
+                    // Put some cache / reference after began transaction
                     _completeOrderItemReference.value = if (calendar != null) {
                         params.toOrderItemDomain(data.createdOrderItemId, calendar, storeName = storeName)
                     } else {
                         null // Printing will show an error if this is null
+                    }
+
+                    when (params.paymentMethod) {
+                        PaymentMethod.QRIS -> {
+                            // If paymentURL, paymentToken not available then check BE
+                            _midtransPaymentDialogState.value = true
+                            _midtransPaymentURL.value = data.paymentURL!!
+                            _midtransPaymentToken.value = data.paymentToken!!
+                            checkPaymentStatusPeriodically(
+                                params.transactionId ?: _transactionId.value,
+                                params.tenantId
+                            )
+                        }
+
+                        else -> {}
                     }
 
                     _completeTransactionReference.value = data
@@ -569,6 +633,130 @@ class CashierViewModel @Inject constructor(
         // This function will save last metadata again
         // Also manage UI loading via Resource
         loadAllStoreStock(tenantId, storeId)
+    }
+
+    private fun onDismissPaymentGatewayDialog() {
+        // Stop polling immediately — no point burning requests once the
+        // user has closed the payment dialog.
+        paymentCheckJob?.cancel()
+        paymentCheckJob = null
+
+        val createdOrderItemId = _completeTransactionReference.value?.createdOrderItemId ?: 0
+        val transactionId = _transactionId.value
+        val tenantId = _tenantId.intValue
+
+        // Transaction will not success
+        _transactionCompleteDialogState.value = false
+
+        // Regardless cancelling payment is success or not we want to close the webview
+        _midtransPaymentDialogState.value = false
+
+        // Reset transaction id, so later maybe another payment method could be use
+        _transactionId.value = ""
+
+
+        orderItemUseCase.cancelTransaction(createdOrderItemId, transactionId, tenantId).onEach { resource ->
+            when (resource) {
+                is Resource.Error -> {
+                    println("Failed to cancel the transaction. Payment may not finished. Please check transaction history for confirmation. Detail: ${resource.message}")
+                    _paymentCheckStatus.value =
+                        StateStatus(error = "Failed to cancel the transaction. Payment may not finished. Please check transaction history for confirmation")
+                    _generalAlertDialogState.value =
+                        GeneralAlertDialogStatus.error(
+                            "Unfinished Payment",
+                            "Failed to cancel the transaction. Payment may not finished. Please check transaction history for confirmation"
+                        )
+                }
+
+                is Resource.Loading -> {
+                    _paymentCheckStatus.value = StateStatus(loadingMessage = "Cancelling transaction")
+                    _generalAlertDialogState.value =
+                        GeneralAlertDialogStatus.loading(message = "Cancelling transaction")
+                }
+
+                is Resource.Success -> {
+                    _paymentCheckStatus.value = StateStatus()
+                    _generalAlertDialogState.value = GeneralAlertDialogStatus.success(
+                        "Payment cancelled",
+                        "Current payment cancelled successfully"
+                    )
+                }
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    /**
+     * for up to [PAYMENT_CHECK_TIMEOUT_MILLIS]. Cancelled via [paymentCheckJob] whenever
+     * the payment dialog is dismissed, a new transaction starts, or the ViewModel is cleared.
+     */
+    private fun checkPaymentStatusPeriodically(transactionId: String, tenantId: Int) {
+        paymentCheckJob?.cancel() // never run two polling loops at once
+
+        paymentCheckJob = viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            val interval = 2_000L // start at 2s between checks
+
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - startTime
+                if (elapsed >= PAYMENT_CHECK_TIMEOUT_MILLIS) {
+                    _paymentCheckStatus.value = StateStatus(
+                        error = "Payment status check timed out. Please check manually from the transaction screen."
+                    )
+                    return@launch
+                }
+
+                delay(interval.milliseconds) // suspends only, does not block the thread
+
+                when (val result =
+                    orderItemUseCase.checkPaymentStatus(orderItemId = 0, transactionId, tenantId).lastOrNull()) {
+                    is Resource.Success -> {
+                        when (result.data!!.paymentStatus) {
+                            PaymentStatus.SUCCESS -> {
+                                _paymentCheckStatus.value = StateStatus()
+                                _midtransPaymentDialogState.value = false
+                                return@launch
+                            }
+
+                            PaymentStatus.EXPIRED, PaymentStatus.CANCELLED -> {
+                                _paymentCheckStatus.value = StateStatus(
+                                    error = "Payment with transaction id: $transactionId got cancelled / expired. Detail Reason: ${result.data.message}"
+                                )
+                                _transactionCompleteDialogState.value = false
+                                _midtransPaymentDialogState.value = false
+                                _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                                    "Transaction Failed",
+                                    "Payment got cancelled or expired"
+                                )
+                                return@launch
+                            }
+
+                            PaymentStatus.PENDING -> {
+
+                            }
+
+                            else -> {
+                                // still PENDING — keep polling
+                            }
+                        }
+                    }
+
+                    is Resource.Error -> {
+                        // Transient network/API failure — keep retrying rather than
+                        // aborting the whole flow on a single failed check.
+                        println(result.message)
+                    }
+
+                    else -> {}
+                }
+            }
+
+            _transactionCompleteDialogState.value = false
+            _midtransPaymentDialogState.value = false
+            _generalAlertDialogState.value = GeneralAlertDialogStatus.error(
+                "Transaction View Timeout",
+                "Please see the transaction history"
+            )
+        }
     }
 
     /* If the return is empty list then it suppose to be mean no cache*/
@@ -761,6 +949,11 @@ class CashierViewModel @Inject constructor(
         return elapsed > CACHE_TTL_MILLIS
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        paymentCheckJob?.cancel()
+    }
+
     // UI Events
 
     sealed class UIEvent {
@@ -774,5 +967,6 @@ class CashierViewModel @Inject constructor(
     companion object {
         private const val MAX_ITEM_QUANTITY = 999
         private const val CACHE_TTL_MILLIS = 30 * 60 * 1000L // 30 minutes
+        private const val PAYMENT_CHECK_TIMEOUT_MILLIS = 5 * 60 * 1000L // 5 minutes
     }
 }

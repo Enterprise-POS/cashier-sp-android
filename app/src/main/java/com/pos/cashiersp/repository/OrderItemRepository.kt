@@ -5,6 +5,7 @@ import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.SearchTransactionsDto
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.response_body.PaymentStatusResponse
 import com.pos.cashiersp.presentation.util.SearchTransactionsRequestBody
 import retrofit2.Response
 
@@ -22,4 +23,16 @@ interface OrderItemRepository {
         id: Int,
         tenantId: Int
     ): Response<HTTPStatus.SuccessResponse<FindTransactionsByIdDto>>
+
+    suspend fun checkTransactionStatus(
+        tenantId: Int,
+        orderItemId: Int,
+        transactionId: String,
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>>
+
+    suspend fun cancelTransaction(
+        tenantId: Int,
+        orderItemId: Int,
+        transactionId: String,
+    ): Response<HTTPStatus.SuccessResponse<PaymentStatusResponse>>
 }

@@ -47,9 +47,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.pos.cashiersp.presentation.Screen
+import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
+import com.pos.cashiersp.presentation.cashier.component.MidtransPaymentDialog
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
+import com.pos.cashiersp.presentation.invoice_detail.component.CheckTransactionStatusButton
 import com.pos.cashiersp.presentation.invoice_detail.component.InvoiceHeaderCard
 import com.pos.cashiersp.presentation.invoice_detail.component.PaymentSummarySection
 import com.pos.cashiersp.presentation.invoice_detail.component.PrintReceiptButton
@@ -71,6 +74,9 @@ fun InvoiceDetailScreen(
     viewModel: InvoiceDetailViewModel = hiltViewModel()
 ) {
     val generalAlertDialogStatus by viewModel.generalAlertDialogStatus
+    val paymentGatewayState by viewModel.paymentGatewayState
+    val midtransDialogState = viewModel.midtransPaymentDialogState.value
+    val paymentURL = viewModel.midtransPaymentURL.value
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -166,6 +172,9 @@ fun InvoiceDetailScreen(
                 // ── Print Receipt Button
                 PrintReceiptButton()
 
+                // ── Check status
+                CheckTransactionStatusButton()
+
                 Spacer(modifier = Modifier.height(80.dp))
             }
         } else if (generalAlertDialogStatus.type == GeneralAlertDialogStatus.DialogType.ERROR) {
@@ -240,6 +249,18 @@ fun InvoiceDetailScreen(
             GeneralAlertDialog(
                 generalAlertDialogStatus,
                 onDismissRequest = { viewModel.onEvent(InvoiceDetailEvent.OnClickDismissGeneralDialogStatusBtn) },
+            )
+
+        if (midtransDialogState)
+            MidtransPaymentDialog(
+                paymentURL,
+                onDismiss = { viewModel.onEvent(InvoiceDetailEvent.OnDismissPaymentDialog) })
+
+        // Error / info payment gateway dialog
+        if (paymentGatewayState.showDialog)
+            GeneralAlertDialog(
+                paymentGatewayState,
+                onDismissRequest = { viewModel.onEvent(InvoiceDetailEvent.OnClickDismissPaymentGatewayDialogBtn) },
             )
     }
 }
