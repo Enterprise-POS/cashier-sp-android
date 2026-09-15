@@ -731,7 +731,8 @@ class CashierViewModel @Inject constructor(
                             }
 
                             PaymentStatus.PENDING -> {
-
+                                // status 200 but still pending status then keep polling
+                                // println(result.data)
                             }
 
                             else -> {
@@ -743,7 +744,7 @@ class CashierViewModel @Inject constructor(
                     is Resource.Error -> {
                         // Transient network/API failure — keep retrying rather than
                         // aborting the whole flow on a single failed check.
-                        println(result.message)
+                        println("Request error as: ${result.message}")
                     }
 
                     else -> {}

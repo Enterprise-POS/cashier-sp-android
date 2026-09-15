@@ -200,6 +200,7 @@ fun PaymentSummarySection(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                                         fontWeight = FontWeight.W600,
                                         color = Secondary
                                     )
+                                    Text(text = orderItem.transactionId, fontSize = 10.sp, color = Gray400)
                                 }
                             }
 

@@ -62,7 +62,7 @@ fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
             ) {
                 Column {
                     TextWithNoPadding(
-                        text = "INV-ID-${orderItem.id}",
+                        text = "#${orderItem.id}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.W700,
                         color = Secondary
