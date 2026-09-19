@@ -4,6 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pos.cashiersp.common.Resource
@@ -34,6 +35,7 @@ import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.PaymentStatus
+import com.pos.cashiersp.presentation.util.QuickSelectAmount
 import com.pos.cashiersp.presentation.util.StateStatus
 import com.pos.cashiersp.presentation.util.parseDateString
 import com.pos.cashiersp.presentation.util.toRupiah
@@ -60,6 +62,8 @@ import java.util.Date
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.time.Duration.Companion.milliseconds
 import com.pos.cashiersp.model.domain.Item as domainItem
 import com.pos.cashiersp.model.dto.Item as dtoItem
@@ -124,12 +128,15 @@ class CashierViewModel @Inject constructor(
     // Payment
 
     /**
-     * Currently only Cash is supported.
-     * Credit Card and QR Code are not yet implemented.
+     * Currently Cash, QR is supported.
+     * Credit Card are not yet implemented.
      */
     private val _selectedPaymentMethod = mutableStateOf(PaymentMethod.CASH)
     val selectedPaymentMethod: State<PaymentMethod> = _selectedPaymentMethod
 
+    private val _selectedQuickAmount = mutableStateOf<QuickSelectAmount?>(null)
+
+    val selectedQuickAmount: State<QuickSelectAmount?> = _selectedQuickAmount
     private val _inpCashPaymentMethod = mutableStateOf(InpTextFieldState())
     val inpCashPaymentMethod: State<InpTextFieldState> = _inpCashPaymentMethod
 
@@ -190,8 +197,6 @@ class CashierViewModel @Inject constructor(
     private val _uiEvent = MutableSharedFlow<UIEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    // Init
-
     init {
         loadStoreAndTenantData()
         viewModelScope.launch { loadProfile() }
@@ -208,6 +213,7 @@ class CashierViewModel @Inject constructor(
             is OnDecreaseQuantity -> onDecreaseQuantity(event)
             is OnRemoveFromCart -> onRemoveFromCart(event)
             is OnSelectPaymentMethod -> onSelectPaymentMethod(event)
+            is CashierEvent.OnQuickSelectAmount -> onQuickSelectAmount(event)
             is PlaceOrder -> onPlaceOrder()
             is CashierEvent.EnteredCashBalance -> onEnteredCashBalance(event)
             is CashierEvent.OnConfirmTransactionBtnDialog -> onConfirmTransactionDialog()
@@ -297,7 +303,7 @@ class CashierViewModel @Inject constructor(
         val newQuantity = existingItem.quantity + event.quantity
         if (newQuantity > MAX_ITEM_QUANTITY) return
 
-        _cart.value = _cart.value + (event.cashierItem.itemId.toInt() to existingItem.copy(quantity = newQuantity))
+        _cart.value += (event.cashierItem.itemId to existingItem.copy(quantity = newQuantity))
     }
 
     private fun onDecreaseQuantity(event: OnDecreaseQuantity) {
@@ -311,7 +317,7 @@ class CashierViewModel @Inject constructor(
             // Auto-remove when quantity reaches 0
             onEvent(OnRemoveFromCart(event.cashierItem))
         } else {
-            _cart.value = _cart.value + (event.cashierItem.itemId.toInt() to existingItem.copy(quantity = newQuantity))
+            _cart.value += (event.cashierItem.itemId to existingItem.copy(quantity = newQuantity))
         }
     }
 
@@ -683,6 +689,40 @@ class CashierViewModel @Inject constructor(
                 }
             }
         }.launchIn(viewModelScope)
+    }
+
+    private fun onQuickSelectAmount(event: CashierEvent.OnQuickSelectAmount) {
+        when (event.quickSelectAmount) {
+            QuickSelectAmount.TEN_THOUNDSAND_RUPIAH -> {
+                _inpCashPaymentMethod.value =
+                    _inpCashPaymentMethod.value.copy(text = "10000")
+            }
+
+            QuickSelectAmount.TWENTY_THOUNDSAND_RUPIAH -> _inpCashPaymentMethod.value =
+                _inpCashPaymentMethod.value.copy(text = "20000")
+
+            QuickSelectAmount.FIFTY_THOUNDSAND_RUPIAH -> _inpCashPaymentMethod.value =
+                _inpCashPaymentMethod.value.copy(text = "50000")
+
+            QuickSelectAmount.HUNDRED_THOUNDSAND_RUPIAH -> _inpCashPaymentMethod.value =
+                _inpCashPaymentMethod.value.copy(text = "100000")
+
+            QuickSelectAmount.EXACT -> {
+                val subTotal =
+                    _cart.value.entries.fold(0) { acc, (_, cartItem) ->
+                        acc + (cartItem.storeStock.price * cartItem.quantity)
+                    }
+
+                // Feature for sumDiscount (not implemented)
+                val sumDiscount = 0
+
+                val total = subTotal + sumDiscount
+
+                _inpCashPaymentMethod.value = _inpCashPaymentMethod.value.copy(text = total.toString())
+            }
+        }
+
+        _selectedQuickAmount.value = event.quickSelectAmount
     }
 
     /**

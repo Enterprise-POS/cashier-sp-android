@@ -3,6 +3,7 @@ package com.pos.cashiersp.presentation.cashier
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent
 import com.pos.cashiersp.presentation.util.PaymentMethod
+import com.pos.cashiersp.presentation.util.QuickSelectAmount
 
 sealed class CashierEvent {
     object TryAgainRequestAllProducts : CashierEvent()
@@ -18,6 +19,7 @@ sealed class CashierEvent {
     data class OnRemoveFromCart(val cashierItem: CashierItem) : CashierEvent()
 
     data class OnSelectPaymentMethod(val paymentMethod: PaymentMethod) : CashierEvent()
+    data class OnQuickSelectAmount(val quickSelectAmount: QuickSelectAmount) : CashierEvent()
 
     data class EnteredCashBalance(val value: String) : CashierEvent()
     object OnConfirmTransactionBtnDialog : CashierEvent()

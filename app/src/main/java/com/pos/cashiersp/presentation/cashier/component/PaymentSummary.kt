@@ -1,7 +1,5 @@
 package com.pos.cashiersp.presentation.cashier.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,10 +56,9 @@ import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.PaymentMethod
+import com.pos.cashiersp.presentation.util.QuickSelectAmount
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
 import com.pos.cashiersp.presentation.util.toRupiah
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 @Composable
 fun PaymentSummary(
@@ -70,6 +67,7 @@ fun PaymentSummary(
 ) {
     val cart: Map<Int, CartItem> = viewModel.cart.value
     val selectedPaymentMethod = viewModel.selectedPaymentMethod.value
+    val selectedQuickSelectAmount = viewModel.selectedQuickAmount.value
     val inpCashPaymentMethod = viewModel.inpCashPaymentMethod.value
     val transactionState = viewModel.transactionState.value
 
@@ -238,6 +236,7 @@ fun PaymentSummary(
                     )
                 }
             }
+            /*
             item {
                 PaymentMethodButton(
                     "Card",
@@ -257,6 +256,7 @@ fun PaymentSummary(
                     )
                 }
             }
+             */
             item {
                 PaymentMethodButton(
                     "QRIS",
@@ -294,6 +294,78 @@ fun PaymentSummary(
 
         when (selectedPaymentMethod) {
             PaymentMethod.CASH -> {
+                Text(
+                    "Quick select amount",
+                    modifier = Modifier
+                        .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                        .fillMaxWidth(),
+                    color = Secondary,
+                    fontSize = 14.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+                Spacer(Modifier.height(8.dp))
+                LazyHorizontalStaggeredGrid(
+                    rows = StaggeredGridCells.Fixed(1),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalItemSpacing = 8.dp,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                        .height(32.dp)
+                ) {
+                    item {
+                        PaymentMethodButton(
+                            10000.toRupiah(),
+                            active = false, // Make the color is inactive even it's clicked
+                            onClick = {
+                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TEN_THOUNDSAND_RUPIAH))
+                            }) {
+
+
+                        }
+                    }
+                    item {
+                        PaymentMethodButton(
+                            20000.toRupiah(),
+                            active = false, // Make the color is inactive even it's clicked
+                            onClick = {
+                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TWENTY_THOUNDSAND_RUPIAH))
+                            }) {
+
+
+                        }
+                    }
+                    item {
+                        PaymentMethodButton(
+                            50000.toRupiah(),
+                            active = false, // Make the color is inactive even it's clicked
+                            onClick = {
+                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.FIFTY_THOUNDSAND_RUPIAH))
+                            }) {
+                        }
+                    }
+                    item {
+                        PaymentMethodButton(
+                            100000.toRupiah(),
+                            active = false, // Make the color is inactive even it's clicked
+                            onClick = {
+                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.HUNDRED_THOUNDSAND_RUPIAH))
+                            }) {}
+                    }
+                    item {
+                        PaymentMethodButton(
+                            "Exact",
+                            active = false, // Make the color is inactive even it's clicked
+                            onClick = {
+                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.EXACT))
+                            }) {}
+                    }
+                }
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,

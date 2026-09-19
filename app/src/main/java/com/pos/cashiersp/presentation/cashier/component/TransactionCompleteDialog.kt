@@ -121,6 +121,7 @@ fun TransactionCompleteDialog(
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
+                            /*
 
                             // Order Number
                             DetailRow(
@@ -129,6 +130,7 @@ fun TransactionCompleteDialog(
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
+                             */
 
                             // Total Amount
                             Row(
