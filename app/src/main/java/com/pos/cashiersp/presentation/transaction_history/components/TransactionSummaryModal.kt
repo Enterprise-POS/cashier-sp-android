@@ -32,6 +32,7 @@ import com.pos.cashiersp.presentation.ui.theme.Light800
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.PaymentStatus
 import com.pos.cashiersp.presentation.util.toRupiah
 
 /**
@@ -117,7 +118,13 @@ private fun SummaryStatsList(
     }
 
     val orderItems: List<OrderItem> = searchTransactionsDto.orderItems.map { it.toDomain() }
-    val revenue = orderItems.fold(0) { acc, item -> acc + item.totalAmount }
+    val moneyIn =
+        orderItems.fold(0) { acc, item -> if (item.paymentStatus == PaymentStatus.SUCCESS) acc + item.purchasedPrice else acc + 0 }
+    val revenue =
+        orderItems.fold(0) { acc, item -> if (item.paymentStatus == PaymentStatus.SUCCESS) acc + item.totalAmount else acc + 0 }
+    val sucessTransactionCount = orderItems.count { it.paymentStatus == PaymentStatus.SUCCESS }
+    val cancelledTransactionCount =
+        orderItems.count { it.paymentStatus == PaymentStatus.FAILED || it.paymentStatus == PaymentStatus.CANCELLED }
     val transactionCount = searchTransactionsDto.totalCount
 
     val stats = listOf(
@@ -125,6 +132,21 @@ private fun SummaryStatsList(
             label = "Revenue",
             value = revenue.toRupiah(),
             description = "Gross sales"
+        ),
+        SummaryStat(
+            label = "Money in",
+            value = moneyIn.toRupiah(),
+            description = "Payment status success count"
+        ),
+        SummaryStat(
+            label = "Success transaction",
+            value = sucessTransactionCount.toString(),
+            description = "Payment status success count"
+        ),
+        SummaryStat(
+            label = "Cancelled transaction",
+            value = cancelledTransactionCount.toString(),
+            description = "Payment status cancelled count"
         ),
         SummaryStat(
             label = "Transactions",

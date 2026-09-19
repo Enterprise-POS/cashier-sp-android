@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.ceil
 
@@ -67,9 +68,12 @@ class ItemSalesLogViewModel @Inject constructor(
     val sortColumn: State<SortColumn> = _sortColumn
     private val _sortAscending = mutableStateOf(false)
     val sortAscending: State<Boolean> = _sortAscending
-    private val _dateFilterStart = mutableStateOf<Long?>(null)
+
+    // Default the log view to "today" on first open, instead of unbounded/all-time.
+    private val _initialDateRange = todayRange()
+    private val _dateFilterStart = mutableStateOf<Long?>(_initialDateRange.first)
     val dateFilterStart: State<Long?> = _dateFilterStart
-    private val _dateFilterEnd = mutableStateOf<Long?>(null)
+    private val _dateFilterEnd = mutableStateOf<Long?>(_initialDateRange.second)
     val dateFilterEnd: State<Long?> = _dateFilterEnd
     private val _selectedScope = mutableStateOf<SalesLogScope?>(null)
     val selectedScope: State<SalesLogScope?> = _selectedScope
@@ -91,8 +95,8 @@ class ItemSalesLogViewModel @Inject constructor(
     private val _draftEndDate = mutableStateOf(_dateFilterEnd.value)
 
     // Private quick range so when user actually hit "cancel" the previous state will available
-    private val _quickRange =
-        mutableStateOf(if (_draftStartDate.value != null || _draftEndDate.value != null) QuickRange.CUSTOM else null)
+    // Defaults to TODAY since the date range itself now defaults to today's bounds.
+    private val _quickRange = mutableStateOf<QuickRange?>(QuickRange.TODAY)
     private val _draftQuickRange = mutableStateOf(_quickRange.value)
     val draftColumn: State<SortColumn> = _draftColumn
     val draftAscending: State<Boolean> = _draftAscending
@@ -231,9 +235,11 @@ class ItemSalesLogViewModel @Inject constructor(
             is OnSetDraftEndDate -> _draftEndDate.value = event.setEndDate
             is OnSetDraftQuickRange -> _draftQuickRange.value = event.setQuickRange
             OnClearDateRange -> {
-                _draftStartDate.value = null
-                _draftEndDate.value = null
-                _draftQuickRange.value = null
+                // "Clear" now resets back to today's range instead of unbounded/all-time.
+                val (start, end) = todayRange()
+                _draftStartDate.value = start
+                _draftEndDate.value = end
+                _draftQuickRange.value = QuickRange.TODAY
             }
 
             OnDismissFilterBottomSheet -> {
@@ -351,6 +357,22 @@ class ItemSalesLogViewModel @Inject constructor(
             ),
             dateFilter = dateFilter
         )
+    }
+
+    /**
+     * Start-of-today (local device time) through now, in epoch **seconds**
+     * (matching CalendarChipUtils.nowEpoch() / DateFilter's Int fields).
+     * Used both as the initial default date range and as what
+     * OnClearDateRange resets back to.
+     */
+    private fun todayRange(): Pair<Long, Long> {
+        val startOfDaySeconds = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis / 1000
+        return startOfDaySeconds to CalendarChipUtils.nowEpoch()
     }
 
     /**

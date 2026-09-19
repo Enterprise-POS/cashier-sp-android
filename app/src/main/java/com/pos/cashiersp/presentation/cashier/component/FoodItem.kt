@@ -33,13 +33,13 @@ import com.pos.cashiersp.presentation.ui.theme.Light900
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.toRupiah
 
 @Composable
 fun FoodItem(number: Int, cartItem: CartItem) {
     val quantity = cartItem.quantity
     val price = cartItem.storeStock.price
     val itemName = cartItem.item.itemName
-    val priceFormatter = java.text.DecimalFormat("#,###")
 
     Card(
         border = BorderStroke(.4.dp, Gray500),
@@ -53,8 +53,7 @@ fun FoodItem(number: Int, cartItem: CartItem) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .padding(horizontal = 14.dp)
+                .padding(horizontal = 14.dp, vertical = 2.dp)
         ) {
 
             // Number badge
@@ -85,8 +84,6 @@ fun FoodItem(number: Int, cartItem: CartItem) {
                     fontWeight = FontWeight.Medium
                 )
 
-                Spacer(Modifier.height(2.dp))
-
                 Row {
                     Text(
                         text = "x$quantity",
@@ -106,7 +103,7 @@ fun FoodItem(number: Int, cartItem: CartItem) {
 
             // Price (right aligned)
             Text(
-                text = "Rp ${priceFormatter.format(price * quantity)}",
+                text = (price * quantity).toRupiah(),
                 color = Secondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
