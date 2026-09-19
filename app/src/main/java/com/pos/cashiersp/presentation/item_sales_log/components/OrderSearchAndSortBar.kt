@@ -17,6 +17,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -91,6 +93,8 @@ fun OrderSearchAndSortBar(
 
     val searchItemId = viewModel.searchSortBarInp.value
     val orders = viewModel.cashierItems.value
+    val searchEnabled = !viewModelState.isLoading && searchItemId.isNotBlank()
+
     var expanded by remember { mutableStateOf(false) }
 
     // Tracks the measured width of the text field so the dropdown
@@ -114,10 +118,22 @@ fun OrderSearchAndSortBar(
         }
     }
 
-    // Re-focus the field whenever the dropdown opens, in case
-    // anything else has stolen focus in the meantime.
+    // Re-focus the field whenever the dropdown opens
     LaunchedEffect(expanded) {
         if (expanded) focusRequester.requestFocus()
+    }
+
+    val onSearchTriggered: () -> Unit = {
+        expanded = false
+        viewModel.onEvent(
+            ItemSalesLogEvent.OnApplyFilter(
+                draftColumn,
+                draftAscending,
+                draftStartDate,
+                draftEndDate,
+                draftQuickRange,
+            )
+        )
     }
 
     Row(
@@ -151,7 +167,7 @@ fun OrderSearchAndSortBar(
             ) {
 
                 Icon(
-                    imageVector = Icons.Filled.Search,
+                    imageVector = Icons.Filled.Inventory2,
                     contentDescription = null,
                     tint = Gray400,
                     modifier = Modifier.size(18.dp)
@@ -177,15 +193,7 @@ fun OrderSearchAndSortBar(
                     keyboardActions = KeyboardActions(
                         onSearch = {
                             // Auto close the keyboard
-                            viewModel.onEvent(
-                                ItemSalesLogEvent.OnApplyFilter(
-                                    draftColumn,
-                                    draftAscending,
-                                    draftStartDate,
-                                    draftEndDate,
-                                    draftQuickRange,
-                                )
-                            )
+                            onSearchTriggered()
                         }
                     ),
                     singleLine = true,
@@ -282,6 +290,33 @@ fun OrderSearchAndSortBar(
                         }
                     )
                 }
+            }
+        }
+
+        if (selectedScope == SalesLogScope.SINGLE_ITEM) {
+            Spacer(
+                modifier = Modifier.width(10.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (searchEnabled) Primary else Gray100)
+                    .clickable(
+                        enabled = searchEnabled,
+                        onClick = onSearchTriggered
+                    )
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = "Search",
+                    tint = if (searchEnabled) White else Gray400,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
 
