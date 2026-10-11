@@ -3,7 +3,6 @@ package com.pos.cashiersp.presentation.login_register
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +23,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.window.core.layout.WindowSizeClass
 import com.pos.cashiersp.R
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.Screen
@@ -59,7 +60,11 @@ import com.pos.cashiersp.presentation.util.JwtStore
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
-fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterViewModel = hiltViewModel()) {
+fun LoginRegisterScreen(
+    navController: NavController,
+    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
+    viewModel: LoginRegisterViewModel = hiltViewModel()
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     val currentSegmented = remember { mutableStateOf(LoginOrRegisterSegmentedButtonPage.Login) }
 
@@ -156,28 +161,24 @@ fun LoginRegisterScreen(navController: NavController, viewModel: LoginRegisterVi
         },
         containerColor = Secondary100
     ) { innerPadding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            val isExpanded = maxWidth >= 840.dp
-            val isMedium = maxWidth in 600.dp..839.dp
+        val isExpanded = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
+        val isMedium = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
-            if (isExpanded) {
-                ExpandedLoginRegisterLayout(
-                    currentSegmented = currentSegmented.value,
-                    onSegmentedChange = { currentSegmented.value = it },
-                    snackbarHostState = snackbarHostState
-                )
-            } else {
-                CompactMediumLoginRegisterLayout(
-                    isMedium = isMedium,
-                    currentSegmented = currentSegmented.value,
-                    onSegmentedChange = { currentSegmented.value = it },
-                    snackbarHostState = snackbarHostState
-                )
-            }
+        if (isExpanded) {
+            ExpandedLoginRegisterLayout(
+                currentSegmented = currentSegmented.value,
+                onSegmentedChange = { currentSegmented.value = it },
+                snackbarHostState = snackbarHostState,
+                modifier = Modifier.padding(innerPadding)
+            )
+        } else {
+            CompactMediumLoginRegisterLayout(
+                isMedium = isMedium,
+                currentSegmented = currentSegmented.value,
+                onSegmentedChange = { currentSegmented.value = it },
+                snackbarHostState = snackbarHostState,
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }
@@ -362,7 +363,9 @@ private fun AuthCard(
 @Composable
 fun LoginRegisterScreenCompactPreview() {
     CashierSPTheme {
-        LoginRegisterScreen(navController = rememberNavController())
+        LoginRegisterScreen(
+            navController = rememberNavController()
+        )
     }
 }
 
@@ -370,7 +373,9 @@ fun LoginRegisterScreenCompactPreview() {
 @Composable
 fun LoginRegisterScreenMediumPreview() {
     CashierSPTheme {
-        LoginRegisterScreen(navController = rememberNavController())
+        LoginRegisterScreen(
+            navController = rememberNavController()
+        )
     }
 }
 
@@ -378,6 +383,8 @@ fun LoginRegisterScreenMediumPreview() {
 @Composable
 fun LoginRegisterScreenExpandedPreview() {
     CashierSPTheme {
-        LoginRegisterScreen(navController = rememberNavController())
+        LoginRegisterScreen(
+            navController = rememberNavController()
+        )
     }
 }
