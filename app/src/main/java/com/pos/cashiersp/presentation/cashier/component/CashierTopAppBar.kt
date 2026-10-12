@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 fun CashierTopAppBar(
     onHandleBottomSheet: () -> Unit,
     drawerState: DrawerState,
+    showCartButton: Boolean = true,
     viewModel: CashierViewModel = hiltViewModel()
 ) {
     val cart by viewModel.cart
@@ -48,21 +49,23 @@ fun CashierTopAppBar(
 
     TopAppBar(
         actions = {
-            OutlinedButton(
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
-                onClick = onHandleBottomSheet,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .testTag(TestTags.CashierScreen.CHART_BUTTON),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ShoppingCart,
-                    contentDescription = "Shopping cart icon",
-                    tint = White
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("${cart.size} items", color = White)
+            if (showCartButton) {
+                OutlinedButton(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
+                    onClick = onHandleBottomSheet,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .testTag(TestTags.CashierScreen.CHART_BUTTON),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ShoppingCart,
+                        contentDescription = "Shopping cart icon",
+                        tint = White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("${cart.size} items", color = White)
+                }
             }
 
             OutlinedButton(
