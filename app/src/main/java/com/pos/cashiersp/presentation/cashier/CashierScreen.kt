@@ -71,6 +71,8 @@ import com.pos.cashiersp.presentation.cashier.component.PaymentSummary
 import com.pos.cashiersp.presentation.cashier.component.TransactionCompleteDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.ui.theme.Gray300
+import com.pos.cashiersp.presentation.ui.theme.Light200
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
@@ -111,8 +113,8 @@ fun CashierScreen(
     )
     val categoryColumnCount = if (isExpanded) 5 else 3
     val collapsedRows = (
-        (categories.size + categoryColumnCount - 1) / categoryColumnCount
-    ).coerceIn(1, 3)
+            (categories.size + categoryColumnCount - 1) / categoryColumnCount
+            ).coerceIn(1, 3)
     val categoriesGridHeight by animateDpAsState(
         targetValue = if (isCategoriesExpanded) 400.dp else (40.dp * collapsedRows),
         animationSpec = tween(durationMillis = 300),
@@ -175,6 +177,7 @@ fun CashierScreen(
     }
 
     Scaffold(
+        containerColor = Light300,
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),
@@ -261,128 +264,128 @@ fun CashierScreen(
                     }
                 }
             } else {
-            SimpleSearchBar(
-                searchResults = listOf(),
-                enabled = !vmState.isLoading,
-                textFieldState = searchTextFieldState,
-                onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
-                onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
-            )
-            Spacer(modifier = Modifier.height(2.dp))
+                SimpleSearchBar(
+                    searchResults = listOf(),
+                    enabled = !vmState.isLoading,
+                    textFieldState = searchTextFieldState,
+                    onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
+                    onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
+                )
+                Spacer(modifier = Modifier.height(2.dp))
 
-            if (vmState.isLoading) {
-                // Center the loading indicator
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                if (vmState.isLoading) {
+                    // Center the loading indicator
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            color = Primary,
-                            modifier = Modifier.size(48.dp) // Made it bigger for better visibility
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = vmState.loadingMessage,
-                            color = Gray300,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 32.dp)
-                        )
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(.96f)
-                        .align(Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Categories", style = TextStyle.Default.copy(color = Secondary))
-                    Spacer(modifier = Modifier.width(18.dp))
-                    Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // 3 columns x 3 rows = 9 items visible when collapsed
-                    if (categories.size > 9) {
-                        val rotation by animateFloatAsState(
-                            targetValue = if (isCategoriesExpanded) 180f else 0f,
-                            label = "chevronRotation"
-                        )
-                        TextButton(
-                            modifier = Modifier.height(30.dp),
-                            colors = ButtonColors(
-                                containerColor = White,
-                                contentColor = Secondary,
-                                disabledContainerColor = Secondary,
-                                disabledContentColor = Secondary,
-                            ),
-                            onClick = { viewModel.onEvent(CashierEvent.OnToggleCategoriesExpanded) },
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                if (isCategoriesExpanded) "Show less" else "View all",
-                                style = TextStyle(fontSize = 14.sp)
+                            CircularProgressIndicator(
+                                color = Primary,
+                                modifier = Modifier.size(48.dp) // Made it bigger for better visibility
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Outlined.KeyboardArrowDown,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .graphicsLayer { rotationZ = rotation }
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = vmState.loadingMessage,
+                                color = Gray300,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
                             )
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                /*
-                // Categories grid
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .fillMaxWidth(.96f)
-                        .heightIn(min = 40.dp, max = (40.dp * 3))
-                        .align(Alignment.CenterHorizontally),
-                    columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
-                    items(20, key = { it }) { CategoryCard(Category(it, "$it category name", it, Date()), viewModel) }
-                }
-                */
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .fillMaxWidth(.96f)
-                        .align(Alignment.CenterHorizontally)
-                        .height(categoriesGridHeight),
-                    columns = GridCells.Fixed(3),
-                    userScrollEnabled = isCategoriesExpanded, // no scroll needed when collapsed to 9
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
-                }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(.96f)
+                            .align(Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Categories", style = TextStyle.Default.copy(color = Secondary))
+                        Spacer(modifier = Modifier.width(18.dp))
+                        Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
+                        Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(Modifier.height(4.dp))
+                        // 3 columns x 3 rows = 9 items visible when collapsed
+                        if (categories.size > 9) {
+                            val rotation by animateFloatAsState(
+                                targetValue = if (isCategoriesExpanded) 180f else 0f,
+                                label = "chevronRotation"
+                            )
+                            TextButton(
+                                modifier = Modifier.height(30.dp),
+                                colors = ButtonColors(
+                                    containerColor = White,
+                                    contentColor = Secondary,
+                                    disabledContainerColor = Secondary,
+                                    disabledContentColor = Secondary,
+                                ),
+                                onClick = { viewModel.onEvent(CashierEvent.OnToggleCategoriesExpanded) },
+                            ) {
+                                Text(
+                                    if (isCategoriesExpanded) "Show less" else "View all",
+                                    style = TextStyle(fontSize = 14.sp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Outlined.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .graphicsLayer { rotationZ = rotation }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    /*
+                    // Categories grid
+                    LazyVerticalGrid(
+                        modifier = Modifier
+                            .fillMaxWidth(.96f)
+                            .heightIn(min = 40.dp, max = (40.dp * 3))
+                            .align(Alignment.CenterHorizontally),
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
+                        items(20, key = { it }) { CategoryCard(Category(it, "$it category name", it, Date()), viewModel) }
+                    }
+                    */
+                    LazyVerticalGrid(
+                        modifier = Modifier
+                            .fillMaxWidth(.96f)
+                            .align(Alignment.CenterHorizontally)
+                            .height(categoriesGridHeight),
+                        columns = GridCells.Fixed(3),
+                        userScrollEnabled = isCategoriesExpanded, // no scroll needed when collapsed to 9
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
+                    }
 
-                // Items Grid
-                LazyVerticalGrid(
-                    modifier = Modifier
-                        .fillMaxWidth(.96f)
-                        .heightIn(min = 120.dp)
-                        .align(Alignment.CenterHorizontally),
-                    columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Passing the viewModel because don't want to generate new viewModel for every card
-                    items(filteredCashierItems, key = { it.itemId }) { ItemCard(it, viewModel) }
+                    Spacer(Modifier.height(4.dp))
+
+                    // Items Grid
+                    LazyVerticalGrid(
+                        modifier = Modifier
+                            .fillMaxWidth(.96f)
+                            .heightIn(min = 120.dp)
+                            .align(Alignment.CenterHorizontally),
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Passing the viewModel because don't want to generate new viewModel for every card
+                        items(filteredCashierItems, key = { it.itemId }) { ItemCard(it, viewModel) }
+                    }
                 }
-            }
             }
         }
 

@@ -53,8 +53,8 @@ import com.pos.cashiersp.presentation.login_register.component.LoginSide
 import com.pos.cashiersp.presentation.login_register.component.RegisterSide
 import com.pos.cashiersp.presentation.ui.theme.CashierSPTheme
 import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Secondary
-import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.JwtStore
 import kotlinx.coroutines.flow.collectLatest
@@ -159,7 +159,7 @@ fun LoginRegisterScreen(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-        containerColor = Secondary100
+        containerColor = Light300
     ) { innerPadding ->
         val isExpanded = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
         val isMedium = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)

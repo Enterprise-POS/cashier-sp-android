@@ -34,8 +34,8 @@ import com.pos.cashiersp.presentation.select_tenant.component.TenantHeading
 import com.pos.cashiersp.presentation.select_tenant.component.TenantListCard
 import com.pos.cashiersp.presentation.select_tenant.component.TryAgainDialog
 import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Secondary
-import com.pos.cashiersp.presentation.ui.theme.Secondary100
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -80,7 +80,7 @@ fun SelectTenantScreen(
     }
 
     Scaffold(
-        containerColor = Secondary100
+        containerColor = Light300
     ) { innerPadding ->
         val isExpanded = windowSizeClass.isWidthAtLeastBreakpoint(
             WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND
@@ -237,4 +237,3 @@ private fun ExpandedSelectTenantLayout(
         }
     }
 }
-
