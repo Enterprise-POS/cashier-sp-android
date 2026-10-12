@@ -58,6 +58,7 @@ import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.QuickSelectAmount
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
@@ -430,7 +431,7 @@ fun PaymentSummary(
                     )
                 }
                 if (showCashKeypad) {
-                    CashNumberPad()
+                    CashNumberPad { viewModel.onEvent(CashierEvent.OnKeypadClicked(it)) }
                 }
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -574,7 +575,7 @@ fun PaymentSummary(
 }
 
 @Composable
-private fun CashNumberPad() {
+private fun CashNumberPad(onClick: (key: KeypadNumberElement) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -582,15 +583,15 @@ private fun CashNumberPad() {
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text("Cash keypad", color = Secondary, fontSize = 13.sp)
-        listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "Del", "0", "Clear")
+        KeypadNumberElement.entries.toList()
             .chunked(3)
             .forEach { rowKeys ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     rowKeys.forEach { key ->
-                        val isPrimaryKey = key == "0"
-                        val isActionKey = key == "Del" || key == "Clear"
+                        val isPrimaryKey = key == KeypadNumberElement.ZERO
+                        val isActionKey = key == KeypadNumberElement.BACKSPACE || key == KeypadNumberElement.CLEAR
                         Surface(
-                            onClick = {},
+                            onClick = { onClick(key) },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(38.dp),
@@ -607,7 +608,7 @@ private fun CashNumberPad() {
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = key,
+                                    text = key.uiLabel,
                                     color = if (isPrimaryKey) White else Primary,
                                     fontSize = if (isActionKey) 12.sp else 16.sp
                                 )

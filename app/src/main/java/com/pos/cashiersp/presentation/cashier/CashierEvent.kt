@@ -2,6 +2,7 @@ package com.pos.cashiersp.presentation.cashier
 
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent
+import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.QuickSelectAmount
 
@@ -39,4 +40,6 @@ sealed class CashierEvent {
     object OnToggleCategoriesExpanded : CashierEvent()
 
     object OnDismissPaymentGatewayDialog : CashierEvent()
+
+    data class OnKeypadClicked(val keypadNumberElement: KeypadNumberElement) : CashierEvent()
 }
