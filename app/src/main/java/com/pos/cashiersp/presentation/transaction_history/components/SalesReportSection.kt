@@ -76,56 +76,65 @@ fun SalesReportSection(
         totalItems = searchTransactionsDto.totalCount
     }
 
-    if (isRequesting) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+    Column(modifier = modifier.fillMaxSize()) {
+        when {
+            isRequesting -> Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
-                Spacer(Modifier.height(6.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Loading report...",
+                        color = Gray300,
+                    )
+                }
+            }
+
+            searchTransactionsDto != null && salesData.isNotEmpty() -> {
+                Spacer(Modifier.height(8.dp))
+                TextWithNoPadding(
+                    text = "Showing ${((currentPage - 1) * itemsPerPage.value) + 1}-${
+                        minOf(
+                            currentPage * itemsPerPage.value,
+                            totalItems
+                        )
+                    } of $totalItems",
+                    color = Gray600,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    salesData.forEach { item(key = it.id) { SaleCard(it, viewModel) } }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
+            else -> Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    "Loading report...",
+                    "No report...",
                     color = Gray300,
                 )
             }
-        }
-    } else if (searchTransactionsDto != null && salesData.isNotEmpty()) {
-        Spacer(Modifier.height(8.dp))
-        // Showing text
-        TextWithNoPadding(
-            text = "Showing ${((currentPage - 1) * itemsPerPage.value) + 1}-${
-                minOf(
-                    currentPage * itemsPerPage.value,
-                    totalItems
-                )
-            } of $totalItems",
-            color = Gray600,
-            fontSize = 12.sp,
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-        )
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            salesData.forEach { item(key = it.id) { SaleCard(it, viewModel) } }
-        }
-        Spacer(Modifier.height(8.dp))
-    } else {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "No report...",
-                color = Gray300,
-            )
         }
     }
 }

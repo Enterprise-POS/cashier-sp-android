@@ -4,17 +4,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,24 +30,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.svg.SvgDecoder
-import com.pos.cashiersp.R
+import androidx.window.core.layout.WindowSizeClass
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.global_component.TextWithNoPadding
 import com.pos.cashiersp.presentation.transaction_history.components.DateRangePickerSection
@@ -50,15 +51,13 @@ import com.pos.cashiersp.presentation.transaction_history.components.SalesReport
 import com.pos.cashiersp.presentation.transaction_history.components.SearchInvoiceModal
 import com.pos.cashiersp.presentation.transaction_history.components.TransactionSummaryModal
 import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary800
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
-import com.pos.cashiersp.presentation.ui.theme.Success
-import com.pos.cashiersp.presentation.ui.theme.Success100
 import com.pos.cashiersp.presentation.ui.theme.White
-import com.pos.cashiersp.presentation.util.PaymentMethod
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +69,9 @@ fun TransactionHistoryScreen(
     val storeName = viewModel.storeName.value
     val showSearchModal = viewModel.showSearchInvoiceModal.value
     val showSummaryTransactionModal = viewModel.showSummaryTransactionModal.value
+    val isExpanded = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(
+        WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND
+    )
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collectLatest { event ->
@@ -84,6 +86,7 @@ fun TransactionHistoryScreen(
     }
 
     Scaffold(
+        containerColor = Light300,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -169,15 +172,51 @@ fun TransactionHistoryScreen(
                 )
             }
         },
-        modifier = Modifier.background(color = Secondary100)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = Secondary100)
     ) { innerPadding ->
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(innerPadding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            DateRangePickerSection()
-            SalesReportSection()
+            if (isExpanded) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SalesReportSection(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .widthIn(min = 400.dp, max = 460.dp)
+                            .fillMaxHeight()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            DateRangePickerSection()
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    DateRangePickerSection()
+                    SalesReportSection(modifier = Modifier.weight(1f))
+                }
+            }
 
             if (showSearchModal) {
                 SearchInvoiceModal(

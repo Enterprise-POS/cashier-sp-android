@@ -210,6 +210,7 @@ fun CashierScreen(
                         SimpleSearchBar(
                             searchResults = listOf(),
                             enabled = true,
+                            allowExpansion = false,
                             textFieldState = searchTextFieldState,
                             onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
                             onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
@@ -267,6 +268,7 @@ fun CashierScreen(
                 SimpleSearchBar(
                     searchResults = listOf(),
                     enabled = !vmState.isLoading,
+                    allowExpansion = false,
                     textFieldState = searchTextFieldState,
                     onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
                     onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
