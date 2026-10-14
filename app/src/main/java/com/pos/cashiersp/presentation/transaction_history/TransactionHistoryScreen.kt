@@ -50,6 +50,7 @@ import com.pos.cashiersp.presentation.transaction_history.components.DateRangePi
 import com.pos.cashiersp.presentation.transaction_history.components.SalesReportSection
 import com.pos.cashiersp.presentation.transaction_history.components.SearchInvoiceModal
 import com.pos.cashiersp.presentation.transaction_history.components.TransactionSummaryModal
+import com.pos.cashiersp.presentation.transaction_history.components.TransactionSummarySection
 import com.pos.cashiersp.presentation.ui.theme.Gray600
 import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Primary
@@ -121,11 +122,11 @@ fun TransactionHistoryScreen(
                 actions = {
                     Box(
                         contentAlignment = Alignment.CenterEnd,
-                        modifier = Modifier.width(90.dp)
+                        modifier = Modifier.width(if (isExpanded) 220.dp else 90.dp)
                     ) {
                         Text(
                             storeName,
-                            maxLines = 1,
+                            maxLines = if (isExpanded) 2 else 1,
                             overflow = TextOverflow.Ellipsis,
                             fontSize = 11.sp,
                             color = Primary,
@@ -137,20 +138,22 @@ fun TransactionHistoryScreen(
                     }
                     Spacer(Modifier.width(12.dp))
 
-                    IconButton(
-                        onClick = {
-                            viewModel.onEvent(
-                                TransactionHistoryEvent.OnToggleSummaryTransactionBtn(true)
+                    if (!isExpanded) {
+                        IconButton(
+                            onClick = {
+                                viewModel.onEvent(
+                                    TransactionHistoryEvent.OnToggleSummaryTransactionBtn(true)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Summarize,
+                                contentDescription = "View transaction summary",
+                                tint = Primary800
                             )
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Summarize,
-                            contentDescription = "View transaction summary",
-                            tint = Primary800
-                        )
+                        Spacer(Modifier.width(12.dp))
                     }
-                    Spacer(Modifier.width(12.dp))
                 }
             )
         },
@@ -205,6 +208,10 @@ fun TransactionHistoryScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             DateRangePickerSection()
+                            Spacer(Modifier.height(16.dp))
+                            TransactionSummarySection(
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            )
                         }
                     }
                 }

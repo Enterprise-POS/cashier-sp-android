@@ -85,6 +85,7 @@ import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray300
 import com.pos.cashiersp.presentation.ui.theme.Gray400
 import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Orange
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Purple700
@@ -137,6 +138,7 @@ fun StockManagementScreen(
     }
 
     Scaffold(
+        containerColor = Light300,
         modifier = Modifier
             .fillMaxSize()
             .background(Secondary100),

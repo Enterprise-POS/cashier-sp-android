@@ -38,10 +38,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
+import com.pos.cashiersp.presentation.ui.theme.Light700
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary200
@@ -86,9 +88,10 @@ fun SimpleSearchBar(
             modifier = Modifier
                 //.background(Primary) // For debug
                 .offset(y = (-6).dp)
+                .clip(RoundedCornerShape(28.dp))
                 .semantics { traversalIndex = 0f },
             colors = SearchBarDefaults.colors(
-                containerColor = White,
+                containerColor = Light700,
                 dividerColor = Secondary300,
             ),
             inputField = {
@@ -99,8 +102,7 @@ fun SimpleSearchBar(
                         cursorColor = Primary,
                         unfocusedContainerColor = White.copy(.8f),
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth(.96f),
+                    modifier = Modifier.fillMaxWidth(),
                     query = textFieldState.text.toString(),
                     onQueryChange = { textFieldState.edit { replace(0, length, it) } },
                     onSearch = {
