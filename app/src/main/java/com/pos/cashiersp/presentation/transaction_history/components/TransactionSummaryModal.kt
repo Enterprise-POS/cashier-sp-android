@@ -1,6 +1,7 @@
 package com.pos.cashiersp.presentation.transaction_history.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -200,6 +201,25 @@ private fun EmptyDateRangeNotice(
             fontSize = 12.sp,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun TransactionSummarySection(
+    modifier: Modifier = Modifier,
+    viewModel: TransactionHistoryViewModel = hiltViewModel()
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Transaction summary",
+            color = Dark,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.W500
+        )
+        SummaryStatsList(viewModel = viewModel)
     }
 }
 

@@ -33,6 +33,7 @@ import com.pos.cashiersp.presentation.cashier.CashierEvent.PlaceOrder
 import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialogStatus
 import com.pos.cashiersp.presentation.util.InpTextFieldState
 import com.pos.cashiersp.presentation.util.JwtStore
+import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.PaymentStatus
 import com.pos.cashiersp.presentation.util.QuickSelectAmount
@@ -227,6 +228,7 @@ class CashierViewModel @Inject constructor(
             is CashierEvent.OnToggleInfoBtn -> onToggleInfoBtn(event)
             is CashierEvent.OnDeleteAllCartItem -> onDeleteAllCartItem()
             is CashierEvent.OnDismissPaymentGatewayDialog -> onDismissPaymentGatewayDialog()
+            is CashierEvent.OnKeypadClicked -> onKeypadClicked(event)
         }
     }
 
@@ -723,6 +725,18 @@ class CashierViewModel @Inject constructor(
         }
 
         _selectedQuickAmount.value = event.quickSelectAmount
+    }
+
+    private fun onKeypadClicked(event: CashierEvent.OnKeypadClicked) {
+        when (val key: KeypadNumberElement = event.keypadNumberElement) {
+            KeypadNumberElement.BACKSPACE -> _inpCashPaymentMethod.value =
+                _inpCashPaymentMethod.value.copy(text = _inpCashPaymentMethod.value.text.dropLast(1))
+
+            KeypadNumberElement.CLEAR -> _inpCashPaymentMethod.value = _inpCashPaymentMethod.value.copy(text = "")
+            
+            else -> _inpCashPaymentMethod.value =
+                _inpCashPaymentMethod.value.copy(text = _inpCashPaymentMethod.value.text + key.uiLabel)
+        }
     }
 
     /**

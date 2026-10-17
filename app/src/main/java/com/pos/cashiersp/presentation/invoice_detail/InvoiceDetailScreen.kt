@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +63,7 @@ import com.pos.cashiersp.presentation.ui.theme.Danger
 import com.pos.cashiersp.presentation.ui.theme.Danger400
 import com.pos.cashiersp.presentation.ui.theme.Danger800
 import com.pos.cashiersp.presentation.ui.theme.Gray600
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.Secondary100
@@ -90,6 +93,7 @@ fun InvoiceDetailScreen(
     }
 
     Scaffold(
+        containerColor = Light300,
         modifier = Modifier.background(color = Secondary100),
         topBar = {
             TopAppBar(
@@ -149,11 +153,18 @@ fun InvoiceDetailScreen(
              */
         }
     ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
+        ) {
         if (generalAlertDialogStatus.type == GeneralAlertDialogStatus.DialogType.SUCCESS) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight()
                     .padding(horizontal = 14.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -182,8 +193,9 @@ fun InvoiceDetailScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .widthIn(max = 720.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight()
                     .padding(horizontal = 24.dp)
             ) {
                 // Icon ring
@@ -262,6 +274,7 @@ fun InvoiceDetailScreen(
                 paymentGatewayState,
                 onDismissRequest = { viewModel.onEvent(InvoiceDetailEvent.OnClickDismissPaymentGatewayDialogBtn) },
             )
+        }
     }
 }
 

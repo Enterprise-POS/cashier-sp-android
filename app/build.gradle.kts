@@ -82,6 +82,7 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.compose.material3.window.size.class1)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -99,6 +100,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Compose dependencies
+    implementation("androidx.compose.material3:material3-window-size-class")
+    implementation("androidx.compose.material3.adaptive:adaptive")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.compose.runtime:runtime-livedata:1.9.5")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")

@@ -1,5 +1,6 @@
 package com.pos.cashiersp.presentation.global_component
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,12 +34,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
+import com.pos.cashiersp.presentation.ui.theme.Light700
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary200
@@ -54,14 +59,24 @@ fun SimpleSearchBar(
     onClear: () -> Unit = {},
     searchResults: List<String>,
     enabled: Boolean = false,
+    allowExpansion: Boolean = true,
 ) {
     // Controls expansion state of the search bar
     var expanded by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val closeSearchBar = {
+        expanded = false
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+
+    BackHandler(enabled = expanded) {
+        closeSearchBar()
+    }
 
     Column(
         modifier
-            .padding(0.dp)
-            .fillMaxWidth()
             .semantics() { isTraversalGroup = true },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -71,9 +86,10 @@ fun SimpleSearchBar(
             modifier = Modifier
                 //.background(Primary) // For debug
                 .offset(y = (-6).dp)
+                .clip(RoundedCornerShape(28.dp))
                 .semantics { traversalIndex = 0f },
             colors = SearchBarDefaults.colors(
-                containerColor = White,
+                containerColor = Light700,
                 dividerColor = Secondary300,
             ),
             inputField = {
@@ -84,17 +100,22 @@ fun SimpleSearchBar(
                         cursorColor = Primary,
                         unfocusedContainerColor = White.copy(.8f),
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth(.96f),
+                    modifier = Modifier.fillMaxWidth(),
                     query = textFieldState.text.toString(),
                     onQueryChange = { textFieldState.edit { replace(0, length, it) } },
                     onSearch = {
                         textFieldState.edit { replace(0, length, it) }
                         onSearch(textFieldState.text.toString())
-                        expanded = false
+                        closeSearchBar()
                     },
                     expanded = expanded,
-                    onExpandedChange = { expanded = it },
+                    onExpandedChange = { shouldExpand ->
+                        if (shouldExpand) {
+                            if (allowExpansion) expanded = true
+                        } else {
+                            closeSearchBar()
+                        }
+                    },
                     leadingIcon = {
                         if (textFieldState.text.isNotEmpty()) {
                             IconButton(onClick = {
@@ -110,7 +131,7 @@ fun SimpleSearchBar(
                             onClick = {
                                 textFieldState.edit { replace(0, length, textFieldState.text.toString()) }
                                 onSearch(textFieldState.text.toString())
-                                expanded = false
+                                closeSearchBar()
                             }
                         ) {
                             Icon(
@@ -125,7 +146,13 @@ fun SimpleSearchBar(
                 )
             },
             expanded = expanded,
-            onExpandedChange = { expanded = it },
+            onExpandedChange = { shouldExpand ->
+                if (shouldExpand) {
+                    if (allowExpansion) expanded = true
+                } else {
+                    closeSearchBar()
+                }
+            },
         ) {
             // Display search results in a scrollable column
             Row {
@@ -141,7 +168,7 @@ fun SimpleSearchBar(
                         .clickable {
                             // TODO: implement this
                             textFieldState.edit { replace(0, length, result) }
-                            expanded = false
+                            closeSearchBar()
                         }
                         .fillMaxWidth()
                 )

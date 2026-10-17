@@ -1,6 +1,8 @@
 package com.pos.cashiersp.presentation.cashier.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -55,6 +58,7 @@ import com.pos.cashiersp.presentation.ui.theme.Primary100
 import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
+import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.QuickSelectAmount
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
@@ -63,7 +67,8 @@ import com.pos.cashiersp.presentation.util.toRupiah
 @Composable
 fun PaymentSummary(
     modifier: Modifier,
-    viewModel: CashierViewModel = hiltViewModel()
+    viewModel: CashierViewModel = hiltViewModel(),
+    showCashKeypad: Boolean = false
 ) {
     val cart: Map<Int, CartItem> = viewModel.cart.value
     val selectedPaymentMethod = viewModel.selectedPaymentMethod.value
@@ -425,6 +430,9 @@ fun PaymentSummary(
                             .width(180.dp)
                     )
                 }
+                if (showCashKeypad) {
+                    CashNumberPad { viewModel.onEvent(CashierEvent.OnKeypadClicked(it)) }
+                }
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
@@ -563,5 +571,51 @@ fun PaymentSummary(
             )
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun CashNumberPad(onClick: (key: KeypadNumberElement) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("Cash keypad", color = Secondary, fontSize = 13.sp)
+        KeypadNumberElement.entries.toList()
+            .chunked(3)
+            .forEach { rowKeys ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    rowKeys.forEach { key ->
+                        val isPrimaryKey = key == KeypadNumberElement.ZERO
+                        val isActionKey = key == KeypadNumberElement.BACKSPACE || key == KeypadNumberElement.CLEAR
+                        Surface(
+                            onClick = { onClick(key) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = when {
+                                isPrimaryKey -> Primary
+                                isActionKey -> Primary100
+                                else -> White
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                if (isPrimaryKey) Primary else Primary.copy(alpha = .25f)
+                            )
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = key.uiLabel,
+                                    color = if (isPrimaryKey) White else Primary,
+                                    fontSize = if (isActionKey) 12.sp else 16.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
     }
 }

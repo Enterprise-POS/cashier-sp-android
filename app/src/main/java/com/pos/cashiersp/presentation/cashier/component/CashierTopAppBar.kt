@@ -21,6 +21,7 @@ import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
+import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.launch
@@ -41,28 +43,32 @@ import kotlinx.coroutines.launch
 fun CashierTopAppBar(
     onHandleBottomSheet: () -> Unit,
     drawerState: DrawerState,
+    showCartButton: Boolean = true,
     viewModel: CashierViewModel = hiltViewModel()
 ) {
     val cart by viewModel.cart
     val scope = rememberCoroutineScope()
 
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Light300),
         actions = {
-            OutlinedButton(
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
-                onClick = onHandleBottomSheet,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .testTag(TestTags.CashierScreen.CHART_BUTTON),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ShoppingCart,
-                    contentDescription = "Shopping cart icon",
-                    tint = White
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("${cart.size} items", color = White)
+            if (showCartButton) {
+                OutlinedButton(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Secondary),
+                    onClick = onHandleBottomSheet,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .testTag(TestTags.CashierScreen.CHART_BUTTON),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ShoppingCart,
+                        contentDescription = "Shopping cart icon",
+                        tint = White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("${cart.size} items", color = White)
+                }
             }
 
             OutlinedButton(
