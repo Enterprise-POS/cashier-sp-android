@@ -194,7 +194,8 @@ fun TransactionHistoryScreen(
                     SalesReportSection(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
+                            .fillMaxHeight(),
+                        isExpanded = isExpanded
                     )
 
                     Column(
@@ -221,7 +222,10 @@ fun TransactionHistoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     DateRangePickerSection()
-                    SalesReportSection(modifier = Modifier.weight(1f))
+                    SalesReportSection(
+                        modifier = Modifier.weight(1f),
+                        isExpanded = isExpanded
+                    )
                 }
             }
 

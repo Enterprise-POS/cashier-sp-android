@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,12 +57,14 @@ import com.pos.cashiersp.presentation.ui.theme.Secondary
 import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.PaymentStatus
 import com.pos.cashiersp.presentation.util.dateFormatter
+import com.pos.cashiersp.presentation.util.toRupiah
 import com.pos.cashiersp.presentation.util.toStyle
 
 
 @Composable
 fun SalesReportSection(
     modifier: Modifier = Modifier,
+    isExpanded: Boolean,
     viewModel: TransactionHistoryViewModel = hiltViewModel(),
 ) {
     val searchTransactionsDto: SearchTransactionsDto? = viewModel.searchTransactionsDto.value
@@ -119,7 +122,7 @@ fun SalesReportSection(
                     contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    salesData.forEach { item(key = it.id) { SaleCard(it, viewModel) } }
+                    salesData.forEach { item(key = it.id) { SaleCard(it, viewModel, isExpanded) } }
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -167,11 +170,14 @@ private fun StatusBadge(status: PaymentStatus, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
+private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel, isExpanded: Boolean) {
     var expanded by remember { mutableStateOf(false) }
 
     val status: PaymentStatus = sale.paymentStatus
     val isNegativeOutcome = status in NEGATIVE_OUTCOMES
+
+    // A bit save performance
+    val formattedSubtotal = sale.subtotal.toRupiah()
 
     Box(
         modifier = Modifier.fillMaxWidth()
@@ -206,7 +212,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                 ) {
                     // Left Section
                     Column(
-                        modifier = Modifier.fillMaxWidth(.72f),
+                        modifier = Modifier.fillMaxWidth(.64f),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // ID and Status badge
@@ -232,12 +238,12 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                         ) {
                             CompactDetail(
                                 label = "Cash-in",
-                                value = "Rp ${sale.purchasedPrice}",
+                                value = sale.purchasedPrice.toRupiah(),
                                 modifier = Modifier.weight(1f)
                             )
                             CompactDetail(
                                 label = "Change",
-                                value = "Rp ${sale.purchasedPrice - sale.totalAmount}",
+                                value = (sale.purchasedPrice - sale.totalAmount).toRupiah(),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -252,18 +258,32 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel) {
                     }
 
                     // Right Section - Total Amount
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.SpaceAround,
-                        modifier = Modifier.height(68.dp)
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(68.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        TextWithNoPadding(
-                            // Muted for failed/cancelled/expired so it doesn't read as "money earned"
-                            text = "Rp ${sale.subtotal}",
-                            color = if (isNegativeOutcome) Gray400 else Primary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            TextWithNoPadding(
+                                // Muted for failed/cancelled/expired so it doesn't read as "money earned"
+                                text = formattedSubtotal,
+                                color = if (isNegativeOutcome) Gray400 else Primary,
+                                fontSize = when {
+                                    isExpanded -> 20.sp
+                                    formattedSubtotal.length > 14 -> 14.sp
+                                    else -> 16.sp
+                                },
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -311,10 +331,9 @@ private fun CompactDetail(
     value: String,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
             text = "$label:",
@@ -328,7 +347,10 @@ private fun CompactDetail(
                 fontWeight = FontWeight.SemiBold
             ),
             color = Secondary,
-            fontSize = 11.sp
+            fontSize = 11.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

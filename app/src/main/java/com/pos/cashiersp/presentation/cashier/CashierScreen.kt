@@ -71,7 +71,6 @@ import com.pos.cashiersp.presentation.cashier.component.PaymentSummary
 import com.pos.cashiersp.presentation.cashier.component.TransactionCompleteDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
 import com.pos.cashiersp.presentation.ui.theme.Gray300
-import com.pos.cashiersp.presentation.ui.theme.Light200
 import com.pos.cashiersp.presentation.ui.theme.Light300
 import com.pos.cashiersp.presentation.ui.theme.Primary
 import com.pos.cashiersp.presentation.ui.theme.Primary500
@@ -212,6 +211,9 @@ fun CashierScreen(
                             enabled = true,
                             allowExpansion = false,
                             textFieldState = searchTextFieldState,
+                            modifier = Modifier
+                                .fillMaxWidth(.96f)
+                                .align(Alignment.CenterHorizontally),
                             onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
                             onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
                         )

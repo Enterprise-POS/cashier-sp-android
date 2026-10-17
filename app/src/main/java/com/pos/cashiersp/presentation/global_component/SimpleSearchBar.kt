@@ -77,8 +77,6 @@ fun SimpleSearchBar(
 
     Column(
         modifier
-            .padding(0.dp)
-            .fillMaxWidth()
             .semantics() { isTraversalGroup = true },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

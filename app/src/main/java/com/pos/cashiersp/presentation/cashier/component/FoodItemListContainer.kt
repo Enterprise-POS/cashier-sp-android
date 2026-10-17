@@ -9,35 +9,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
 import com.pos.cashiersp.presentation.ui.theme.Gray100
 import com.pos.cashiersp.presentation.ui.theme.Gray700
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 @Composable
 fun FoodItemListContainer(
     modifier: Modifier,
     viewModel: CashierViewModel = hiltViewModel()
 ) {
-    val cart: Map<Int, CartItem> = viewModel.cart.value
-    val staffName = viewModel.staffName.value
+    val cart by viewModel.cart
+    val staffName by viewModel.staffName
+    val cartItems = remember(cart) { cart.entries.toList() }
 
     Column(
         modifier = modifier
@@ -70,15 +66,18 @@ fun FoodItemListContainer(
         Spacer(Modifier.height(12.dp))
 
         // List of foods
-        LazyVerticalGrid(
+        LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            columns = GridCells.Fixed(1),
             modifier = Modifier
-                .nestedScroll(rememberNestedScrollInteropConnection())
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            cart.onEachIndexed { index, (_, cartItem) -> item { FoodItem(index + 1, cartItem) } }
+            itemsIndexed(
+                items = cartItems,
+                key = { _, entry -> entry.key }
+            ) { index, (_, cartItem) ->
+                FoodItem(index + 1, cartItem)
+            }
         }
 
         // This spacer makes room for bottom content

@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 
@@ -18,11 +19,17 @@ fun TextWithNoPadding(
     color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     fontWeight: FontWeight = FontWeight.Normal,
+    maxLines: Int = Int.MAX_VALUE,
+    softWrap: Boolean = true,
+    overflow: TextOverflow = TextOverflow.Clip,
 ) {
     Text(
         text,
         color = color,
         fontSize = fontSize,
+        maxLines = maxLines,
+        softWrap = softWrap,
+        overflow = overflow,
         modifier = modifier,
         style = LocalTextStyle.current.merge(
             TextStyle(
