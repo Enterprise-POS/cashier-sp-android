@@ -32,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -49,11 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowSizeClass
@@ -61,6 +60,7 @@ import com.pos.cashiersp.model.domain.Category
 import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.presentation.Screen
 import com.pos.cashiersp.presentation.cashier.component.CashierPartialBottomSheet
+import com.pos.cashiersp.presentation.cashier.component.CashierCartSummaryBar
 import com.pos.cashiersp.presentation.cashier.component.CashierTopAppBar
 import com.pos.cashiersp.presentation.cashier.component.CategoryCard
 import com.pos.cashiersp.presentation.cashier.component.FoodItemListContainer
@@ -68,15 +68,9 @@ import com.pos.cashiersp.presentation.cashier.component.GeneralAlertDialog
 import com.pos.cashiersp.presentation.cashier.component.ItemCard
 import com.pos.cashiersp.presentation.cashier.component.MidtransPaymentDialog
 import com.pos.cashiersp.presentation.cashier.component.PaymentSummary
+import com.pos.cashiersp.presentation.cashier.component.calculatePaymentTotals
 import com.pos.cashiersp.presentation.cashier.component.TransactionCompleteDialog
 import com.pos.cashiersp.presentation.global_component.SimpleSearchBar
-import com.pos.cashiersp.presentation.ui.theme.Gray300
-import com.pos.cashiersp.presentation.ui.theme.Light300
-import com.pos.cashiersp.presentation.ui.theme.Primary
-import com.pos.cashiersp.presentation.ui.theme.Primary500
-import com.pos.cashiersp.presentation.ui.theme.Secondary
-import com.pos.cashiersp.presentation.ui.theme.Secondary100
-import com.pos.cashiersp.presentation.ui.theme.White
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,6 +85,7 @@ fun CashierScreen(
     val categories by viewModel.categories
     val selectedCategoryId by viewModel.selectedCategory
     val cashierItems by viewModel.cashierItems
+    val cart by viewModel.cart
     val searchProductString by viewModel.searchProductString
     val generalAlertDialogStatus by viewModel.generalAlertDialogStatus
     val loadAllProductsDialogStatus by viewModel.loadAllProductsDialogStatus
@@ -115,15 +110,14 @@ fun CashierScreen(
             (categories.size + categoryColumnCount - 1) / categoryColumnCount
             ).coerceIn(1, 3)
     val categoriesGridHeight by animateDpAsState(
-        targetValue = if (isCategoriesExpanded) 400.dp else (40.dp * collapsedRows),
+        targetValue = if (isCategoriesExpanded) 400.dp else (52.dp * collapsedRows),
         animationSpec = tween(durationMillis = 300),
         label = "categoriesGridHeight"
     )
 
 
-    val onHandleBottomSheet = remember {
-        { showBottomSheet = !showBottomSheet }
-    }
+    val totalItemQuantity = remember(cart) { cart.values.sumOf { it.quantity } }
+    val paymentTotals = remember(cart) { calculatePaymentTotals(cart) }
     val filteredCashierItems = remember(searchProductString, selectedCategoryId, cashierItems) {
         if (searchProductString.isNotEmpty()) {
             if (selectedCategoryId == -1) {
@@ -176,30 +170,36 @@ fun CashierScreen(
     }
 
     Scaffold(
-        containerColor = Light300,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Secondary100),
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            if (!isExpanded) {
+                CashierCartSummaryBar(
+                    itemQuantity = totalItemQuantity,
+                    transactionTotal = paymentTotals.total,
+                    onViewCart = { showBottomSheet = true }
+                )
+            }
+        },
         topBar = {
             CashierTopAppBar(
-                onHandleBottomSheet = onHandleBottomSheet,
-                drawerState = drawerState,
-                showCartButton = !isExpanded
+                drawerState = drawerState
             )
         },
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .then(if (isExpanded) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
+                .fillMaxSize()
+                .then(if (isExpanded) Modifier else Modifier.padding(horizontal = 16.dp))
         ) {
             if (isExpanded && !vmState.isLoading) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -212,12 +212,12 @@ fun CashierScreen(
                             allowExpansion = false,
                             textFieldState = searchTextFieldState,
                             modifier = Modifier
-                                .fillMaxWidth(.96f)
+                                .fillMaxWidth()
                                 .align(Alignment.CenterHorizontally),
                             onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
                             onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         CashierProductCatalog(
                             sortedCategories = sortedCategories,
                             categoryCount = categories.size,
@@ -237,29 +237,37 @@ fun CashierScreen(
                         modifier = Modifier
                             .width(360.dp)
                             .fillMaxHeight()
-                            .background(White, RoundedCornerShape(12.dp))
-                            .border(1.dp, Gray300.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                            .padding(10.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surface,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(16.dp)
                     ) {
                         FoodItemListContainer(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(bottom = 8.dp),
+                                .padding(bottom = 12.dp),
                             viewModel = viewModel
                         )
                         PaymentSummary(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 320.dp)
+                                .heightIn(max = 360.dp)
                                 .background(
-                                    color = Primary500.copy(alpha = .3f),
-                                    shape = RoundedCornerShape(10.dp)
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                                 .border(
-                                    width = .8.dp,
-                                    color = Gray300.copy(alpha = .2f),
-                                    shape = RoundedCornerShape(10.dp)
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    shape = RoundedCornerShape(16.dp)
                                 )
+                                .padding(vertical = 4.dp)
                                 .verticalScroll(rememberScrollState()),
                             viewModel = viewModel,
                             showCashKeypad = true
@@ -272,17 +280,18 @@ fun CashierScreen(
                     enabled = !vmState.isLoading,
                     allowExpansion = false,
                     textFieldState = searchTextFieldState,
+                    modifier = Modifier.fillMaxWidth(),
                     onClear = { viewModel.onEvent(CashierEvent.OnClearSearchProduct) },
                     onSearch = { viewModel.onEvent(CashierEvent.OnSearchProduct(it)) },
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (vmState.isLoading) {
                     // Center the loading indicator
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(),
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -290,14 +299,15 @@ fun CashierScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             CircularProgressIndicator(
-                                color = Primary,
-                                modifier = Modifier.size(48.dp) // Made it bigger for better visibility
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(40.dp)
                             )
                             Spacer(Modifier.height(16.dp))
                             Text(
                                 text = vmState.loadingMessage,
-                                color = Gray300,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(horizontal = 32.dp)
                             )
                         }
@@ -305,13 +315,21 @@ fun CashierScreen(
                 } else {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(.96f)
+                            .fillMaxWidth()
                             .align(Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Categories", style = TextStyle.Default.copy(color = Secondary))
-                        Spacer(modifier = Modifier.width(18.dp))
-                        Text("${categories.size} total", style = TextStyle.Default.copy(color = Gray300))
+                        Text(
+                            "Categories",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "${categories.size} total",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Spacer(modifier = Modifier.weight(1f))
 
                         // 3 columns x 3 rows = 9 items visible when collapsed
@@ -321,18 +339,18 @@ fun CashierScreen(
                                 label = "chevronRotation"
                             )
                             TextButton(
-                                modifier = Modifier.height(30.dp),
+                                modifier = Modifier.heightIn(min = 48.dp),
                                 colors = ButtonColors(
-                                    containerColor = White,
-                                    contentColor = Secondary,
-                                    disabledContainerColor = Secondary,
-                                    disabledContentColor = Secondary,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.secondary,
+                                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                                 onClick = { viewModel.onEvent(CashierEvent.OnToggleCategoriesExpanded) },
                             ) {
                                 Text(
                                     if (isCategoriesExpanded) "Show less" else "View all",
-                                    style = TextStyle(fontSize = 14.sp)
+                                    style = MaterialTheme.typography.labelLarge
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
@@ -345,7 +363,7 @@ fun CashierScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     /*
                     // Categories grid
                     LazyVerticalGrid(
@@ -363,28 +381,28 @@ fun CashierScreen(
                     */
                     LazyVerticalGrid(
                         modifier = Modifier
-                            .fillMaxWidth(.96f)
+                            .fillMaxWidth()
                             .align(Alignment.CenterHorizontally)
                             .height(categoriesGridHeight),
                         columns = GridCells.Fixed(3),
                         userScrollEnabled = isCategoriesExpanded, // no scroll needed when collapsed to 9
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
                     }
 
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(8.dp))
 
                     // Items Grid
                     LazyVerticalGrid(
                         modifier = Modifier
-                            .fillMaxWidth(.96f)
-                            .heightIn(min = 120.dp)
+                            .fillMaxWidth()
+                            .weight(1f)
                             .align(Alignment.CenterHorizontally),
                         columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Passing the viewModel because don't want to generate new viewModel for every card
                         items(filteredCashierItems, key = { it.itemId }) { ItemCard(it, viewModel) }
@@ -395,7 +413,7 @@ fun CashierScreen(
 
         if (showBottomSheet && !isExpanded) {
             CashierPartialBottomSheet(
-                onHandleBottomSheet
+                onDismissRequest = { showBottomSheet = false }
             )
         }
 
@@ -459,13 +477,21 @@ private fun CashierProductCatalog(
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
-                .fillMaxWidth(.96f)
+                .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Categories", style = TextStyle.Default.copy(color = Secondary))
-            Spacer(modifier = Modifier.width(18.dp))
-            Text("$categoryCount total", style = TextStyle.Default.copy(color = Gray300))
+            Text(
+                "Categories",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "$categoryCount total",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(modifier = Modifier.weight(1f))
 
             if (categoryCount > categoryColumnCount * 3) {
@@ -474,18 +500,18 @@ private fun CashierProductCatalog(
                     label = "chevronRotation"
                 )
                 TextButton(
-                    modifier = Modifier.height(30.dp),
+                    modifier = Modifier.heightIn(min = 48.dp),
                     colors = ButtonColors(
-                        containerColor = White,
-                        contentColor = Secondary,
-                        disabledContainerColor = Secondary,
-                        disabledContentColor = Secondary,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.secondary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     onClick = onToggleCategories,
                 ) {
                     Text(
                         if (isCategoriesExpanded) "Show less" else "View all",
-                        style = TextStyle(fontSize = 14.sp)
+                        style = MaterialTheme.typography.labelLarge
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
@@ -498,31 +524,30 @@ private fun CashierProductCatalog(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         LazyVerticalGrid(
             modifier = Modifier
-                .fillMaxWidth(.96f)
+                .fillMaxWidth()
                 .align(Alignment.CenterHorizontally)
                 .height(categoriesGridHeight),
             columns = GridCells.Fixed(categoryColumnCount),
             userScrollEnabled = isCategoriesExpanded,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(sortedCategories, key = { it.key }) { CategoryCard(it.value, viewModel) }
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
 
         LazyVerticalGrid(
             modifier = Modifier
-                .fillMaxWidth(.96f)
-                .heightIn(min = 120.dp)
+                .fillMaxWidth()
                 .weight(1f)
                 .align(Alignment.CenterHorizontally),
             columns = GridCells.Fixed(itemColumnCount),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(filteredCashierItems, key = { it.itemId }) { ItemCard(it, viewModel) }
         }

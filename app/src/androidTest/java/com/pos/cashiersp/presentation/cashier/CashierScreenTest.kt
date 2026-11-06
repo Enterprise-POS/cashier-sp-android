@@ -1,11 +1,14 @@
 package com.pos.cashiersp.presentation.cashier
 
 import androidx.compose.material3.DrawerState
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavHostController
@@ -113,17 +116,16 @@ class CashierScreenTest {
     }
 
     @Test
-    fun button_withChartIcon_openCashierBottomSheet() {
-        val chartIconButton = composeRule.onNodeWithTag(TestTags.CashierScreen.CHART_BUTTON)
-        chartIconButton.assertExists()
-        chartIconButton.isDisplayed()
-        chartIconButton.assertHasClickAction()
+    fun emptyCartSummary_disablesViewCart() {
+        val viewCartButton = composeRule.onNodeWithTag(
+            TestTags.CashierScreen.CART_SUMMARY_VIEW_CART_BUTTON
+        )
+        viewCartButton.assertExists()
+        viewCartButton.assertIsDisplayed()
+        viewCartButton.assertIsNotEnabled()
 
-        chartIconButton.performClick()
-        composeRule.waitForIdle()
-        val cashierBottomSheetContainer = composeRule.onNodeWithTag(TestTags.CashierScreen.PAYMENT_BOTTOM_SHEET)
-        cashierBottomSheetContainer.assertExists()
-        cashierBottomSheetContainer.isDisplayed()
+        composeRule.onAllNodesWithTag(TestTags.CashierScreen.PAYMENT_BOTTOM_SHEET)
+            .assertCountEquals(0)
     }
 
     @After

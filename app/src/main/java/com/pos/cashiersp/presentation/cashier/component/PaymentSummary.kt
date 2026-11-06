@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -32,13 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -48,21 +47,29 @@ import com.pos.cashiersp.R
 import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.presentation.cashier.CashierEvent
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
-import com.pos.cashiersp.presentation.ui.theme.Danger900
-import com.pos.cashiersp.presentation.ui.theme.Gray100
-import com.pos.cashiersp.presentation.ui.theme.Gray200
-import com.pos.cashiersp.presentation.ui.theme.Gray300
-import com.pos.cashiersp.presentation.ui.theme.Gray500
 import com.pos.cashiersp.presentation.ui.theme.Primary
-import com.pos.cashiersp.presentation.ui.theme.Primary100
-import com.pos.cashiersp.presentation.ui.theme.Primary500
 import com.pos.cashiersp.presentation.ui.theme.Secondary
-import com.pos.cashiersp.presentation.ui.theme.White
 import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
 import com.pos.cashiersp.presentation.util.QuickSelectAmount
 import com.pos.cashiersp.presentation.util.ThousandsSeparatorTransformation
 import com.pos.cashiersp.presentation.util.toRupiah
+
+internal data class PaymentTotals(
+    val subTotal: Int,
+    val sumDiscount: Float,
+    val total: Float,
+)
+
+internal fun calculatePaymentTotals(cart: Map<Int, CartItem>): PaymentTotals {
+    val subTotal = cart.entries.fold(0) { acc, (_, cartItem) ->
+        acc + (cartItem.storeStock.price * cartItem.quantity)
+    }
+
+    // Feature for sumDiscount (not implemented)
+    val sumDiscount = 0f
+    return PaymentTotals(subTotal, sumDiscount, subTotal + sumDiscount)
+}
 
 @Composable
 fun PaymentSummary(
@@ -77,16 +84,10 @@ fun PaymentSummary(
     val transactionState = viewModel.transactionState.value
 
 
-    // Feature for sumDiscount (not implemented)
-    val sumDiscount: Float = 0f
-
-    val subTotal = remember(cart) {
-        cart.entries.fold(0) { acc, (_, cartItem) ->
-            acc + (cartItem.storeStock.price * cartItem.quantity)
-        }
-    }
-
-    val total = subTotal + sumDiscount
+    val paymentTotals = remember(cart) { calculatePaymentTotals(cart) }
+    val subTotal = paymentTotals.subTotal
+    val total = paymentTotals.total
+    val sumDiscount = paymentTotals.sumDiscount
 
     Column(
         modifier = modifier
@@ -95,30 +96,18 @@ fun PaymentSummary(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 .fillMaxWidth(),
         ) {
             Text(
                 "Subtotal",
-                color = Gray500,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 subTotal.toRupiah(),
-                color = Secondary,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
 
@@ -126,30 +115,18 @@ fun PaymentSummary(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp)
                 .fillMaxWidth(),
         ) {
             Text(
                 "Sum discount",
-                color = Gray500,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
             )
             Text(
                 sumDiscount.toRupiah(),
-                color = Secondary,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
 
@@ -158,9 +135,9 @@ fun PaymentSummary(
         HorizontalDivider(
             Modifier
                 .height(2.dp)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 16.dp),
             1.dp,
-            Gray100.copy(alpha = 0.2f)
+            MaterialTheme.colorScheme.outlineVariant
         )
 
         Spacer(Modifier.height(12.dp))
@@ -169,30 +146,18 @@ fun PaymentSummary(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
-                .padding(horizontal = 14.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth(),
         ) {
             Text(
                 "Total",
-                color = Secondary,
-                fontSize = 16.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 total.toRupiah(),
-                color = Primary,
-                fontSize = 20.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineSmall,
             )
         }
 
@@ -200,16 +165,10 @@ fun PaymentSummary(
         Text(
             "Payment Method",
             modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 .fillMaxWidth(),
-            color = Secondary,
-            fontSize = 14.sp,
-            style = TextStyle(
-                lineHeightStyle = LineHeightStyle(
-                    alignment = LineHeightStyle.Alignment.Center,
-                    trim = LineHeightStyle.Trim.Both,
-                )
-            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleSmall,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -220,7 +179,7 @@ fun PaymentSummary(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .height(32.dp)
+                .height(48.dp)
         ) {
             item {
                 PaymentMethodButton(
@@ -235,7 +194,10 @@ fun PaymentSummary(
                             .decoderFactory(SvgDecoder.Factory())
                             .build(),
                         contentDescription = "Cash payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CASH) Primary else Secondary),
+                        colorFilter = ColorFilter.tint(
+                            if (selectedPaymentMethod == PaymentMethod.CASH) Secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                         modifier = Modifier.size(15.dp)
 
                     )
@@ -255,7 +217,10 @@ fun PaymentSummary(
                             .decoderFactory(SvgDecoder.Factory())
                             .build(),
                         contentDescription = "Credit card payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CARD) Primary else Secondary),
+                        colorFilter = ColorFilter.tint(
+                            if (selectedPaymentMethod == PaymentMethod.CARD) Secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                         modifier = Modifier.size(15.dp)
 
                     )
@@ -275,7 +240,10 @@ fun PaymentSummary(
                             .decoderFactory(SvgDecoder.Factory())
                             .build(),
                         contentDescription = "QR code payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.QRIS) Primary else Secondary),
+                        colorFilter = ColorFilter.tint(
+                            if (selectedPaymentMethod == PaymentMethod.QRIS) Secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -290,7 +258,11 @@ fun PaymentSummary(
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "Other payment method",
-                        tint = if (selectedPaymentMethod == PaymentMethod.OTHER) Primary else Secondary,
+                        tint = if (selectedPaymentMethod == PaymentMethod.OTHER) {
+                            Secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -302,16 +274,10 @@ fun PaymentSummary(
                 Text(
                     "Quick select amount",
                     modifier = Modifier
-                        .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                         .fillMaxWidth(),
-                    color = Secondary,
-                    fontSize = 14.sp,
-                    style = TextStyle(
-                        lineHeightStyle = LineHeightStyle(
-                            alignment = LineHeightStyle.Alignment.Center,
-                            trim = LineHeightStyle.Trim.Both,
-                        )
-                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(Modifier.height(8.dp))
                 LazyHorizontalStaggeredGrid(
@@ -321,7 +287,7 @@ fun PaymentSummary(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
-                        .height(32.dp)
+                        .height(48.dp)
                 ) {
                     item {
                         PaymentMethodButton(
@@ -375,19 +341,13 @@ fun PaymentSummary(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(horizontal = 14.dp)
+                        .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Amount received",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     TextField(
                         value = inpCashPaymentMethod.text,
@@ -399,7 +359,7 @@ fun PaymentSummary(
                         placeholder = {
                             Text(
                                 "-",
-                                color = Gray200,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Right,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -409,22 +369,22 @@ fun PaymentSummary(
                         textStyle = LocalTextStyle.current.copy(
                             textAlign = TextAlign.End
                         ),
-                        prefix = { Text("Rp", color = Secondary) },
+                        prefix = { Text("Rp", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         colors = TextFieldDefaults.colors(
-                            cursorColor = Primary,
+                            cursorColor = MaterialTheme.colorScheme.secondary,
                             unfocusedContainerColor = Color.Transparent,
                             focusedContainerColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedIndicatorColor = Primary,
-                            errorIndicatorColor = Danger900,
-                            errorCursorColor = Danger900,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
+                            errorIndicatorColor = MaterialTheme.colorScheme.error,
+                            errorCursorColor = MaterialTheme.colorScheme.error,
                             errorContainerColor = Color.Transparent,
-                            disabledContainerColor = Primary100,
-                            disabledIndicatorColor = Primary500,
-                            focusedTextColor = Secondary,
-                            unfocusedTextColor = Secondary,
-                            disabledTextColor = Gray300,
-                            errorTextColor = Danger900,
+                            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            disabledIndicatorColor = MaterialTheme.colorScheme.secondary,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            errorTextColor = MaterialTheme.colorScheme.error,
                         ),
                         modifier = Modifier
                             .width(180.dp)
@@ -437,30 +397,18 @@ fun PaymentSummary(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
-                        .padding(horizontal = 14.dp)
+                        .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Change",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
                         if (inpCashPaymentMethod.text.isNotEmpty()) (inpCashPaymentMethod.text.toInt() - subTotal).toRupiah() else "Rp 0",
-                        color = Secondary,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleSmall,
                     )
                 }
             }
@@ -472,19 +420,13 @@ fun PaymentSummary(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(horizontal = 14.dp)
+                        .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Amount received",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                     TextField(
                         value = total.toString(),
@@ -496,7 +438,7 @@ fun PaymentSummary(
                         placeholder = {
                             Text(
                                 "-",
-                                color = Gray200,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Right,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -506,22 +448,22 @@ fun PaymentSummary(
                         textStyle = LocalTextStyle.current.copy(
                             textAlign = TextAlign.End
                         ),
-                        prefix = { Text("Rp", color = Secondary) },
+                        prefix = { Text("Rp", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         colors = TextFieldDefaults.colors(
-                            cursorColor = Primary,
+                            cursorColor = MaterialTheme.colorScheme.secondary,
                             unfocusedContainerColor = Color.Transparent,
                             focusedContainerColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedIndicatorColor = Primary,
-                            errorIndicatorColor = Danger900,
-                            errorCursorColor = Danger900,
+                            focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
+                            errorIndicatorColor = MaterialTheme.colorScheme.error,
+                            errorCursorColor = MaterialTheme.colorScheme.error,
                             errorContainerColor = Color.Transparent,
                             disabledContainerColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-                            focusedTextColor = Secondary,
-                            unfocusedTextColor = Secondary,
-                            disabledTextColor = Gray300,
-                            errorTextColor = Danger900,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            errorTextColor = MaterialTheme.colorScheme.error,
                         ),
                         modifier = Modifier
                             .width(180.dp)
@@ -531,19 +473,13 @@ fun PaymentSummary(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom,
                     modifier = Modifier
-                        .padding(horizontal = 14.dp)
+                        .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
                 ) {
                     Text(
                         "Make sure the all value correct from before place order",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -554,9 +490,9 @@ fun PaymentSummary(
             enabled = !transactionState.isLoading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
-                contentColor = White,
-                disabledContentColor = Gray300,
-                disabledContainerColor = Gray100
+                contentColor = Secondary,
+                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -565,8 +501,8 @@ fun PaymentSummary(
         ) {
             Text(
                 if (transactionState.isLoading) "Please wait..." else "Place Order",
-                color = White,
-                fontSize = 14.sp,
+                color = Secondary,
+                style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
@@ -579,10 +515,14 @@ private fun CashNumberPad(onClick: (key: KeypadNumberElement) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text("Cash keypad", color = Secondary, fontSize = 13.sp)
+        Text(
+            "Cash keypad",
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleSmall
+        )
         KeypadNumberElement.entries.toList()
             .chunked(3)
             .forEach { rowKeys ->
@@ -594,23 +534,29 @@ private fun CashNumberPad(onClick: (key: KeypadNumberElement) -> Unit) {
                             onClick = { onClick(key) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(38.dp),
+                                .heightIn(min = 48.dp),
                             shape = RoundedCornerShape(8.dp),
                             color = when {
                                 isPrimaryKey -> Primary
-                                isActionKey -> Primary100
-                                else -> White
+                                isActionKey -> MaterialTheme.colorScheme.primaryContainer
+                                else -> MaterialTheme.colorScheme.surface
                             },
                             border = BorderStroke(
                                 1.dp,
-                                if (isPrimaryKey) Primary else Primary.copy(alpha = .25f)
+                                if (isPrimaryKey) Secondary
+                                else MaterialTheme.colorScheme.outlineVariant
                             )
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = key.uiLabel,
-                                    color = if (isPrimaryKey) White else Primary,
-                                    fontSize = if (isActionKey) 12.sp else 16.sp
+                                    color = if (isPrimaryKey) {
+                                        Secondary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                    style = if (isActionKey) MaterialTheme.typography.labelLarge
+                                    else MaterialTheme.typography.titleMedium
                                 )
                             }
                         }

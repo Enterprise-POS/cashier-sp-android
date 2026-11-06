@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -22,9 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pos.cashiersp.common.TestTags
 import com.pos.cashiersp.presentation.cashier.CashierViewModel
-import com.pos.cashiersp.presentation.ui.theme.Gray100
-import com.pos.cashiersp.presentation.ui.theme.Primary500
-import com.pos.cashiersp.presentation.ui.theme.Secondary100
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,31 +43,37 @@ fun CashierPartialBottomSheet(
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismissRequest,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxHeight()
-            .background(Secondary100)
             .testTag(TestTags.CashierScreen.PAYMENT_BOTTOM_SHEET),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
             FoodItemListContainer(
                 modifier = Modifier
-                    .padding(4.dp)
                     .weight(1f)
             )
 
             PaymentSummary(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .heightIn(max = 440.dp)
+                    .padding(top = 8.dp)
                     .background(
-                        color = Primary500.copy(alpha = .3f),
-                        shape = RoundedCornerShape(10.dp)
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp)
                     )
                     .border(
-                        width = .8.dp,
-                        color = Gray100.copy(alpha = .2f),
-                        shape = RoundedCornerShape(10.dp)
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        shape = RoundedCornerShape(16.dp)
                     )
+                    .verticalScroll(rememberScrollState())
             )
         }
     }
