@@ -44,12 +44,13 @@ fun PaymentMethodButton(
     paymentMethodName: String,
     active: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
 ) {
     // Column will make text in the bottom middle
     Surface(
         color = if (active) Color.Transparent else White,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
         shape = RoundedCornerShape(50),
         border = BorderStroke(

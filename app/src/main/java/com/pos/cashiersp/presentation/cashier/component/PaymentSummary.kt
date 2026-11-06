@@ -1,33 +1,46 @@
 package com.pos.cashiersp.presentation.cashier.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.staggeredgrid.LazyHorizontalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,7 +81,8 @@ import com.pos.cashiersp.presentation.util.toRupiah
 fun PaymentSummary(
     modifier: Modifier,
     viewModel: CashierViewModel = hiltViewModel(),
-    showCashKeypad: Boolean = false
+    showCashKeypad: Boolean = false,
+    onCancel: (() -> Unit)? = null,
 ) {
     val cart: Map<Int, CartItem> = viewModel.cart.value
     val selectedPaymentMethod = viewModel.selectedPaymentMethod.value
@@ -79,6 +93,8 @@ fun PaymentSummary(
 
     // Feature for sumDiscount (not implemented)
     val sumDiscount: Float = 0f
+    var voucherCode by remember { mutableStateOf("") }
+    val appliedVoucherCodes = remember { mutableStateListOf<String>() }
 
     val subTotal = remember(cart) {
         cart.entries.fold(0) { acc, (_, cartItem) ->
@@ -91,219 +107,31 @@ fun PaymentSummary(
     Column(
         modifier = modifier
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
+        Column(
             modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp)
-                .fillMaxWidth(),
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                "Subtotal",
-                color = Gray500,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-            Text(
-                subTotal.toRupiah(),
-                color = Secondary,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp)
-                .fillMaxWidth(),
-        ) {
-            Text(
-                "Sum discount",
-                color = Gray500,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-            Text(
-                sumDiscount.toRupiah(),
-                color = Secondary,
-                fontSize = 14.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        HorizontalDivider(
-            Modifier
-                .height(2.dp)
-                .padding(horizontal = 12.dp),
-            1.dp,
-            Gray100.copy(alpha = 0.2f)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier
-                .padding(horizontal = 14.dp)
-                .fillMaxWidth(),
-        ) {
-            Text(
-                "Total",
-                color = Secondary,
-                fontSize = 16.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-            Text(
-                total.toRupiah(),
-                color = Primary,
-                fontSize = 20.sp,
-                style = TextStyle(
-                    lineHeightStyle = LineHeightStyle(
-                        alignment = LineHeightStyle.Alignment.Center,
-                        trim = LineHeightStyle.Trim.Both,
-                    )
-                ),
-            )
-        }
-
-        // Spacer(Modifier.height(50.dp))
-        Text(
-            "Payment Method",
-            modifier = Modifier
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp)
-                .fillMaxWidth(),
-            color = Secondary,
-            fontSize = 14.sp,
-            style = TextStyle(
-                lineHeightStyle = LineHeightStyle(
-                    alignment = LineHeightStyle.Alignment.Center,
-                    trim = LineHeightStyle.Trim.Both,
-                )
-            ),
-        )
-
-        Spacer(Modifier.height(8.dp))
-        LazyHorizontalStaggeredGrid(
-            rows = StaggeredGridCells.Fixed(1),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalItemSpacing = 8.dp,
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .height(32.dp)
-        ) {
-            item {
-                PaymentMethodButton(
-                    "Cash",
-                    active = selectedPaymentMethod == PaymentMethod.CASH,
-                    onClick = {
-                        viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.CASH))
-                    }) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(R.raw.cash_payment_method_icon)
-                            .decoderFactory(SvgDecoder.Factory())
-                            .build(),
-                        contentDescription = "Cash payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CASH) Primary else Secondary),
-                        modifier = Modifier.size(15.dp)
-
-                    )
-                }
-            }
-            /*
-            item {
-                PaymentMethodButton(
-                    "Card",
-                    active = selectedPaymentMethod == PaymentMethod.CARD,
-                    onClick = {
-                        viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.CARD))
-                    }) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(R.raw.credit_card_payment_method_icon)
-                            .decoderFactory(SvgDecoder.Factory())
-                            .build(),
-                        contentDescription = "Credit card payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CARD) Primary else Secondary),
-                        modifier = Modifier.size(15.dp)
-
-                    )
-                }
-            }
-             */
-            item {
-                PaymentMethodButton(
-                    "QRIS",
-                    active = selectedPaymentMethod == PaymentMethod.QRIS,
-                    onClick = {
-                        viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.QRIS))
-                    }) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(R.raw.qr_code_payment_method)
-                            .decoderFactory(SvgDecoder.Factory())
-                            .build(),
-                        contentDescription = "QR code payment",
-                        colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.QRIS) Primary else Secondary),
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-            item {
-                PaymentMethodButton(
-                    "Other",
-                    active = selectedPaymentMethod == PaymentMethod.OTHER,
-                    onClick = {
-                        viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.OTHER))
-                    }) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "Other payment method",
-                        tint = if (selectedPaymentMethod == PaymentMethod.OTHER) Primary else Secondary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-        }
-
-        when (selectedPaymentMethod) {
-            PaymentMethod.CASH -> {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier
+                    .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                    .fillMaxWidth(),
+            ) {
                 Text(
-                    "Quick select amount",
-                    modifier = Modifier
-                        .padding(start = 14.dp, end = 14.dp, top = 14.dp)
-                        .fillMaxWidth(),
+                    "Subtotal",
+                    color = Gray500,
+                    fontSize = 14.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+                Text(
+                    subTotal.toRupiah(),
                     color = Secondary,
                     fontSize = 14.sp,
                     style = TextStyle(
@@ -313,146 +141,203 @@ fun PaymentSummary(
                         )
                     ),
                 )
-                Spacer(Modifier.height(8.dp))
-                LazyHorizontalStaggeredGrid(
-                    rows = StaggeredGridCells.Fixed(1),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalItemSpacing = 8.dp,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                        .height(32.dp)
-                ) {
-                    item {
-                        PaymentMethodButton(
-                            10000.toRupiah(),
-                            active = false, // Make the color is inactive even it's clicked
-                            onClick = {
-                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TEN_THOUNDSAND_RUPIAH))
-                            }) {
+            }
 
+            VoucherSection(
+                voucherCode = voucherCode,
+                onVoucherCodeChange = { voucherCode = it },
+                appliedVoucherCodes = appliedVoucherCodes,
+                onAddVoucher = {
+                    val code = voucherCode.trim()
+                    if (code.isNotEmpty()) {
+                        appliedVoucherCodes.add(code)
+                        voucherCode = ""
+                    }
+                },
+            )
 
-                        }
-                    }
-                    item {
-                        PaymentMethodButton(
-                            20000.toRupiah(),
-                            active = false, // Make the color is inactive even it's clicked
-                            onClick = {
-                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TWENTY_THOUNDSAND_RUPIAH))
-                            }) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier
+                    .padding(start = 14.dp, end = 14.dp, top = 12.dp)
+                    .fillMaxWidth(),
+            ) {
+                Text(
+                    "Sum discount",
+                    color = Gray500,
+                    fontSize = 14.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+                Text(
+                    sumDiscount.toRupiah(),
+                    color = Secondary,
+                    fontSize = 14.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+            }
 
+            Spacer(Modifier.height(12.dp))
 
-                        }
-                    }
-                    item {
-                        PaymentMethodButton(
-                            50000.toRupiah(),
-                            active = false, // Make the color is inactive even it's clicked
-                            onClick = {
-                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.FIFTY_THOUNDSAND_RUPIAH))
-                            }) {
-                        }
-                    }
-                    item {
-                        PaymentMethodButton(
-                            100000.toRupiah(),
-                            active = false, // Make the color is inactive even it's clicked
-                            onClick = {
-                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.HUNDRED_THOUNDSAND_RUPIAH))
-                            }) {}
-                    }
-                    item {
-                        PaymentMethodButton(
-                            "Exact",
-                            active = false, // Make the color is inactive even it's clicked
-                            onClick = {
-                                viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.EXACT))
-                            }) {}
+            HorizontalDivider(
+                Modifier
+                    .height(2.dp)
+                    .padding(horizontal = 12.dp),
+                1.dp,
+                Gray100.copy(alpha = 0.2f)
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier
+                    .padding(horizontal = 14.dp)
+                    .fillMaxWidth(),
+            ) {
+                Text(
+                    "Total",
+                    color = Secondary,
+                    fontSize = 16.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+                Text(
+                    total.toRupiah(),
+                    color = Primary,
+                    fontSize = 20.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both,
+                        )
+                    ),
+                )
+            }
+
+            // Spacer(Modifier.height(50.dp))
+            Text(
+                "Payment Method",
+                modifier = Modifier
+                    .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                    .fillMaxWidth(),
+                color = Secondary,
+                fontSize = 14.sp,
+                style = TextStyle(
+                    lineHeightStyle = LineHeightStyle(
+                        alignment = LineHeightStyle.Alignment.Center,
+                        trim = LineHeightStyle.Trim.Both,
+                    )
+                ),
+            )
+
+            Spacer(Modifier.height(8.dp))
+            LazyHorizontalStaggeredGrid(
+                rows = StaggeredGridCells.Fixed(1),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalItemSpacing = 8.dp,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .height(32.dp)
+            ) {
+                item {
+                    PaymentMethodButton(
+                        "Cash",
+                        active = selectedPaymentMethod == PaymentMethod.CASH,
+                        onClick = {
+                            viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.CASH))
+                        }) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(R.raw.cash_payment_method_icon)
+                                .decoderFactory(SvgDecoder.Factory())
+                                .build(),
+                            contentDescription = "Cash payment",
+                            colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CASH) Primary else Secondary),
+                            modifier = Modifier.size(15.dp)
+
+                        )
                     }
                 }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(horizontal = 14.dp)
-                        .fillMaxWidth(),
-                ) {
+                /*
+                item {
+                    PaymentMethodButton(
+                        "Card",
+                        active = selectedPaymentMethod == PaymentMethod.CARD,
+                        onClick = {
+                            viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.CARD))
+                        }) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(R.raw.credit_card_payment_method_icon)
+                                .decoderFactory(SvgDecoder.Factory())
+                                .build(),
+                            contentDescription = "Credit card payment",
+                            colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.CARD) Primary else Secondary),
+                            modifier = Modifier.size(15.dp)
+
+                        )
+                    }
+                }
+                 */
+                item {
+                    PaymentMethodButton(
+                        "QRIS",
+                        active = selectedPaymentMethod == PaymentMethod.QRIS,
+                        onClick = {
+                            viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.QRIS))
+                        }) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalPlatformContext.current)
+                                .data(R.raw.qr_code_payment_method)
+                                .decoderFactory(SvgDecoder.Factory())
+                                .build(),
+                            contentDescription = "QR code payment",
+                            colorFilter = ColorFilter.tint(if (selectedPaymentMethod == PaymentMethod.QRIS) Primary else Secondary),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
+                item {
+                    PaymentMethodButton(
+                        "Other",
+                        active = selectedPaymentMethod == PaymentMethod.OTHER,
+                        onClick = {
+                            viewModel.onEvent(CashierEvent.OnSelectPaymentMethod(PaymentMethod.OTHER))
+                        }) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Other payment method",
+                            tint = if (selectedPaymentMethod == PaymentMethod.OTHER) Primary else Secondary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
+            }
+
+            when (selectedPaymentMethod) {
+                PaymentMethod.CASH -> {
                     Text(
-                        "Amount received",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    )
-                    TextField(
-                        value = inpCashPaymentMethod.text,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        isError = inpCashPaymentMethod.isError,
-                        enabled = !transactionState.isLoading,
-                        shape = RoundedCornerShape(0.dp),
-                        onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
-                        placeholder = {
-                            Text(
-                                "-",
-                                color = Gray200,
-                                textAlign = TextAlign.Right,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        },
-                        singleLine = true,
-                        visualTransformation = ThousandsSeparatorTransformation(),
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.End
-                        ),
-                        prefix = { Text("Rp", color = Secondary) },
-                        colors = TextFieldDefaults.colors(
-                            cursorColor = Primary,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedIndicatorColor = Primary,
-                            errorIndicatorColor = Danger900,
-                            errorCursorColor = Danger900,
-                            errorContainerColor = Color.Transparent,
-                            disabledContainerColor = Primary100,
-                            disabledIndicatorColor = Primary500,
-                            focusedTextColor = Secondary,
-                            unfocusedTextColor = Secondary,
-                            disabledTextColor = Gray300,
-                            errorTextColor = Danger900,
-                        ),
+                        "Quick select amount",
                         modifier = Modifier
-                            .width(180.dp)
-                    )
-                }
-                if (showCashKeypad) {
-                    CashNumberPad { viewModel.onEvent(CashierEvent.OnKeypadClicked(it)) }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier
-                        .padding(horizontal = 14.dp)
-                        .fillMaxWidth(),
-                ) {
-                    Text(
-                        "Change",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    )
-                    Text(
-                        if (inpCashPaymentMethod.text.isNotEmpty()) (inpCashPaymentMethod.text.toInt() - subTotal).toRupiah() else "Rp 0",
+                            .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                            .fillMaxWidth(),
                         color = Secondary,
                         fontSize = 14.sp,
                         style = TextStyle(
@@ -462,115 +347,388 @@ fun PaymentSummary(
                             )
                         ),
                     )
+                    Spacer(Modifier.height(8.dp))
+                    LazyHorizontalStaggeredGrid(
+                        rows = StaggeredGridCells.Fixed(1),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalItemSpacing = 8.dp,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth()
+                            .height(32.dp)
+                    ) {
+                        item {
+                            PaymentMethodButton(
+                                10000.toRupiah(),
+                                active = false, // Make the color is inactive even it's clicked
+                                onClick = {
+                                    viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TEN_THOUNDSAND_RUPIAH))
+                                }) {
+
+                            }
+                        }
+                        item {
+                            PaymentMethodButton(
+                                20000.toRupiah(),
+                                active = false, // Make the color is inactive even it's clicked
+                                onClick = {
+                                    viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.TWENTY_THOUNDSAND_RUPIAH))
+                                }) {
+
+
+                            }
+                        }
+                        item {
+                            PaymentMethodButton(
+                                50000.toRupiah(),
+                                active = false, // Make the color is inactive even it's clicked
+                                onClick = {
+                                    viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.FIFTY_THOUNDSAND_RUPIAH))
+                                }) {
+                            }
+                        }
+                        item {
+                            PaymentMethodButton(
+                                100000.toRupiah(),
+                                active = false, // Make the color is inactive even it's clicked
+                                onClick = {
+                                    viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.HUNDRED_THOUNDSAND_RUPIAH))
+                                }) {}
+                        }
+                        item {
+                            PaymentMethodButton(
+                                "Exact",
+                                active = false, // Make the color is inactive even it's clicked
+                                onClick = {
+                                    viewModel.onEvent(CashierEvent.OnQuickSelectAmount(QuickSelectAmount.EXACT))
+                                }) {}
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Amount received",
+                            color = Gray500,
+                            fontSize = 14.sp,
+                            style = TextStyle(
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        )
+                        TextField(
+                            value = inpCashPaymentMethod.text,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = inpCashPaymentMethod.isError,
+                            enabled = !transactionState.isLoading,
+                            shape = RoundedCornerShape(0.dp),
+                            onValueChange = { viewModel.onEvent(CashierEvent.EnteredCashBalance(it)) },
+                            placeholder = {
+                                Text(
+                                    "-",
+                                    color = Gray200,
+                                    textAlign = TextAlign.Right,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            },
+                            singleLine = true,
+                            visualTransformation = ThousandsSeparatorTransformation(),
+                            textStyle = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.End
+                            ),
+                            prefix = { Text("Rp", color = Secondary) },
+                            colors = TextFieldDefaults.colors(
+                                cursorColor = Primary,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedIndicatorColor = Primary,
+                                errorIndicatorColor = Danger900,
+                                errorCursorColor = Danger900,
+                                errorContainerColor = Color.Transparent,
+                                disabledContainerColor = Primary100,
+                                disabledIndicatorColor = Primary500,
+                                focusedTextColor = Secondary,
+                                unfocusedTextColor = Secondary,
+                                disabledTextColor = Gray300,
+                                errorTextColor = Danger900,
+                            ),
+                            modifier = Modifier
+                                .width(180.dp)
+                        )
+                    }
+                    if (showCashKeypad) {
+                        CashNumberPad { viewModel.onEvent(CashierEvent.OnKeypadClicked(it)) }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Change",
+                            color = Gray500,
+                            fontSize = 14.sp,
+                            style = TextStyle(
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        )
+                        Text(
+                            if (inpCashPaymentMethod.text.isNotEmpty()) (inpCashPaymentMethod.text.toInt() - subTotal).toRupiah() else "Rp 0",
+                            color = Secondary,
+                            fontSize = 14.sp,
+                            style = TextStyle(
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        )
+                    }
                 }
+
+                PaymentMethod.CARD -> TODO()
+                PaymentMethod.EWALLET -> TODO()
+                PaymentMethod.QRIS, PaymentMethod.OTHER -> {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Amount received",
+                            color = Gray500,
+                            fontSize = 14.sp,
+                            style = TextStyle(
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        )
+                        TextField(
+                            value = total.toString(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = inpCashPaymentMethod.isError,
+                            enabled = false,
+                            shape = RoundedCornerShape(0.dp),
+                            onValueChange = { },
+                            placeholder = {
+                                Text(
+                                    "-",
+                                    color = Gray200,
+                                    textAlign = TextAlign.Right,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            },
+                            singleLine = true,
+                            visualTransformation = VisualTransformation.None,
+                            textStyle = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.End
+                            ),
+                            prefix = { Text("Rp", color = Secondary) },
+                            colors = TextFieldDefaults.colors(
+                                cursorColor = Primary,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedIndicatorColor = Primary,
+                                errorIndicatorColor = Danger900,
+                                errorCursorColor = Danger900,
+                                errorContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                focusedTextColor = Secondary,
+                                unfocusedTextColor = Secondary,
+                                disabledTextColor = Gray300,
+                                errorTextColor = Danger900,
+                            ),
+                            modifier = Modifier
+                                .width(180.dp)
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            "Make sure the all value correct from before place order",
+                            color = Gray500,
+                            fontSize = 14.sp,
+                            style = TextStyle(
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        )
+                    }
+                }
+
             }
 
-            PaymentMethod.CARD -> TODO()
-            PaymentMethod.EWALLET -> TODO()
-            PaymentMethod.QRIS, PaymentMethod.OTHER -> {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(horizontal = 14.dp)
-                        .fillMaxWidth(),
-                ) {
-                    Text(
-                        "Amount received",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    )
-                    TextField(
-                        value = total.toString(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        isError = inpCashPaymentMethod.isError,
-                        enabled = false,
-                        shape = RoundedCornerShape(0.dp),
-                        onValueChange = { },
-                        placeholder = {
-                            Text(
-                                "-",
-                                color = Gray200,
-                                textAlign = TextAlign.Right,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        },
-                        singleLine = true,
-                        visualTransformation = VisualTransformation.None,
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.End
-                        ),
-                        prefix = { Text("Rp", color = Secondary) },
-                        colors = TextFieldDefaults.colors(
-                            cursorColor = Primary,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedIndicatorColor = Primary,
-                            errorIndicatorColor = Danger900,
-                            errorCursorColor = Danger900,
-                            errorContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            focusedTextColor = Secondary,
-                            unfocusedTextColor = Secondary,
-                            disabledTextColor = Gray300,
-                            errorTextColor = Danger900,
-                        ),
-                        modifier = Modifier
-                            .width(180.dp)
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier
-                        .padding(horizontal = 14.dp)
-                        .fillMaxWidth(),
-                ) {
-                    Text(
-                        "Make sure the all value correct from before place order",
-                        color = Gray500,
-                        fontSize = 14.sp,
-                        style = TextStyle(
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
-                        ),
-                    )
-                }
-            }
         }
 
         Spacer(Modifier.height(18.dp))
-        Button(
-            enabled = !transactionState.isLoading,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Primary,
-                contentColor = White,
-                disabledContentColor = Gray300,
-                disabledContainerColor = Gray100
-            ),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            onClick = { viewModel.onEvent(CashierEvent.PlaceOrder) },
         ) {
-            Text(
-                if (transactionState.isLoading) "Please wait..." else "Place Order",
-                color = White,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+            if (onCancel != null) {
+                OutlinedButton(
+                    onClick = onCancel,
+                    enabled = !transactionState.isLoading,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
+                ) {
+                    Text("Cancel", fontSize = 14.sp)
+                }
+            }
+            Button(
+                enabled = !transactionState.isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary,
+                    contentColor = White,
+                    disabledContentColor = Gray300,
+                    disabledContainerColor = Gray100
+                ),
+                modifier = Modifier.weight(if (onCancel == null) 1f else 2f),
+                onClick = { viewModel.onEvent(CashierEvent.PlaceOrder) },
+            ) {
+                Text(
+                    if (transactionState.isLoading) "Please wait..." else "Place Order",
+                    color = White,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun VoucherSection(
+    voucherCode: String,
+    onVoucherCodeChange: (String) -> Unit,
+    appliedVoucherCodes: List<String>,
+    onAddVoucher: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp)
+    ) {
+        Text(
+            "Voucher",
+            modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+            color = Secondary,
+            fontSize = 14.sp,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            TextField(
+                value = voucherCode,
+                onValueChange = onVoucherCodeChange,
+                placeholder = {
+                    Text(
+                        "input voucher code...",
+                        color = Gray200,
+                    )
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(0.dp),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    focusedTextColor = Secondary,
+                    unfocusedTextColor = Secondary,
+                    cursorColor = Primary,
+                ),
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                onClick = {},
+                modifier = Modifier.size(48.dp),
+                color = White,
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(.4.dp, Gray100),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ConfirmationNumber,
+                        contentDescription = "Select voucher",
+                        tint = Secondary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Button(
+                onClick = onAddVoucher,
+                enabled = voucherCode.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary,
+                    contentColor = White,
+                    disabledContentColor = Gray300,
+                    disabledContainerColor = Gray100,
+                ),
+                contentPadding = PaddingValues(horizontal = 10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add voucher",
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text("Add")
+            }
+        }
+
+        if (appliedVoucherCodes.isNotEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                appliedVoucherCodes.forEach { code ->
+                    PaymentMethodButton(
+                        paymentMethodName = code,
+                        active = true,
+                        onClick = {},
+                        modifier = Modifier.wrapContentWidth(),
+                    ) {}
+                }
+            }
+        }
     }
 }
 

@@ -21,10 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.ButtonColors
@@ -259,8 +257,7 @@ fun CashierScreen(
                                     width = .8.dp,
                                     color = Gray300.copy(alpha = .2f),
                                     shape = RoundedCornerShape(10.dp)
-                                )
-                                .verticalScroll(rememberScrollState()),
+                                ),
                             viewModel = viewModel,
                             showCashKeypad = true
                         )
