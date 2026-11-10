@@ -54,7 +54,7 @@ class LoadCashierData(private val repository: StoreStockRepository) {
             }
 
             // 200 ok
-            var cashierDataDto: CashierDataDto = successResponse.data
+            val cashierDataDto: CashierDataDto = successResponse.data
 
             try {
                 // Clear old data for this store
