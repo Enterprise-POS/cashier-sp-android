@@ -38,7 +38,7 @@ data class VoucherDto(
     val roundingPolicy: String,
     val decrement: Int,
     @SerializedName("item_id_combinations")
-    val itemIdCombinations: List<Int>,
+    val itemIdCombinations: List<Int>? = null,
     @SerializedName("item_quantities")
     val itemQuantities: Int,
 )
@@ -59,7 +59,7 @@ fun VoucherDto.toDomain(): Voucher {
         maximumDecrement = maximumDecrement,
         roundingPolicy = roundingPolicy,
         decrement = decrement,
-        itemIdCombinations = itemIdCombinations.toList(),
+        itemIdCombinations = itemIdCombinations.orEmpty(),
         itemQuantities = itemQuantities,
     )
 }

@@ -26,7 +26,9 @@ object RoomModule {
             app,
             CashierDB::class.java,
             CashierDB.DATABASE_NAME
-        ).fallbackToDestructiveMigration(true).build()
+        ).addMigrations(CashierDB.MIGRATION_7_8)
+            .fallbackToDestructiveMigration(true)
+            .build()
     }
 
     @Provides

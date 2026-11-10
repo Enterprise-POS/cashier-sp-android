@@ -15,14 +15,18 @@ import com.pos.cashiersp.model.domain.CartItem
 import com.pos.cashiersp.model.domain.Category
 import com.pos.cashiersp.model.domain.OrderItem
 import com.pos.cashiersp.model.domain.StoreStock
+import com.pos.cashiersp.model.domain.Voucher
 import com.pos.cashiersp.model.dto.CashierItem
+import com.pos.cashiersp.model.dto.VoucherType
 import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.StockType
 import com.pos.cashiersp.model.dto.TransactionResponse
+import com.pos.cashiersp.model.dto.toDomain
 import com.pos.cashiersp.model.dto.toOrderItemDomain
 import com.pos.cashiersp.model.dto.toReceiptLine
 import com.pos.cashiersp.model.room_entity.DatabaseCacheMetadataEntity
 import com.pos.cashiersp.model.room_entity.toCashierItem
+import com.pos.cashiersp.model.room_entity.toVoucher
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddQuantity
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnAddToCart
 import com.pos.cashiersp.presentation.cashier.CashierEvent.OnDecreaseQuantity
@@ -105,6 +109,21 @@ class CashierViewModel @Inject constructor(
 
     private val _cashierItems = mutableStateOf<List<CashierItem>>(emptyList())
     val cashierItems: State<List<CashierItem>> = _cashierItems
+
+    private val _vouchers = mutableStateOf<List<Voucher>>(emptyList())
+    val vouchers: State<List<Voucher>> = _vouchers
+
+    private val _isVoucherPickerOpen = mutableStateOf(false)
+    val isVoucherPickerOpen: State<Boolean> = _isVoucherPickerOpen
+
+    private val _selectedVoucherCategory = mutableStateOf<VoucherType?>(null)
+    val selectedVoucherCategory: State<VoucherType?> = _selectedVoucherCategory
+
+    private val _voucherCode = mutableStateOf("")
+    val voucherCode: State<String> = _voucherCode
+
+    private val _appliedVoucherCodes = mutableStateOf<List<String>>(emptyList())
+    val appliedVoucherCodes: State<List<String>> = _appliedVoucherCodes
 
     private val _categories = mutableStateOf<Map<Int, Category>>(emptyMap())
     val categories: State<Map<Int, Category>> = _categories
@@ -208,6 +227,13 @@ class CashierViewModel @Inject constructor(
     fun onEvent(event: CashierEvent) {
         when (event) {
             is CashierEvent.OnToggleCategoriesExpanded -> onToggleCategoriesExpanded()
+            is CashierEvent.OnOpenVoucherPicker -> _isVoucherPickerOpen.value = true
+            is CashierEvent.OnDismissVoucherPicker -> _isVoucherPickerOpen.value = false
+            is CashierEvent.OnSelectVoucherCategory -> _selectedVoucherCategory.value = event.voucherType
+            is CashierEvent.OnSelectVoucher -> onSelectVoucher(event.voucher)
+            is CashierEvent.OnVoucherCodeChange -> _voucherCode.value = event.value
+            is CashierEvent.OnAddVoucher -> onAddVoucher()
+            is CashierEvent.OnRemoveAppliedVoucher -> onRemoveAppliedVoucher(event.index)
             is OnSelectCategory -> onSelectCategory(event)
             is OnAddToCart -> onAddToCart(event)
             is OnAddQuantity -> onAddQuantity(event)
@@ -256,6 +282,27 @@ class CashierViewModel @Inject constructor(
 
     private fun onToggleCategoriesExpanded() {
         _isCategoriesExpanded.value = !_isCategoriesExpanded.value
+    }
+
+    private fun onSelectVoucher(voucher: Voucher) {
+        _voucherCode.value = voucher.code
+        _isVoucherPickerOpen.value = false
+    }
+
+    private fun onAddVoucher() {
+        val code = _voucherCode.value.trim()
+        if (code.isNotEmpty()) {
+            _appliedVoucherCodes.value = _appliedVoucherCodes.value + code
+            _voucherCode.value = ""
+        }
+    }
+
+    private fun onRemoveAppliedVoucher(index: Int) {
+        if (index in _appliedVoucherCodes.value.indices) {
+            _appliedVoucherCodes.value = _appliedVoucherCodes.value.toMutableList().apply {
+                removeAt(index)
+            }
+        }
     }
 
     private fun onAddToCart(event: OnAddToCart) {
@@ -828,6 +875,20 @@ class CashierViewModel @Inject constructor(
             .filter { it !is Resource.Loading }
             .lastOrNull()
 
+        val cachedVouchers = storeStockUseCase
+            .getCachedVouchers(tenantId, storeId)
+            .filter { it !is Resource.Loading }
+            .lastOrNull()
+        when (cachedVouchers) {
+            is Resource.Success -> _vouchers.value = cachedVouchers.data?.map { it.toVoucher() } ?: emptyList()
+            is Resource.Error -> {
+                onError(cachedVouchers.message ?: "[Unknown error] while getting cached vouchers")
+                return emptyList()
+            }
+
+            else -> Unit
+        }
+
         return when (cacheResult) {
             is Resource.Success -> cacheResult.data?.map { it.toCashierItem() } ?: emptyList()
             is Resource.Error -> {
@@ -921,8 +982,9 @@ class CashierViewModel @Inject constructor(
                         return@onEach
                     }
 
-                    _cashierItems.value = data
-                    _categories.value = buildCategoryMap(data, tenantId)
+                    _cashierItems.value = data.cashierData
+                    _vouchers.value = data.vouchers.map { it.toDomain() }
+                    _categories.value = buildCategoryMap(data.cashierData, tenantId)
                     _state.value = StateStatus()
 
                     // Save metada to cache

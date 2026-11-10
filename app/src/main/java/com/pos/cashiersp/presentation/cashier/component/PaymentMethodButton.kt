@@ -45,6 +45,7 @@ fun PaymentMethodButton(
     active: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    trailingAction: (@Composable () -> Unit)? = null,
     icon: @Composable () -> Unit,
 ) {
     // Column will make text in the bottom middle
@@ -68,23 +69,43 @@ fun PaymentMethodButton(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp),
             ) {
-                icon()
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    paymentMethodName,
-                    color = if (active) Primary else Secondary,
-                    fontSize = 12.sp,
-                    style = LocalTextStyle.current.merge(
-                        TextStyle(
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.Normal,
-                            lineHeightStyle = LineHeightStyle(
-                                alignment = LineHeightStyle.Alignment.Center,
-                                trim = LineHeightStyle.Trim.Both,
-                            )
+                if (trailingAction == null) {
+                    icon()
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        paymentMethodName,
+                        color = if (active) Primary else Secondary,
+                        fontSize = 12.sp,
+                        style = LocalTextStyle.current.merge(
+                            TextStyle(
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Normal,
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
                         ),
-                    ),
-                )
+                    )
+                } else {
+                    Text(
+                        paymentMethodName,
+                        color = if (active) Primary else Secondary,
+                        fontSize = 12.sp,
+                        style = LocalTextStyle.current.merge(
+                            TextStyle(
+                                textAlign = TextAlign.Start,
+                                fontWeight = FontWeight.Normal,
+                                lineHeightStyle = LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                )
+                            ),
+                        ),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    trailingAction()
+                }
 
             }
         }

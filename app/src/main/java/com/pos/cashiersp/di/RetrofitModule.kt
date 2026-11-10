@@ -22,6 +22,7 @@ import com.pos.cashiersp.use_case.CheckPaymentStatus
 import com.pos.cashiersp.use_case.FindTransactionsById
 import com.pos.cashiersp.use_case.GetAllStore
 import com.pos.cashiersp.use_case.GetCachedCashierItems
+import com.pos.cashiersp.use_case.GetCachedVouchers
 import com.pos.cashiersp.use_case.GetTenantMembers
 import com.pos.cashiersp.use_case.GetTenantWithUser
 import com.pos.cashiersp.use_case.IsLoggedIn
@@ -127,7 +128,7 @@ object RetrofitModule {
     @Provides
     @Singleton
     fun provideStoreStockRepository(api: CashierApi, db: CashierDB): StoreStockRepository {
-        return StoreStockRepositoryImpl(api, db.cashierItemDao)
+        return StoreStockRepositoryImpl(api, db.cashierItemDao, db.voucherDao)
     }
 
     @Provides
@@ -136,7 +137,8 @@ object RetrofitModule {
         return StoreStockUseCase(
             getV2 = StoreStockGetV2(repository),
             loadCashierData = LoadCashierData(repository),
-            getCachedCashierItems = GetCachedCashierItems(repository)
+            getCachedCashierItems = GetCachedCashierItems(repository),
+            getCachedVouchers = GetCachedVouchers(repository),
         )
     }
 

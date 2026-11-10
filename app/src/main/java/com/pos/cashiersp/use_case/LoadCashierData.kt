@@ -5,9 +5,10 @@ import com.google.gson.reflect.TypeToken
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.common.Resource
 import com.pos.cashiersp.model.dto.CashierDataDto
-import com.pos.cashiersp.model.dto.CashierItem
 import com.pos.cashiersp.model.dto.toDBEntity
 import com.pos.cashiersp.model.room_entity.CashierItemEntity
+import com.pos.cashiersp.model.room_entity.VoucherEntity
+import com.pos.cashiersp.model.room_entity.toDBEntity
 import com.pos.cashiersp.repository.StoreStockRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -15,9 +16,9 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class LoadCashierData(private val repository: StoreStockRepository) {
-    operator fun invoke(tenantId: Int, storeId: Int): Flow<Resource<List<CashierItem>>> = flow {
+    operator fun invoke(tenantId: Int, storeId: Int): Flow<Resource<CashierDataDto>> = flow {
         try {
-            emit(Resource.Loading<List<CashierItem>>())
+            emit(Resource.Loading<CashierDataDto>())
             if (tenantId < 1) {
                 emit(Resource.Error("Invalid tenant id value"))
                 return@flow
@@ -57,21 +58,21 @@ class LoadCashierData(private val repository: StoreStockRepository) {
             val cashierDataDto: CashierDataDto = successResponse.data
 
             try {
-                // Clear old data for this store
                 repository.deleteCashierItems(tenantId, storeId)
-
-                // Batch insert all items at once
                 val entities: List<CashierItemEntity> =
                     cashierDataDto.cashierData.map { it.toDBEntity(tenantId, storeId) }
                 repository.insertCashierItems(entities)
 
-                // println("Successfully cached ${entities.size} items")
+                repository.deleteVouchers(tenantId, storeId)
+                val vouchers: List<VoucherEntity> =
+                    cashierDataDto.vouchers.map { it.toDBEntity(tenantId, storeId) }
+                repository.insertVouchers(vouchers)
             } catch (dbError: Exception) {
-                println("Failed to cache items: ${dbError.message}")
+                println("Failed to cache cashier data: ${dbError.message}")
                 // Don't fail the whole operation if caching fails
             }
 
-            emit(Resource.Success<List<CashierItem>>(cashierDataDto.cashierData))
+            emit(Resource.Success(cashierDataDto))
         } catch (e: HttpException) {
             emit(Resource.Error(e.localizedMessage ?: "[INTERNAL ERROR] An unexpected error occurred"))
         } catch (e: IOException) {
