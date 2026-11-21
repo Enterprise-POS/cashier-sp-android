@@ -176,8 +176,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel, is
     val status: PaymentStatus = sale.paymentStatus
     val isNegativeOutcome = status in NEGATIVE_OUTCOMES
 
-    // A bit save performance
-    val formattedSubtotal = sale.subtotal.toRupiah()
+    val formattedTotalAmount = sale.totalAmount.toRupiah()
 
     Box(
         modifier = Modifier.fillMaxWidth()
@@ -271,11 +270,11 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel, is
                         ) {
                             TextWithNoPadding(
                                 // Muted for failed/cancelled/expired so it doesn't read as "money earned"
-                                text = formattedSubtotal,
+                                text = formattedTotalAmount,
                                 color = if (isNegativeOutcome) Gray400 else Primary,
                                 fontSize = when {
                                     isExpanded -> 20.sp
-                                    formattedSubtotal.length > 14 -> 14.sp
+                                    formattedTotalAmount.length > 14 -> 14.sp
                                     else -> 16.sp
                                 },
                                 fontWeight = FontWeight.SemiBold,
@@ -292,7 +291,7 @@ private fun SaleCard(sale: OrderItem, viewModel: TransactionHistoryViewModel, is
                             modifier = Modifier.size(20.dp)
                         )
 
-                        // Place here so the drop down will render at the right
+                        // Place here so the drop-down will render at the right
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },

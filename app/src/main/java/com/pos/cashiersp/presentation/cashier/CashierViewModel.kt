@@ -63,7 +63,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.ParsePosition
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -124,6 +127,12 @@ class CashierViewModel @Inject constructor(
 
     private val _appliedVoucherCodes = mutableStateOf<List<String>>(emptyList())
     val appliedVoucherCodes: State<List<String>> = _appliedVoucherCodes
+    val appliedVoucherDiscountAmount: Long
+        get() = calculateAppliedVoucherDiscount(
+            _vouchers.value,
+            _appliedVoucherCodes.value,
+            cartVoucherSubtotal()
+        ) ?: 0L
 
     private val _categories = mutableStateOf<Map<Int, Category>>(emptyMap())
     val categories: State<Map<Int, Category>> = _categories
@@ -262,6 +271,7 @@ class CashierViewModel @Inject constructor(
     private fun onDeleteAllCartItem() {
         _transactionId.value = ""
         _cart.value = mapOf()
+        _appliedVoucherCodes.value = emptyList()
         onEvent(CashierEvent.OnToggleInfoBtn(false))
     }
 
@@ -291,10 +301,34 @@ class CashierViewModel @Inject constructor(
 
     private fun onAddVoucher() {
         val code = _voucherCode.value.trim()
-        if (code.isNotEmpty()) {
-            _appliedVoucherCodes.value = _appliedVoucherCodes.value + code
-            _voucherCode.value = ""
+        if (code.isEmpty()) return
+
+        val voucher = _vouchers.value.firstOrNull { it.code.equals(code, ignoreCase = true) }
+            ?: return showWarning("Voucher code not found")
+        if (voucher.voucherType == VoucherType.ITEM_QUANTITIES) {
+            return showWarning("Item-quantity vouchers are not supported")
         }
+        if (_appliedVoucherCodes.value.any { it.equals(voucher.code, ignoreCase = true) }) {
+            return showWarning("Voucher is already applied")
+        }
+        if (voucher.voucherType == VoucherType.ITEM_COMBINATIONS &&
+            !voucher.hasRequiredItemCombination(expandedCartItemIds())
+        ) {
+            return showWarning("Cart does not contain the required items for voucher ${voucher.code}")
+        }
+
+        val codes = _appliedVoucherCodes.value + voucher.code
+        val discountAmount = calculateAppliedVoucherDiscount(
+            _vouchers.value,
+            codes,
+            cartVoucherSubtotal()
+        ) ?: return showWarning("Unable to calculate this voucher discount")
+        if (cartSubtotal() - discountAmount < 0) {
+            return showWarning("Voucher discount cannot exceed the cart total")
+        }
+
+        _appliedVoucherCodes.value = codes
+        _voucherCode.value = ""
     }
 
     private fun onRemoveAppliedVoucher(index: Int) {
@@ -405,12 +439,36 @@ class CashierViewModel @Inject constructor(
             return showWarning("Select at least 1 item / product before make transaction")
         }
 
+        val cartItemIds = expandedCartItemIds()
+        val now = System.currentTimeMillis()
+        for (code in _appliedVoucherCodes.value) {
+            val voucher = _vouchers.value.firstOrNull { it.code.equals(code, ignoreCase = true) }
+            if (voucher == null) {
+                isProcessingTransaction.set(false)
+                return showWarning("Applied voucher $code is no longer available")
+            }
+            if (voucher.voucherType == VoucherType.ITEM_QUANTITIES) {
+                isProcessingTransaction.set(false)
+                return showWarning("Item-quantity vouchers are not supported")
+            }
+            val dateError = validateVoucherDates(voucher, now)
+            if (dateError != null) {
+                isProcessingTransaction.set(false)
+                return showWarning(dateError)
+            }
+            if (voucher.voucherType == VoucherType.ITEM_COMBINATIONS &&
+                !voucher.hasRequiredItemCombination(cartItemIds)
+            ) {
+                isProcessingTransaction.set(false)
+                return showWarning("Cart does not contain the required items for voucher ${voucher.code}")
+            }
+        }
+
         val paymentMethod = _selectedPaymentMethod.value
 
         // Build order once
         var subTotal = 0L
         var totalQuantity = 0
-        val discountAmount = 0L // TODO
 
         val items = mutableListOf<dtoItem>()
 
@@ -430,17 +488,33 @@ class CashierViewModel @Inject constructor(
             subTotal += lineTotal
             totalQuantity += cartItem.quantity
 
-            items.add(
-                dtoItem(
-                    itemId = cartItem.item.itemId,
-                    quantity = cartItem.quantity,
-                    storePriceSnapshot = cartItem.storeStock.price,
-                    discountAmount = 0,
-                    totalAmount = lineTotal.toInt(),
-                    itemNameSnapshot = cartItem.item.itemName,
-                    basePriceSnapshot = cartItem.item.basePrice,
+            repeat(cartItem.quantity) {
+                items.add(
+                    dtoItem(
+                        itemId = cartItem.item.itemId,
+                        quantity = 1,
+                        storePriceSnapshot = cartItem.storeStock.price,
+                        discountAmount = 0,
+                        totalAmount = cartItem.storeStock.price,
+                        itemNameSnapshot = cartItem.item.itemName,
+                        basePriceSnapshot = cartItem.item.basePrice,
+                    )
                 )
-            )
+            }
+        }
+
+        val discountAmount = calculateAppliedVoucherDiscount(
+            _vouchers.value,
+            _appliedVoucherCodes.value,
+            cartVoucherSubtotal()
+        )
+        if (discountAmount == null) {
+            isProcessingTransaction.set(false)
+            return showWarning("Unable to calculate the applied voucher discounts")
+        }
+        if (subTotal - discountAmount < 0) {
+            isProcessingTransaction.set(false)
+            return showWarning("Voucher discounts cannot exceed the cart total")
         }
 
         val totalAmount = subTotal - discountAmount
@@ -489,7 +563,8 @@ class CashierViewModel @Inject constructor(
                     tenantId = _tenantId.intValue,
                     storeId = _storeId.intValue,
                     userId = _staffId.intValue,
-                    paymentMethod = paymentMethod
+                    paymentMethod = paymentMethod,
+                    applyVouchers = _appliedVoucherCodes.value
                 )
 
                 _transactionState.value =
@@ -512,6 +587,7 @@ class CashierViewModel @Inject constructor(
                     storeId = _storeId.intValue,
                     userId = _staffId.intValue,
                     paymentMethod = paymentMethod,
+                    applyVouchers = _appliedVoucherCodes.value,
                     transactionId = randomUUID
                 )
 
@@ -532,7 +608,8 @@ class CashierViewModel @Inject constructor(
                     tenantId = _tenantId.intValue,
                     storeId = _storeId.intValue,
                     userId = _staffId.intValue,
-                    paymentMethod = paymentMethod
+                    paymentMethod = paymentMethod,
+                    applyVouchers = _appliedVoucherCodes.value
                 )
 
                 _transactionState.value =
@@ -605,6 +682,7 @@ class CashierViewModel @Inject constructor(
 
                     // Reset cart and payment input
                     _cart.value = emptyMap()
+                    _appliedVoucherCodes.value = emptyList()
                     _inpCashPaymentMethod.value = InpTextFieldState()
                 }
             }
@@ -757,16 +835,7 @@ class CashierViewModel @Inject constructor(
                 _inpCashPaymentMethod.value.copy(text = "100000")
 
             QuickSelectAmount.EXACT -> {
-                val subTotal =
-                    _cart.value.entries.fold(0) { acc, (_, cartItem) ->
-                        acc + (cartItem.storeStock.price * cartItem.quantity)
-                    }
-
-                // Feature for sumDiscount (not implemented)
-                val sumDiscount = 0
-
-                val total = subTotal + sumDiscount
-
+                val total = cartSubtotal() - appliedVoucherDiscountAmount
                 _inpCashPaymentMethod.value = _inpCashPaymentMethod.value.copy(text = total.toString())
             }
         }
@@ -1001,6 +1070,44 @@ class CashierViewModel @Inject constructor(
     }
 
     // Helpers
+    private fun cartSubtotal(): Long =
+        _cart.value.values.sumOf { it.storeStock.price.toLong() * it.quantity }
+
+    private fun expandedCartItemIds(): List<Int> =
+        _cart.value.values.flatMap { cartItem ->
+            List(cartItem.quantity) { cartItem.item.itemId }
+        }
+
+    private fun cartVoucherSubtotal(): Long =
+        _cart.value.values.sumOf { it.item.basePrice.toLong() * it.quantity }
+
+    private fun validateVoucherDates(voucher: Voucher, now: Long): String? {
+        voucher.startAt?.let { startAt ->
+            val start = parseVoucherDate(startAt)
+                ?: return "Voucher ${voucher.code} has an invalid start date"
+            if (now < start) return "Voucher ${voucher.code} is not active yet"
+        }
+        voucher.endAt?.let { endAt ->
+            val end = parseVoucherDate(endAt)
+                ?: return "Voucher ${voucher.code} has an invalid end date"
+            if (now > end) return "Voucher ${voucher.code} has expired"
+        }
+        return null
+    }
+
+    private fun parseVoucherDate(value: String): Long? {
+        val normalized = value
+            .replace(Regex("(\\.\\d{3})\\d+"), "$1")
+            .replace(Regex("([+-]\\d{2}):(\\d{2})$"), "$1$2")
+            .replace(Regex("Z$"), "+0000")
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US).apply {
+            isLenient = false
+        }
+        val position = ParsePosition(0)
+        val parsed = formatter.parse(normalized, position) ?: return null
+        return parsed.time.takeIf { position.index == normalized.length }
+    }
+
     private fun saveCacheMetadata(tenantId: Int, storeId: Int) {
         val lastUpdated = Date().time
         _lastUpdated.longValue = lastUpdated

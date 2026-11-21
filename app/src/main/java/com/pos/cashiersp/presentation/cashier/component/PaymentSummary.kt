@@ -113,16 +113,15 @@ fun PaymentSummary(
     val isVoucherPickerOpen = viewModel.isVoucherPickerOpen.value
 
 
-    // Feature for sumDiscount (not implemented)
-    val sumDiscount: Float = 0f
+    val sumDiscount = viewModel.appliedVoucherDiscountAmount
 
     val subTotal = remember(cart) {
-        cart.entries.fold(0) { acc, (_, cartItem) ->
-            acc + (cartItem.storeStock.price * cartItem.quantity)
+        cart.entries.fold(0L) { acc, (_, cartItem) ->
+            acc + (cartItem.storeStock.price.toLong() * cartItem.quantity)
         }
     }
 
-    val total = subTotal + sumDiscount
+    val total = subTotal - sumDiscount
 
     Column(
         modifier = modifier
@@ -501,7 +500,9 @@ fun PaymentSummary(
                             ),
                         )
                         Text(
-                            if (inpCashPaymentMethod.text.isNotEmpty()) (inpCashPaymentMethod.text.toInt() - subTotal).toRupiah() else "Rp 0",
+                            if (inpCashPaymentMethod.text.isNotEmpty()) {
+                                ((inpCashPaymentMethod.text.toLongOrNull() ?: 0L) - total).toRupiah()
+                            } else 0.toRupiah(),
                             color = Secondary,
                             fontSize = 14.sp,
                             style = TextStyle(

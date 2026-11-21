@@ -23,6 +23,7 @@ class Transactions(private val repository: OrderItemRepository) {
             "total_amount":    3000,
             "discount_amount": 0,
             "sub_total":       3000,
+            "apply_vouchers":  [],
 
             "items": [
                 {

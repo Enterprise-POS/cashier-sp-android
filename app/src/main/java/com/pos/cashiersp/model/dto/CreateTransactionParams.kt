@@ -33,6 +33,8 @@ data class CreateTransactionParams(
 
     @SerializedName("payment_type")
     val paymentMethod: PaymentMethod,
+    @SerializedName("apply_vouchers")
+    val applyVouchers: List<String>,
     @SerializedName("transaction_id")
     val transactionId: String = ""
 )
