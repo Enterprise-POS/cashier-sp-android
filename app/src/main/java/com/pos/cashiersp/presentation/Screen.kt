@@ -14,6 +14,7 @@ object Screen {
     const val INVOICE_DETAIL = "Invoice detail"
     const val SPLASH = "Splash"
     const val ITEM_SALES_LOG = "Item sales log"
+    const val EXPENSES = "Expenses"
 
     // Helper route
     // A route that required id to navigate.
