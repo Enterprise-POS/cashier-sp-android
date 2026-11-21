@@ -4,4 +4,5 @@ data class StoreStockUseCase(
     val getV2: StoreStockGetV2,
     val loadCashierData: LoadCashierData,
     val getCachedCashierItems: GetCachedCashierItems,
+    val getCachedVouchers: GetCachedVouchers,
 )

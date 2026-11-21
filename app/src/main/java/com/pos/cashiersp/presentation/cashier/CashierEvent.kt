@@ -1,6 +1,8 @@
 package com.pos.cashiersp.presentation.cashier
 
 import com.pos.cashiersp.model.dto.CashierItem
+import com.pos.cashiersp.model.domain.Voucher
+import com.pos.cashiersp.model.dto.VoucherType
 import com.pos.cashiersp.presentation.transaction_history.TransactionHistoryEvent
 import com.pos.cashiersp.presentation.util.KeypadNumberElement
 import com.pos.cashiersp.presentation.util.PaymentMethod
@@ -38,6 +40,14 @@ sealed class CashierEvent {
     object OnDeleteAllCartItem : CashierEvent()
 
     object OnToggleCategoriesExpanded : CashierEvent()
+
+    object OnOpenVoucherPicker : CashierEvent()
+    object OnDismissVoucherPicker : CashierEvent()
+    data class OnSelectVoucherCategory(val voucherType: VoucherType?) : CashierEvent()
+    data class OnSelectVoucher(val voucher: Voucher) : CashierEvent()
+    data class OnVoucherCodeChange(val value: String) : CashierEvent()
+    object OnAddVoucher : CashierEvent()
+    data class OnRemoveAppliedVoucher(val index: Int) : CashierEvent()
 
     object OnDismissPaymentGatewayDialog : CashierEvent()
 

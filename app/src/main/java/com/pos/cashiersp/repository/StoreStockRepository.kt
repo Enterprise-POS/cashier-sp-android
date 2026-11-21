@@ -6,6 +6,7 @@ import com.pos.cashiersp.model.dto.CreateTransactionParams
 import com.pos.cashiersp.model.dto.StoreStockGetV2Dto
 import com.pos.cashiersp.model.dto.TransactionResponse
 import com.pos.cashiersp.model.room_entity.CashierItemEntity
+import com.pos.cashiersp.model.room_entity.VoucherEntity
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Response
 
@@ -23,4 +24,8 @@ interface StoreStockRepository {
     fun getCachedCashierItems(tenantId: Int, storeId: Int): Flow<List<CashierItemEntity>>
     suspend fun insertCashierItems(cashierItemEntities: List<CashierItemEntity>)
     suspend fun deleteCashierItems(tenantId: Int, storeId: Int)
+
+    fun getCachedVouchers(tenantId: Int, storeId: Int): Flow<List<VoucherEntity>>
+    suspend fun insertVouchers(vouchers: List<VoucherEntity>)
+    suspend fun deleteVouchers(tenantId: Int, storeId: Int)
 }

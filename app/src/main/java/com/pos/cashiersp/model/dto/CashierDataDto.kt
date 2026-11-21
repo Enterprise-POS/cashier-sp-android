@@ -8,5 +8,7 @@ import kotlinx.serialization.Serializable
 data class CashierDataDto(
     // Maybe it could delete this file and only load List of CashierItem
     @SerializedName("cashier_data")
-    val cashierData: List<CashierItem>
+    val cashierData: List<CashierItem>,
+    @SerializedName("vouchers")
+    val vouchers: List<VoucherDto> = emptyList(),
 )
