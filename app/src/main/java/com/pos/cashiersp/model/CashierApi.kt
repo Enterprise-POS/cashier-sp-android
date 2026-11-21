@@ -3,6 +3,16 @@ package com.pos.cashiersp.model
 import com.pos.cashiersp.common.HTTPStatus
 import com.pos.cashiersp.model.dto.CashierDataDto
 import com.pos.cashiersp.model.dto.CreateTransactionParams
+import com.pos.cashiersp.model.dto.CreatedExpenseCategoryDto
+import com.pos.cashiersp.model.dto.CreatedExpenseDto
+import com.pos.cashiersp.model.dto.EditedExpenseCategoryDto
+import com.pos.cashiersp.model.dto.EditedExpenseDto
+import com.pos.cashiersp.model.dto.ExpenseCategoriesDto
+import com.pos.cashiersp.model.dto.SearchExpensesDto
+import com.pos.cashiersp.model.dto.request_body.ExpenseCategoryRequestBody
+import com.pos.cashiersp.model.dto.request_body.ExpenseIdBody
+import com.pos.cashiersp.model.dto.request_body.ExpenseRequestBody
+import com.pos.cashiersp.model.dto.request_body.SearchExpensesRequestBody
 import com.pos.cashiersp.model.dto.FindTransactionsByIdDto
 import com.pos.cashiersp.model.dto.GetAllStoreDto
 import com.pos.cashiersp.model.dto.GetTenantWithUserDto
@@ -24,8 +34,10 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -114,4 +126,53 @@ interface CashierApi {
         @Body purchasedItemListLogsRequestBody: PurchasedItemListLogsRequestBody,
         @Path("tenantId") tenantId: Int,
     ): Response<HTTPStatus.SuccessResponse<PurchasedItemListLogsResponse>>
+
+    // Expenses
+    @POST("expenses/search/{tenantId}")
+    suspend fun searchExpenses(
+        @Path("tenantId") tenantId: Int,
+        @Body body: SearchExpensesRequestBody,
+    ): Response<HTTPStatus.SuccessResponse<SearchExpensesDto>>
+
+    @POST("expenses/{tenantId}")
+    suspend fun createExpense(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseRequestBody,
+    ): Response<HTTPStatus.SuccessResponse<CreatedExpenseDto>>
+
+    @PUT("expenses/{tenantId}")
+    suspend fun editExpense(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseRequestBody,
+    ): Response<HTTPStatus.SuccessResponse<EditedExpenseDto>>
+
+    // DELETE with a JSON body (same as the web), returns 204
+    @HTTP(method = "DELETE", path = "expenses/{tenantId}", hasBody = true)
+    suspend fun deleteExpense(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseIdBody,
+    ): Response<Unit>
+
+    @GET("expense_categories/{tenantId}")
+    suspend fun getExpenseCategories(
+        @Path("tenantId") tenantId: Int,
+    ): Response<HTTPStatus.SuccessResponse<ExpenseCategoriesDto>>
+
+    @POST("expense_categories/{tenantId}")
+    suspend fun createExpenseCategory(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseCategoryRequestBody,
+    ): Response<HTTPStatus.SuccessResponse<CreatedExpenseCategoryDto>>
+
+    @PUT("expense_categories/{tenantId}")
+    suspend fun editExpenseCategory(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseCategoryRequestBody,
+    ): Response<HTTPStatus.SuccessResponse<EditedExpenseCategoryDto>>
+
+    @HTTP(method = "DELETE", path = "expense_categories/{tenantId}", hasBody = true)
+    suspend fun deleteExpenseCategory(
+        @Path("tenantId") tenantId: Int,
+        @Body body: ExpenseCategoryRequestBody,
+    ): Response<Unit>
 }

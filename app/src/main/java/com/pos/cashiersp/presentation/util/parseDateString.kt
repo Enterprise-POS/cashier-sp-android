@@ -6,6 +6,7 @@ import java.util.Locale
 
 fun parseDateString(input: String): Calendar {
     val normalized = input
+        .replace(Regex("(T\\d{2}:\\d{2}:\\d{2})(?=[Z+-])"), "$1.000") // no fraction → .000 (e.g. expense_date)
         .replace(Regex("(\\.\\d{3})\\d+"), "$1")          // microseconds → milliseconds
         .replace(Regex("([+-]\\d{2}):(\\d{2})$"), "$1$2") // +09:00 → +0900
         .replace(Regex("Z$"), "+0000")                     // Z → +0000
@@ -14,6 +15,7 @@ fun parseDateString(input: String): Calendar {
     // "2026-03-31T08:48:47.179Z"       → "2026-03-31T08:48:47.179+0000"
     // "2026-03-31T17:48:47.179+09:00"  → "2026-03-31T17:48:47.179+0900"
     // "2026-03-31T08:48:47.179418Z"    → "2026-03-31T08:48:47.179+0000"
+    // "2026-03-31T17:48:47+09:00"      → "2026-03-31T17:48:47.000+0900"
 
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
     val date = sdf.parse(normalized)!! // ✅ use normalized, not input
