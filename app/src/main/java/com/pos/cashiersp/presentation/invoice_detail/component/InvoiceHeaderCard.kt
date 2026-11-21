@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,7 +61,7 @@ fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     TextWithNoPadding(
                         text = "#${orderItem.id}",
                         fontSize = 18.sp,
@@ -69,9 +70,12 @@ fun InvoiceHeaderCard(viewModel: InvoiceDetailViewModel = hiltViewModel()) {
                     )
                     Spacer(Modifier.height(2.dp))
                     TextWithNoPadding(
-                        text = "${orderItem.storeName} · Store #${orderItem.storeId}",
+                        text = orderItem.storeName,
                         fontSize = 12.sp,
-                        color = Gray400
+                        color = Gray400,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
